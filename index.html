@@ -5,23 +5,55 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Build.Connect</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
+
   <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
 
-  <div id="videoModal" class="modal hidden">
+  <!-- Overlay (mobile) -->
+  <div id="sidebarOverlay" class="sidebar-overlay hidden"></div>
+
+  <!-- Modal Vídeo + Questionário -->
+  <div id="videoModal" class="modal hidden" role="dialog" aria-modal="true">
     <div class="modal-content">
-      <button class="close-modal" onclick="App.closeVideo()"><i data-lucide="x"></i></button>
+      <button class="close-modal" onclick="App.closeVideo()" aria-label="Fechar vídeo">
+        <i data-lucide="x"></i>
+      </button>
+
       <div class="video-container-modal">
         <iframe id="videoPlayer" src="" allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
           allowfullscreen></iframe>
       </div>
+
+      <!-- Painel Questionário -->
+      <div id="quizPanel" class="quiz-panel hidden">
+        <div class="quiz-head">
+          <div>
+            <div class="quiz-title">Questionário</div>
+            <div class="quiz-sub" id="quizSub">Responda abaixo para concluir.</div>
+          </div>
+          <div class="quiz-pill" id="quizStatusPill">Aguardando</div>
+        </div>
+
+        <div id="quizBody" class="quiz-body"></div>
+
+        <div class="quiz-actions">
+          <button id="quizSubmitBtn" class="btn-primary">
+            <i data-lucide="send"></i>
+            <span>Enviar respostas</span>
+          </button>
+        </div>
+
+        <div id="quizMsg" class="quiz-msg hidden"></div>
+      </div>
     </div>
   </div>
 
+  <!-- Login -->
   <div id="loginScreen" class="login-overlay">
     <div class="login-box card-login animate-in">
       <div class="login-brand">
@@ -63,9 +95,7 @@
     </div>
   </div>
 
-  <!-- ✅ Overlay para fechar sidebar no mobile -->
-  <div id="sidebarOverlay" class="sidebar-overlay hidden"></div>
-
+  <!-- App -->
   <div class="app hidden" id="appMain">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-top">
@@ -115,8 +145,8 @@
       </div>
 
       <div class="sidebar-footer">
-        <button id="themeToggle" class="footer-btn"><i data-lucide="sun"></i></button>
-        <button id="btnLogout" class="footer-btn logout"><i data-lucide="log-out"></i></button>
+        <button id="themeToggle" class="footer-btn" aria-label="Alternar tema"><i data-lucide="moon"></i></button>
+        <button id="btnLogout" class="footer-btn logout" aria-label="Sair"><i data-lucide="log-out"></i></button>
       </div>
     </aside>
 
@@ -124,10 +154,10 @@
       <header class="header animate-in">
         <div class="header-content">
           <div class="header-left">
-            <button id="mobileMenuBtn" class="footer-btn mobile-only">
+            <button id="mobileMenuBtn" class="footer-btn mobile-only" aria-label="Abrir menu">
               <i data-lucide="menu"></i>
             </button>
-            <button id="btnBack" class="footer-btn hidden"><i data-lucide="arrow-left"></i></button>
+            <button id="btnBack" class="footer-btn hidden" aria-label="Voltar"><i data-lucide="arrow-left"></i></button>
             <div class="titles">
               <h1 id="setorTitulo">Bem-vindo</h1>
               <p id="setorDescricao">Selecione um setor para iniciar.</p>
@@ -136,7 +166,7 @@
 
           <div id="searchWrapper" class="search-container hidden">
             <i data-lucide="search" class="search-icon"></i>
-            <input type="text" id="searchInput" placeholder="Pesquisar arquivos...">
+            <input type="text" id="searchInput" placeholder="Pesquisar...">
             <button id="clearSearch" class="hidden"
               style="background:transparent; border:none; cursor:pointer; color:var(--text-muted);">
               <i data-lucide="x" style="width:16px;"></i>
@@ -145,25 +175,7 @@
         </div>
       </header>
 
-      <section class="cards hidden animate-in" id="cardsContainer">
-        <div class="card documentos" onclick="App.openDrive('documentos')">
-          <div class="card-icon"><i data-lucide="file-text"></i></div>
-          <h3>Documentos</h3>
-          <p>Políticas e registros oficiais.</p>
-        </div>
-
-        <div class="card instrucoes" onclick="App.openDrive('instrucoes')">
-          <div class="card-icon"><i data-lucide="book-open"></i></div>
-          <h3>Instruções de Trabalho</h3>
-          <p>Padrões operacionais.</p>
-        </div>
-
-        <div class="card videos" onclick="App.openVideos()">
-          <div class="card-icon"><i data-lucide="video"></i></div>
-          <h3>Vídeos</h3>
-          <p>Treinamentos e conteúdos do setor.</p>
-        </div>
-      </section>
+      <section class="cards hidden animate-in" id="cardsContainer"></section>
 
       <div id="loadingIndicator" class="hidden" style="text-align: center; padding: 40px; color: var(--text-muted);">
         <p>Buscando conteúdo...</p>
