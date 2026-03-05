@@ -37,6 +37,11 @@ body {
   transition: background 0.3s ease;
 }
 
+/* ✅ trava scroll quando menu mobile está aberto */
+body.sidebar-open {
+  overflow: hidden;
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -309,6 +314,15 @@ body {
   border-color: var(--primary);
 }
 
+/* ✅ Overlay para fechar sidebar no mobile */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+  z-index: 90;
+}
+
 .login-overlay {
   position: fixed;
   inset: 0;
@@ -361,6 +375,7 @@ body {
   margin-bottom: -4px;
 }
 
+/* ✅ FIX: impede botão “olho” de estourar no mobile */
 .login-input-wrap {
   display: flex;
   align-items: center;
@@ -370,6 +385,7 @@ body {
   border-radius: 14px;
   padding: 0 12px;
   transition: all 0.2s ease;
+  overflow: hidden;
 }
 
 .login-input-wrap:focus-within {
@@ -382,10 +398,12 @@ body {
   height: 18px;
   color: var(--text-muted);
   opacity: 0.9;
+  flex: 0 0 auto;
 }
 
 #userIdInput {
   flex: 1;
+  min-width: 0;
   border: none;
   outline: none;
   background: transparent;
@@ -406,6 +424,7 @@ body {
   justify-content: center;
   color: var(--text-muted);
   transition: all 0.2s ease;
+  flex: 0 0 auto;
 }
 
 .icon-btn:hover {
@@ -574,6 +593,7 @@ body {
   }
 }
 
+/* ✅ Mobile sidebar: abre e fecha corretamente com overlay */
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
@@ -581,6 +601,7 @@ body {
     top: 0;
     height: 100%;
     transition: left 0.3s ease;
+    z-index: 100;
   }
 
   .sidebar.open {
@@ -593,6 +614,23 @@ body {
 
   .cards {
     grid-template-columns: 1fr;
+  }
+
+  /* reduz espaçamento no mobile */
+  .main {
+    padding: 22px 18px;
+  }
+
+  .header-content {
+    margin-bottom: 28px;
+  }
+
+  .card h3 {
+    font-size: 20px;
+  }
+
+  .card p {
+    font-size: 15px;
   }
 }
 

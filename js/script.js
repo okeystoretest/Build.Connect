@@ -14,7 +14,6 @@ const App = {
   YT_API_KEY: "AIzaSyAgQfAHlLoRzuw11gYq9LrhzYlrqPOa85k",
 
   DRIVE_FOLDERS: {
-
     "Almoxarifado": {
       documentos: "1FKaYX29IkT00xfznPulppoN4XVwQe-qr",
       instrucoes: "1oboyv_pgo4sim9pbwkbdJm7-615moyzn"
@@ -61,12 +60,17 @@ const App = {
         instrucoes: "ID_INST_ACABAMENTO"
       }
     }
-
   },
 
   VIDEO_PLAYLISTS: {
     "Almoxarifado": { default: "PLxcB4sEuO-QT5eiWxacQXPJYsfm7lVWpx" },
-    "Produção": { "PCP": "PLxcB4sEuO-QTIZ7dzkBq1pkriiWIFwGwX", "Acabamento": "PLxcB4sEuO-QSojlXG8VcLf3j2bdVltG72", "Criação": "PLxcB4sEuO-QT-pma_THf3312Iydlnbre-", "Corte": "PLxcB4sEuO-QSPNsR8bECf7v72IsB8m1u2", default: "" },
+    "Produção": {
+      "PCP": "PLxcB4sEuO-QTIZ7dzkBq1pkriiWIFwGwX",
+      "Acabamento": "PLxcB4sEuO-QSojlXG8VcLf3j2bdVltG72",
+      "Criação": "PLxcB4sEuO-QT-pma_THf3312Iydlnbre-",
+      "Corte": "PLxcB4sEuO-QSPNsR8bECf7v72IsB8m1u2",
+      default: ""
+    },
     "Logística": { default: "PLxcB4sEuO-QSorbIBZ-1FTQ2HAZUPuOkv" },
     "Comercial": { default: "PLxcB4sEuO-QQ0eTd4mpNw7L8YwcvWiCdK" },
     "Financeiro": { default: "PLxcB4sEuO-QTp_xpe4i81NJWOPB2Hz-t2" },
@@ -74,7 +78,7 @@ const App = {
   },
 
   init() {
-
+    // Modo escuro por padrão
     document.body.classList.add('dark');
 
     const themeToggle = document.getElementById('themeToggle');
@@ -99,7 +103,6 @@ const App = {
       }
     }
   },
-
 
   normalizeSetores(valueOrArray) {
     if (Array.isArray(valueOrArray)) {
@@ -167,12 +170,7 @@ const App = {
           Array.isArray(data.setores) ? data.setores : data.setor
         );
 
-        const user = {
-          nome: data.nome,
-          setor: data.setor,
-          setores
-        };
-
+        const user = { nome: data.nome, setor: data.setor, setores };
         localStorage.setItem('bc_user', JSON.stringify(user));
         setTimeout(() => this.loginSuccess(user), 250);
       } else {
@@ -202,7 +200,6 @@ const App = {
     document.getElementById('setorTitulo').textContent = `Olá, ${user.nome}`;
 
     this.applyPermissions(user.setores || user.setor);
-
     lucide.createIcons();
     this.isLogging = false;
   },
@@ -240,8 +237,36 @@ const App = {
     });
   },
 
-  bindEvents() {
+  // ✅ Mobile sidebar controls
+  openSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (!sidebar || !overlay) return;
 
+    sidebar.classList.add('open');
+    overlay.classList.remove('hidden');
+    document.body.classList.add('sidebar-open');
+  },
+
+  closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (!sidebar || !overlay) return;
+
+    sidebar.classList.remove('open');
+    overlay.classList.add('hidden');
+    document.body.classList.remove('sidebar-open');
+  },
+
+  toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+
+    if (sidebar.classList.contains('open')) this.closeSidebar();
+    else this.openSidebar();
+  },
+
+  bindEvents() {
     const idInput = document.getElementById('userIdInput');
     const toggleBtn = document.getElementById('toggleIdVisibility');
 
@@ -330,14 +355,30 @@ const App = {
         const setor = btn.dataset.setor;
         const sub = btn.dataset.subsetor || null;
         if (setor) this.selectSetor(setor, sub);
+
+        // ✅ fecha sidebar no mobile após escolher item
+        if (window.matchMedia('(max-width: 768px)').matches) {
+          this.closeSidebar();
+        }
       };
     });
 
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    const sidebar = document.getElementById('sidebar');
-    if (mobileMenuBtn && sidebar) {
-      mobileMenuBtn.onclick = () => sidebar.classList.toggle('open');
+    if (mobileMenuBtn) {
+      mobileMenuBtn.onclick = () => this.toggleSidebar();
     }
+
+    const overlay = document.getElementById('sidebarOverlay');
+    if (overlay) {
+      overlay.onclick = () => this.closeSidebar();
+    }
+
+    // ESC fecha sidebar
+    document.addEventListener('keydown', (e) => {
+      if (e.key === "Escape") {
+        this.closeSidebar();
+      }
+    });
   },
 
   selectSetor(setor, sub = null) {
@@ -370,7 +411,7 @@ const App = {
 
     const savedUser = JSON.parse(localStorage.getItem('bc_user'));
     document.getElementById('setorTitulo').textContent = `Olá, ${savedUser ? savedUser.nome : 'Bem-vindo'}`;
-    document.getElementById('setorDescricao').textContent = "Selecione uma categoria para iniciar.";
+    document.getElementById('setorDescricao').textContent = "Selecione um setor para iniciar.";
   },
 
   setHeaderSearchVisible(visible) {
@@ -417,6 +458,7 @@ const App = {
     } else {
       folderId = this.DRIVE_FOLDERS[this.currentSetor]?.[type];
     }
+
     if (!folderId) {
       listView.innerHTML = `<p style="padding:20px;color:var(--text-muted);">Pasta não configurada.</p>`;
       return;
@@ -580,7 +622,6 @@ const App = {
   renderItems() {
     const listView = document.getElementById('listView');
     const items = this.getFilteredSortedItems();
-
     const title = this.currentMode === "videos" ? "Vídeos" : "Arquivos";
 
     listView.innerHTML = `
