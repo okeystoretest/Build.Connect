@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Build.Connect</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+  <div id="videoModal" class="modal hidden">
+    <div class="modal-content">
+      <button class="close-modal" onclick="App.closeVideo()"><i data-lucide="x"></i></button>
+      <div class="video-container-modal">
+        <iframe id="videoPlayer" src="" allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+          allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+
+  <div id="loginScreen" class="login-overlay">
+    <div class="login-box card-login animate-in">
+      <div class="login-brand">
+        <div class="logo login-logo">
+          <span class="build">Build</span><span class="connect">.Connect</span>
+        </div>
+        <p class="login-subtitle">Acesse sua central de integração com segurança.</p>
+      </div>
+
+      <div class="input-group-login">
+        <label class="login-label" for="userIdInput">Seu ID</label>
+
+        <div class="login-input-wrap">
+          <i class="login-input-icon" data-lucide="badge-check"></i>
+          <input type="password" id="userIdInput" placeholder="Digite seu ID" autocomplete="off" inputmode="numeric">
+          <button id="toggleIdVisibility" class="icon-btn" type="button" title="Mostrar/ocultar">
+            <i data-lucide="eye"></i>
+          </button>
+        </div>
+
+        <button id="btnLogin" class="login-btn">
+          <span id="loginText">Entrar</span>
+          <span id="loginSpinner" class="spinner hidden"></span>
+        </button>
+
+        <p class="login-hint">
+          Dica: pressione <b>Enter</b> para entrar.
+        </p>
+      </div>
+
+      <div id="loginError" class="error-box hidden" role="alert" aria-live="polite">
+        <i data-lucide="alert-triangle"></i>
+        <span id="loginErrorText">ID não localizado na base de dados.</span>
+      </div>
+
+      <div class="login-footer">
+        <span class="login-footnote">© Build.Connect</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="app hidden" id="appMain">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <div class="logo"><span class="build">Build</span><span class="connect">.Connect</span></div>
+
+        <nav class="menu" id="sideNav">
+          <div class="menu-group" data-permission="PRODUÇÃO">
+            <button class="menu-item has-submenu" id="producaoBtn">
+              <i data-lucide="settings"></i><span>Produção</span>
+              <i class="arrow" data-lucide="chevron-down"></i>
+            </button>
+
+            <div class="submenu" id="producaoSubmenu">
+              <button class="submenu-item" data-setor="Produção" data-subsetor="Acabamento">
+                <i data-lucide="check-circle"></i><span>Acabamento</span>
+              </button>
+              <button class="submenu-item" data-setor="Produção" data-subsetor="Criação">
+                <i data-lucide="palette"></i><span>Criação</span>
+              </button>
+              <button class="submenu-item" data-setor="Produção" data-subsetor="Corte">
+                <i data-lucide="scissors"></i><span>Corte</span>
+              </button>
+              <button class="submenu-item" data-setor="Produção" data-subsetor="PCP">
+                <i data-lucide="calendar-check"></i><span>PCP</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="menu-separator" data-permission="ALL"></div>
+
+          <button class="menu-item" data-setor="Almoxarifado" data-permission="ALMOXARIFADO">
+            <i data-lucide="archive"></i><span>Almoxarifado</span>
+          </button>
+          <button class="menu-item" data-setor="Logística" data-permission="LOGÍSTICA">
+            <i data-lucide="truck"></i><span>Logística</span>
+          </button>
+          <button class="menu-item" data-setor="Comercial" data-permission="COMERCIAL">
+            <i data-lucide="tag"></i><span>Comercial</span>
+          </button>
+          <button class="menu-item" data-setor="Financeiro" data-permission="FINANCEIRO">
+            <i data-lucide="wallet"></i><span>Financeiro</span>
+          </button>
+          <button class="menu-item" data-setor="DHO" data-permission="DHO">
+            <i data-lucide="users"></i><span>DHO</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="sidebar-footer">
+        <button id="themeToggle" class="footer-btn"><i data-lucide="sun"></i></button>
+        <button id="btnLogout" class="footer-btn logout"><i data-lucide="log-out"></i></button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="header animate-in">
+        <div class="header-content">
+          <div class="header-left">
+            <button id="mobileMenuBtn" class="footer-btn mobile-only">
+              <i data-lucide="menu"></i>
+            </button>
+            <button id="btnBack" class="footer-btn hidden"><i data-lucide="arrow-left"></i></button>
+            <div class="titles">
+              <h1 id="setorTitulo">Bem-vindo</h1>
+              <p id="setorDescricao">Selecione um setor para iniciar.</p>
+            </div>
+          </div>
+
+          <div id="searchWrapper" class="search-container hidden">
+            <i data-lucide="search" class="search-icon"></i>
+            <input type="text" id="searchInput" placeholder="Pesquisar arquivos...">
+            <button id="clearSearch" class="hidden"
+              style="background:transparent; border:none; cursor:pointer; color:var(--text-muted);">
+              <i data-lucide="x" style="width:16px;"></i>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <section class="cards hidden animate-in" id="cardsContainer">
+        <div class="card documentos" onclick="App.openDrive('documentos')">
+          <div class="card-icon"><i data-lucide="file-text"></i></div>
+          <h3>Documentos</h3>
+          <p>Políticas e registros oficiais.</p>
+        </div>
+
+        <div class="card instrucoes" onclick="App.openDrive('instrucoes')">
+          <div class="card-icon"><i data-lucide="book-open"></i></div>
+          <h3>Instruções de Trabalho</h3>
+          <p>Padrões operacionais.</p>
+        </div>
+
+        <div class="card videos" onclick="App.openVideos()">
+          <div class="card-icon"><i data-lucide="video"></i></div>
+          <h3>Vídeos</h3>
+          <p>Treinamentos e conteúdos do setor.</p>
+        </div>
+      </section>
+
+      <div id="loadingIndicator" class="hidden" style="text-align: center; padding: 40px; color: var(--text-muted);">
+        <p>Buscando conteúdo...</p>
+      </div>
+
+      <section id="listView" class="list-view hidden animate-in"></section>
+    </main>
+  </div>
+
+  <script src="js/script.js"></script>
+</body>
+
+</html>
