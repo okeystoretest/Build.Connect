@@ -148,7 +148,7 @@ function getModuleFallbackMessage(moduleId) {
   switch (moduleId) {
     case 'documentos':
     case 'instrucoes-escritas':
-      return 'Não foi possível carregar os arquivos do Google Drive.';
+      return 'Não foi possível carregar os arquivos.';
     case 'instrucoes-video':
       return 'Não foi possível carregar os vídeos do YouTube.';
     default:
