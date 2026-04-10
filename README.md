@@ -59,7 +59,7 @@ A plataforma suporta navegação por setores como:
 - CSS3
 - JavaScript (ES6+)
 - Google Apps Script
-- 
+
 ## Arquitetura
 
 O projeto segue uma organização modular para facilitar manutenção, evolução e escalabilidade.
