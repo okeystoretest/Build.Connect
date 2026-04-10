@@ -91,6 +91,32 @@ export const DHO_SECTOR_CARDS = [
 ];
 
 
+
+const PRODUCTION_CHILD_IDS = ['criacao', 'pcp', 'almoxarifado', 'corte', 'acabamento', 'revisao', 'externo'];
+
+function normalizeSectorAccessKey(value) {
+  const normalizedValue = String(value || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+
+  if (!normalizedValue) {
+    return 'all';
+  }
+
+  if (normalizedValue === 'all' || normalizedValue === 'todos') {
+    return 'all';
+  }
+
+  return normalizedValue;
+}
+
+function isProductionChildAccess(accessKey) {
+  return PRODUCTION_CHILD_IDS.includes(accessKey);
+}
+
 export const NAVIGATION_ITEMS = [
   {
     id: 'inicio',
@@ -107,7 +133,7 @@ export const NAVIGATION_ITEMS = [
   {
     id: 'producao',
     label: 'Produção',
-    icon: 'cog',
+    icon: 'settings-2',
     metaLabel: 'Accordion de setores',
     description: 'Acesse os subsetores da Produção e encontre orientações para cada etapa do fluxo operacional.',
     children: [
@@ -141,6 +167,18 @@ export const NAVIGATION_ITEMS = [
         icon: 'wand-sparkles',
         description: 'Aprenda como o Acabamento organiza os processos finais e garante o padrão esperado antes da entrega.',
       },
+      {
+        id: 'revisao',
+        label: 'Revisão',
+        icon: 'search-check',
+        description: 'Acompanhe as orientações do setor de Revisão para conferir padrões, identificar ajustes e validar o que segue para a próxima etapa.',
+      },
+      {
+        id: 'externo',
+        label: 'Externo',
+        icon: 'globe',
+        description: 'Encontre os materiais do setor Externo para entender demandas enviadas a parceiros e o acompanhamento dessas etapas fora da operação interna.',
+      },
     ],
   },
   {
@@ -168,6 +206,61 @@ export const NAVIGATION_ITEMS = [
     description: 'Acompanhe os processos de desenvolvimento humano e organizacional, com materiais de apoio ao colaborador e à gestão.',
   },
 ];
+
+
+export function getNavigationItemsForAccess(sectorAccess) {
+  const accessKey = normalizeSectorAccessKey(sectorAccess);
+  const homeItem = NAVIGATION_ITEMS.find((item) => item.id === 'inicio');
+
+  if (accessKey === 'all') {
+    return NAVIGATION_ITEMS;
+  }
+
+  const baseItems = homeItem ? [homeItem] : [];
+
+  if (accessKey === 'producao') {
+    const productionItem = NAVIGATION_ITEMS.find((item) => item.id === 'producao');
+    return productionItem ? [...baseItems, productionItem] : baseItems;
+  }
+
+  if (isProductionChildAccess(accessKey)) {
+    const productionItem = NAVIGATION_ITEMS.find((item) => item.id === 'producao');
+
+    if (!productionItem) {
+      return baseItems;
+    }
+
+    const allowedChild = (productionItem.children || []).find((child) => child.id === accessKey);
+
+    if (!allowedChild) {
+      return baseItems;
+    }
+
+    return [
+      ...baseItems,
+      {
+        ...productionItem,
+        children: [allowedChild],
+      },
+    ];
+  }
+
+  const directItem = NAVIGATION_ITEMS.find((item) => item.id === accessKey);
+  return directItem ? [...baseItems, directItem] : baseItems;
+}
+
+export function shouldStartProductionExpandedForAccess(sectorAccess) {
+  const accessKey = normalizeSectorAccessKey(sectorAccess);
+  return accessKey === 'producao' || isProductionChildAccess(accessKey);
+}
+
+export function sanitizeActiveItemForNavigation(itemId, navigationItems) {
+  if (!itemId || isGroupItem(itemId) || !findItemById(itemId, navigationItems)) {
+    return 'inicio';
+  }
+
+  return itemId;
+}
 
 export function getCardsForSector(itemId) {
   if (isDhoSector(itemId)) {
@@ -228,12 +321,12 @@ export function isDhoSector(itemId) {
   return itemId === 'dho';
 }
 
-export function shouldRenderDefaultSectorCards(itemId) {
+export function shouldRenderDefaultSectorCards(itemId, items = NAVIGATION_ITEMS) {
   if (!itemId || isHomeItem(itemId) || isGroupItem(itemId)) {
     return false;
   }
 
-  return Boolean(findItemById(itemId));
+  return Boolean(findItemById(itemId, items));
 }
 
 export function getSectorBreadcrumb(item) {

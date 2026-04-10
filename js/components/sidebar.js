@@ -17,10 +17,11 @@ export function renderSidebar(rootElement, state, handlers, navigationItems, the
           class="sidebar-toggle"
           type="button"
           id="sidebar-toggle"
+          data-collapsed="${state.isSidebarCollapsed ? 'true' : 'false'}"
           aria-label="${state.isSidebarCollapsed ? 'Expandir sidebar' : 'Recolher sidebar'}"
           title="${state.isSidebarCollapsed ? 'Expandir sidebar' : 'Recolher sidebar'}"
         >
-          <i data-lucide="${state.isSidebarCollapsed ? 'chevron-right' : 'chevron-left'}"></i>
+          <i data-lucide="chevron-left"></i>
         </button>
       </div>
 

@@ -5,8 +5,8 @@ const MODULE_REQUEST_TIMEOUT_MS = 18000;
 const moduleCache = new Map();
 
 export const MODULE_SOURCE_LABELS = {
-  documentos: 'Dropbox',
-  'instrucoes-escritas': 'Dropbox',
+  documentos: 'Google Drive',
+  'instrucoes-escritas': 'Google Drive',
   'instrucoes-video': 'YouTube',
   avaliacao: 'Build.Connect',
   feedback: 'Build.Connect',
@@ -129,7 +129,7 @@ function normalizeModuleResponse(response, moduleId) {
       success: true,
       code: response.code || 'MODULE_DATA_OK',
       module: response.module || { id: moduleId, source: MODULE_SOURCE_LABELS[moduleId] || 'Build.Connect' },
-      items: Array.isArray(response.items) ? response.items : [],
+      items: normalizeModuleItems(Array.isArray(response.items) ? response.items : [], moduleId),
       emptyMessage: response.emptyMessage || 'Nenhum conteúdo disponível neste momento.',
       message: response.message || '',
     };
@@ -148,7 +148,7 @@ function getModuleFallbackMessage(moduleId) {
   switch (moduleId) {
     case 'documentos':
     case 'instrucoes-escritas':
-      return 'Não foi possível carregar os arquivos do Dropbox.';
+      return 'Não foi possível carregar os arquivos do Google Drive.';
     case 'instrucoes-video':
       return 'Não foi possível carregar os vídeos do YouTube.';
     default:
@@ -195,4 +195,43 @@ function parseBridgeMessage(data) {
   }
 
   return null;
+}
+
+
+function normalizeModuleItems(items, moduleId) {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  if (moduleId === 'documentos' || moduleId === 'instrucoes-escritas') {
+    return items.map(normalizeDocumentItem);
+  }
+
+  return items;
+}
+
+function normalizeDocumentItem(item) {
+  const normalizedItem = item && typeof item === 'object' ? item : {};
+  const name = String(normalizedItem.name || normalizedItem.title || normalizedItem.fileName || '').trim();
+  const openUrl = String(
+    normalizedItem.openUrl ||
+    normalizedItem.webViewLink ||
+    normalizedItem.url ||
+    normalizedItem.viewUrl ||
+    ''
+  ).trim();
+  const previewUrl = String(
+    normalizedItem.previewUrl ||
+    normalizedItem.viewUrl ||
+    normalizedItem.embedUrl ||
+    ''
+  ).trim();
+
+  return {
+    ...normalizedItem,
+    name,
+    title: name || String(normalizedItem.title || '').trim(),
+    openUrl,
+    previewUrl,
+  };
 }

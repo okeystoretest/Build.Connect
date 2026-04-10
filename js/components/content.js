@@ -59,12 +59,12 @@ const FEEDBACK_UI_DEFAULTS = Object.freeze({
 
 const WELCOME_VIDEO = Object.freeze({
   title: 'Vídeo institucional Build.Connect',
-  embedUrl: 'https://www.youtube.com/embed/QPzoygOAs1U',
+  embedUrl: 'https://www.youtube.com/embed/kvxXe6evgDM',
 });
 
 let currentRenderToken = 0;
 let revealObserver = null;
-let activeVideoModal = null;
+let activeOverlayModal = null;
 let activeEscapeHandler = null;
 
 export function renderContentView(rootElement, viewState, options = {}) {
@@ -72,7 +72,7 @@ export function renderContentView(rootElement, viewState, options = {}) {
   const nextToken = ++currentRenderToken;
   const currentPanel = rootElement.querySelector('.content-panel');
 
-  closeVideoModal();
+  closeActiveOverlayModal();
 
   if (animate && currentPanel) {
     currentPanel.classList.add('is-view-exit');
@@ -173,6 +173,17 @@ function bindContentInteractions(rootElement, viewState) {
       openVideoModal({
         title: videoButton.dataset.videoTitle || 'Vídeo de treinamento',
         embedUrl: videoButton.dataset.videoEmbedUrl || '',
+      });
+      return;
+    }
+
+    const documentButton = event.target.closest('[data-document-preview-url]');
+
+    if (documentButton) {
+      event.preventDefault();
+      openDocumentModal({
+        title: documentButton.dataset.documentTitle || 'Documento',
+        previewUrl: documentButton.dataset.documentPreviewUrl || '',
       });
       return;
     }
@@ -518,7 +529,7 @@ function getDocumentModuleMarkup(card, moduleData, moduleUi) {
         <div>
           <p class="module-eyebrow">Conteúdo carregado</p>
           <h2 class="module-title">${card.title}</h2>
-          <p class="module-description">Arquivos listados automaticamente a partir do Dropbox.</p>
+          <p class="module-description">Arquivos listados automaticamente a partir do Google Drive.</p>
         </div>
 
         ${getModuleToolbarMarkup(card.id, moduleUi, items.length, preparedItems.length, 'Busque por nome do arquivo')}
@@ -536,6 +547,8 @@ function renderDocumentItemCard(item) {
   const modifiedLabel = formatDateLabel(item.modifiedAt);
   const sizeLabel = sanitizeText(item.sizeLabel || '');
   const metadata = [extension, modifiedLabel, sizeLabel].filter(Boolean);
+  const previewUrl = resolveDocumentPreviewUrl(item);
+  const canPreview = Boolean(previewUrl);
 
   return `
     <article class="module-item-card" data-module-entry>
@@ -550,14 +563,16 @@ function renderDocumentItemCard(item) {
       </div>
 
       <div class="module-item-actions">
-        <a class="module-link-button" href="${sanitizeAttribute(item.openUrl)}" target="_blank" rel="noreferrer noopener">
+        <button
+          type="button"
+          class="module-link-button"
+          data-document-preview-url="${sanitizeAttribute(previewUrl)}"
+          data-document-title="${sanitizeAttribute(item.name || 'Documento')}"
+          ${canPreview ? '' : 'disabled'}
+        >
           <i data-lucide="external-link"></i>
           <span>Abrir</span>
-        </a>
-        <a class="module-link-button is-secondary" href="${sanitizeAttribute(item.downloadUrl || item.openUrl)}" target="_blank" rel="noreferrer noopener" download>
-          <i data-lucide="download"></i>
-          <span>Baixar</span>
-        </a>
+        </button>
       </div>
     </article>
   `;
@@ -1526,23 +1541,49 @@ function openVideoModal(video) {
     return;
   }
 
-  closeVideoModal();
+  openOverlayModal({
+    title: video.title,
+    frameUrl: `${video.embedUrl}?autoplay=1&rel=0`,
+    closeLabel: 'Fechar vídeo',
+    modalClassName: 'video-modal',
+    frameWrapClassName: 'video-modal-frame-wrap',
+    frameClassName: 'video-modal-frame',
+  });
+}
+
+function openDocumentModal(documentItem) {
+  if (!documentItem.previewUrl) {
+    return;
+  }
+
+  openOverlayModal({
+    title: resolveDocumentTitle(documentItem),
+    frameUrl: documentItem.previewUrl,
+    closeLabel: 'Fechar documento',
+    modalClassName: 'video-modal document-modal',
+    frameWrapClassName: 'video-modal-frame-wrap document-modal-frame-wrap',
+    frameClassName: 'video-modal-frame document-modal-frame',
+  });
+}
+
+function openOverlayModal({ title, frameUrl, closeLabel, modalClassName, frameWrapClassName, frameClassName }) {
+  closeActiveOverlayModal();
 
   const overlay = document.createElement('div');
   overlay.className = 'video-modal-backdrop';
   overlay.innerHTML = `
-    <div class="video-modal" role="dialog" aria-modal="true" aria-label="${sanitizeText(video.title)}">
+    <div class="${sanitizeAttribute(modalClassName)}" role="dialog" aria-modal="true" aria-label="${sanitizeText(title)}">
       <div class="video-modal-head">
-        <strong class="video-modal-title">${sanitizeText(video.title)}</strong>
-        <button type="button" class="video-modal-close" aria-label="Fechar vídeo">
+        <strong class="video-modal-title">${sanitizeText(title)}</strong>
+        <button type="button" class="video-modal-close" aria-label="${sanitizeAttribute(closeLabel)}">
           <i data-lucide="x"></i>
         </button>
       </div>
-      <div class="video-modal-frame-wrap">
+      <div class="${sanitizeAttribute(frameWrapClassName)}">
         <iframe
-          class="video-modal-frame"
-          src="${sanitizeAttribute(video.embedUrl)}?autoplay=1&rel=0"
-          title="${sanitizeAttribute(video.title)}"
+          class="${sanitizeAttribute(frameClassName)}"
+          src="${sanitizeAttribute(frameUrl)}"
+          title="${sanitizeAttribute(title)}"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowfullscreen
         ></iframe>
@@ -1551,43 +1592,74 @@ function openVideoModal(video) {
   `;
 
   const closeButton = overlay.querySelector('.video-modal-close');
-  const dialog = overlay.querySelector('.video-modal');
+  const dialog = overlay.querySelector('[role="dialog"]');
 
   function handleBackdropClick(event) {
     if (!dialog.contains(event.target)) {
-      closeVideoModal();
+      closeActiveOverlayModal();
     }
   }
 
   activeEscapeHandler = (event) => {
     if (event.key === 'Escape') {
-      closeVideoModal();
+      closeActiveOverlayModal();
     }
   };
 
-  closeButton?.addEventListener('click', closeVideoModal);
+  closeButton?.addEventListener('click', closeActiveOverlayModal);
   overlay.addEventListener('click', handleBackdropClick);
   document.addEventListener('keydown', activeEscapeHandler);
   document.body.appendChild(overlay);
   document.body.classList.add('has-video-modal');
   refreshLucideIcons(overlay);
-  activeVideoModal = overlay;
+  activeOverlayModal = overlay;
 }
 
-function closeVideoModal() {
+function closeActiveOverlayModal() {
   if (activeEscapeHandler) {
     document.removeEventListener('keydown', activeEscapeHandler);
     activeEscapeHandler = null;
   }
 
-  if (!activeVideoModal) {
+  if (!activeOverlayModal) {
     document.body.classList.remove('has-video-modal');
     return;
   }
 
-  activeVideoModal.remove();
-  activeVideoModal = null;
+  activeOverlayModal.remove();
+  activeOverlayModal = null;
   document.body.classList.remove('has-video-modal');
+}
+
+function resolveDocumentTitle(item) {
+  const documentName = String(item?.name || item?.title || item?.fileName || '').trim();
+  return documentName || 'Arquivo sem nome';
+}
+
+function resolveDocumentPreviewUrl(item) {
+  const directPreviewUrl = String(item?.previewUrl || '').trim();
+
+  if (directPreviewUrl) {
+    return directPreviewUrl;
+  }
+
+  const openUrl = String(item?.openUrl || '').trim();
+
+  if (!openUrl) {
+    return '';
+  }
+
+  const driveFileMatch = openUrl.match(/https:\/\/drive\.google\.com\/file\/d\/([^/]+)\//i);
+  if (driveFileMatch) {
+    return `https://drive.google.com/file/d/${driveFileMatch[1]}/preview`;
+  }
+
+  const docMatch = openUrl.match(/https:\/\/docs\.google\.com\/(document|spreadsheets|presentation)\/d\/([^/]+)/i);
+  if (docMatch) {
+    return `https://docs.google.com/${docMatch[1]}/d/${docMatch[2]}/preview`;
+  }
+
+  return openUrl;
 }
 
 function activateViewTransition(rootElement) {

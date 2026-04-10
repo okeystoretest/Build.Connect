@@ -38,7 +38,11 @@ export function getAuthenticatedUser() {
       return null;
     }
 
-    return parsedValue;
+    return {
+      ...parsedValue,
+      setor: typeof parsedValue?.setor === 'string' ? parsedValue.setor : '',
+      setorLabel: typeof parsedValue?.setorLabel === 'string' ? parsedValue.setorLabel : '',
+    };
   } catch {
     return null;
   }
@@ -176,7 +180,11 @@ function normalizeAuthResponse(response) {
       success: true,
       code: response.code || 'AUTH_OK',
       message: response.message || 'Acesso liberado.',
-      user: response.user,
+      user: {
+        ...response.user,
+        setor: typeof response.user?.setor === 'string' ? response.user.setor : '',
+        setorLabel: typeof response.user?.setorLabel === 'string' ? response.user.setorLabel : '',
+      },
     };
   }
 
@@ -195,6 +203,8 @@ function getFallbackMessage(code) {
       return 'Senha incorreta.';
     case 'ID_NOT_FOUND':
       return 'ID não encontrado.';
+    case 'INVALID_SECTOR':
+      return 'Setor de acesso inválido na planilha Usuarios.';
     case 'NETWORK_ERROR':
       return 'Falha de comunicação com o servidor de autenticação.';
     default:

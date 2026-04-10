@@ -10,9 +10,12 @@ import {
   NAVIGATION_ITEMS,
   findItemById,
   getInitialNavigationState,
+  getNavigationItemsForAccess,
   isHomeItem,
   persistNavigationState,
+  sanitizeActiveItemForNavigation,
   shouldRenderDefaultSectorCards,
+  shouldStartProductionExpandedForAccess,
 } from './services/navigation.service.js';
 import { applyTheme, getInitialTheme, toggleTheme } from './utils/theme.js';
 
@@ -43,6 +46,10 @@ function bootstrap() {
   showLoginScreen();
 }
 
+function getAccessibleNavigationItems() {
+  return getNavigationItemsForAccess(state.authenticatedUser?.setor || 'all');
+}
+
 function renderApp() {
   renderSidebar(
     sidebarRoot,
@@ -54,13 +61,14 @@ function renderApp() {
       onGroupToggle: handleGroupToggle,
       onLogout: handleLogout,
     },
-    NAVIGATION_ITEMS,
+    getAccessibleNavigationItems(),
     currentTheme,
   );
 }
 
 function renderCurrentView(options = {}) {
-  const selectedItem = findItemById(state.activeItemId) ?? findItemById('inicio');
+  const navigationItems = getAccessibleNavigationItems();
+  const selectedItem = findItemById(state.activeItemId, navigationItems) ?? findItemById('inicio', navigationItems);
 
   renderContentView(
     contentRoot,
@@ -92,7 +100,7 @@ async function handleLoginSubmit(credentials) {
       loginState.isLoading = false;
       state.authenticatedUser = response.user;
       persistAuthenticatedUser(response.user);
-      resetNavigationToHome();
+      resetNavigationForAccess(response.user?.setor);
       showAuthenticatedApplication();
       return;
     }
@@ -147,7 +155,7 @@ function handleNavigation(itemId) {
     return;
   }
 
-  const selectedItem = findItemById(itemId);
+  const selectedItem = findItemById(itemId, getAccessibleNavigationItems());
 
   if (selectedItem?.parentId === 'producao') {
     state.isProductionExpanded = true;
@@ -163,13 +171,41 @@ function handleGroupToggle(groupId) {
 
   if (state.isSidebarCollapsed) {
     state.isSidebarCollapsed = false;
-    state.isProductionExpanded = true;
-    persistAndRender({ shouldRenderContent: false });
+    state.isProductionExpanded = false;
+    persistNavigationState(state);
+    syncAppShellState();
+    renderApp();
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        state.isProductionExpanded = true;
+        persistNavigationState(state);
+        syncProductionAccordionDOM();
+      });
+    });
     return;
   }
 
   state.isProductionExpanded = !state.isProductionExpanded;
-  persistAndRender({ shouldRenderContent: false });
+  persistNavigationState(state);
+  syncProductionAccordionDOM();
+}
+
+function syncProductionAccordionDOM() {
+  const navGroup = sidebarRoot.querySelector('.nav-group');
+  const groupButton = sidebarRoot.querySelector('[data-nav-group-toggle="producao"]');
+  const submenu = sidebarRoot.querySelector('#submenu-producao');
+
+  if (!navGroup || !groupButton || !submenu) {
+    renderApp();
+    return;
+  }
+
+  navGroup.dataset.expanded = String(state.isProductionExpanded);
+  groupButton.classList.toggle('is-expanded', state.isProductionExpanded);
+  groupButton.setAttribute('aria-expanded', String(state.isProductionExpanded));
+  submenu.setAttribute('aria-hidden', String(!state.isProductionExpanded));
+  submenu.style.setProperty('--submenu-height', `${submenu.scrollHeight}px`);
 }
 
 function persistAndRender({ shouldRenderContent = true, animateContent = false } = {}) {
@@ -184,8 +220,13 @@ function persistAndRender({ shouldRenderContent = true, animateContent = false }
 
 
 function resetNavigationToHome() {
-  state.activeItemId = 'inicio';
-  state.isProductionExpanded = false;
+  resetNavigationForAccess('all');
+}
+
+function resetNavigationForAccess(sectorAccess) {
+  const navigationItems = getNavigationItemsForAccess(sectorAccess);
+  state.activeItemId = sanitizeActiveItemForNavigation('inicio', navigationItems);
+  state.isProductionExpanded = shouldStartProductionExpandedForAccess(sectorAccess);
   persistNavigationState(state);
 }
 
@@ -194,6 +235,8 @@ function syncAppShellState() {
 }
 
 function showAuthenticatedApplication() {
+  const navigationItems = getAccessibleNavigationItems();
+  state.activeItemId = sanitizeActiveItemForNavigation(state.activeItemId, navigationItems);
   document.body.classList.remove('is-auth-view');
   authRoot.hidden = true;
   appShell.hidden = false;
