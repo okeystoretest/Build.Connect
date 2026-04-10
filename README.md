@@ -46,6 +46,8 @@ A plataforma suporta navegação por setores como:
   - Almoxarifado
   - Corte
   - Acabamento
+  - Revisão
+  - Externo
 - Compras
 - Logística
 - Financeiro
@@ -57,10 +59,7 @@ A plataforma suporta navegação por setores como:
 - CSS3
 - JavaScript (ES6+)
 - Google Apps Script
-- Google Sheets
-- Google Drive
-- YouTube
-
+- 
 ## Arquitetura
 
 O projeto segue uma organização modular para facilitar manutenção, evolução e escalabilidade.
@@ -78,13 +77,6 @@ apps-script/
 ```
 
 ## Integrações
-
-Atualmente, o projeto está preparado para trabalhar com integrações como:
-
-- Google Drive para documentos e instruções escritas
-- YouTube para vídeos de treinamento
-- Google Sheets para autenticação e dados de usuários
-- Google Apps Script como camada de backend e integração
 
 ## Público-alvo
 
