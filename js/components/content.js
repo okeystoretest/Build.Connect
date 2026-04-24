@@ -150,6 +150,14 @@ function bindContentInteractions(rootElement, viewState) {
       return;
     }
 
+    const backButton = event.target.closest('[data-module-back]');
+
+    if (backButton) {
+      event.preventDefault();
+      clearSelectedModule(rootElement, sector);
+      return;
+    }
+
     const sortButton = event.target.closest('[data-module-sort]');
 
     if (sortButton) {
@@ -366,8 +374,13 @@ function getWelcomeGreeting(authenticatedUser) {
 }
 
 function getSectorCardsViewMarkup(sector) {
-  const breadcrumb = getSectorBreadcrumb(sector);
   const stageState = getModuleState(sector.id);
+
+  if (stageState.selectedModuleId) {
+    return getModulePageViewMarkup(sector, stageState);
+  }
+
+  const breadcrumb = getSectorBreadcrumb(sector);
   const cards = getCardsForSector(sector.id);
   const cardsLabel = isDhoSector(sector.id) ? 'Cards do setor DHO' : 'Cards padrão do setor';
 
@@ -384,8 +397,35 @@ function getSectorCardsViewMarkup(sector) {
       <div class="cards-grid" aria-label="${cardsLabel}">
         ${cards.map((card) => renderFeatureCard(card, breadcrumb, stageState.selectedModuleId)).join('')}
       </div>
+    </section>
+  `;
+}
 
-      <section class="module-stage reveal-item" data-reveal aria-live="polite" data-module-stage data-sector-id="${sector.id}">
+function getModulePageViewMarkup(sector, stageState) {
+  const breadcrumb = getSectorBreadcrumb(sector);
+  const selectedCard = getCardsForSector(sector.id).find((card) => card.id === stageState.selectedModuleId);
+  const moduleTitle = selectedCard?.title || 'Módulo';
+  const moduleDescription = selectedCard
+    ? selectedCard.getDescription(breadcrumb)
+    : `Conteúdo do setor ${breadcrumb}.`;
+
+  return `
+    <section class="content-panel module-page-panel" aria-labelledby="content-title" data-view-panel>
+      <div class="module-page-header reveal-item" data-reveal>
+        <button type="button" class="module-back-button" data-module-back aria-label="Voltar para os cards do setor ${sanitizeAttribute(breadcrumb)}">
+          <i data-lucide="arrow-left"></i>
+          <span>Voltar</span>
+        </button>
+
+        <div class="module-page-copy">
+          <p class="eyebrow">Conteúdo do módulo</p>
+          <h1 id="content-title">${sanitizeText(moduleTitle)}</h1>
+          <p class="content-description">${sanitizeText(moduleDescription)}</p>
+          <span class="module-page-breadcrumb">${sanitizeText(breadcrumb)}</span>
+        </div>
+      </div>
+
+      <section class="module-page-body module-stage reveal-item" data-reveal aria-live="polite" data-module-stage data-sector-id="${sector.id}">
         ${getModuleStageMarkup(sector, stageState)}
       </section>
     </section>
@@ -947,6 +987,37 @@ function updateModuleQuery(rootElement, sector, query) {
   }
 }
 
+function clearSelectedModule(rootElement, sector) {
+  setModuleState(sector.id, {
+    selectedModuleId: '',
+    status: 'idle',
+    moduleData: null,
+    errorMessage: '',
+    ui: { ...MODULE_UI_DEFAULTS },
+  });
+
+  mountView(rootElement, {
+    selectedItem: sector,
+    isWelcome: false,
+    shouldRenderCards: true,
+    authenticatedUser: null,
+  });
+}
+
+export function resetModuleSelectionForSector(sectorId) {
+  if (!sectorId) {
+    return;
+  }
+
+  MODULE_STATE_BY_SECTOR.set(sectorId, {
+    selectedModuleId: '',
+    status: 'idle',
+    moduleData: null,
+    errorMessage: '',
+    ui: { ...MODULE_UI_DEFAULTS },
+  });
+}
+
 function renderModuleStage(rootElement, sector) {
   const cards = rootElement.querySelectorAll('[data-module-card]');
   const stageElement = rootElement.querySelector('[data-module-stage]');
@@ -959,6 +1030,12 @@ function renderModuleStage(rootElement, sector) {
   });
 
   if (!stageElement) {
+    mountView(rootElement, {
+      selectedItem: sector,
+      isWelcome: false,
+      shouldRenderCards: true,
+      authenticatedUser: null,
+    });
     return;
   }
 

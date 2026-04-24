@@ -1,4 +1,4 @@
-import { renderContentView } from './components/content.js';
+import { renderContentView, resetModuleSelectionForSector } from './components/content.js';
 import { renderLoginView } from './components/login.js';
 import { renderSidebar } from './components/sidebar.js';
 import {
@@ -15,6 +15,7 @@ import {
   persistNavigationState,
   sanitizeActiveItemForNavigation,
   shouldRenderDefaultSectorCards,
+  shouldStartCommercialExpandedForAccess,
   shouldStartProductionExpandedForAccess,
 } from './services/navigation.service.js';
 import { applyTheme, getInitialTheme, toggleTheme } from './utils/theme.js';
@@ -119,6 +120,7 @@ function handleLogout() {
   state.authenticatedUser = null;
   state.activeItemId = 'inicio';
   state.isProductionExpanded = false;
+  state.isCommercialExpanded = false;
   loginState.errorMessage = '';
   persistNavigationState(state);
   showLoginScreen();
@@ -129,6 +131,7 @@ function handleSidebarToggle() {
 
   if (state.isSidebarCollapsed) {
     state.isProductionExpanded = false;
+    state.isCommercialExpanded = false;
   }
 
   persistAndRender({ shouldRenderContent: false });
@@ -147,10 +150,16 @@ function handleThemeToggle() {
 
 function handleNavigation(itemId) {
   const previousItemId = state.activeItemId;
+
+  if (previousItemId && previousItemId !== itemId && !isHomeItem(previousItemId)) {
+    resetModuleSelectionForSector(previousItemId);
+  }
+
   state.activeItemId = itemId;
 
   if (itemId === 'inicio') {
     state.isProductionExpanded = false;
+    state.isCommercialExpanded = false;
     persistAndRender({ shouldRenderContent: previousItemId !== itemId, animateContent: true });
     return;
   }
@@ -161,16 +170,28 @@ function handleNavigation(itemId) {
     state.isProductionExpanded = true;
   }
 
+  if (selectedItem?.parentId === 'comercial') {
+    state.isCommercialExpanded = true;
+  }
+
   persistAndRender({ shouldRenderContent: previousItemId !== itemId, animateContent: true });
 }
 
 function handleGroupToggle(groupId) {
-  if (groupId !== 'producao') {
+  const expansionKeyByGroup = {
+    comercial: 'isCommercialExpanded',
+    producao: 'isProductionExpanded',
+  };
+
+  const expansionKey = expansionKeyByGroup[groupId];
+
+  if (!expansionKey) {
     return;
   }
 
   if (state.isSidebarCollapsed) {
     state.isSidebarCollapsed = false;
+    state.isCommercialExpanded = false;
     state.isProductionExpanded = false;
     persistNavigationState(state);
     syncAppShellState();
@@ -178,33 +199,39 @@ function handleGroupToggle(groupId) {
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        state.isProductionExpanded = true;
+        state[expansionKey] = true;
         persistNavigationState(state);
-        syncProductionAccordionDOM();
+        syncGroupAccordionDOM(groupId);
       });
     });
     return;
   }
 
-  state.isProductionExpanded = !state.isProductionExpanded;
+  state[expansionKey] = !state[expansionKey];
   persistNavigationState(state);
-  syncProductionAccordionDOM();
+  syncGroupAccordionDOM(groupId);
 }
 
-function syncProductionAccordionDOM() {
-  const navGroup = sidebarRoot.querySelector('.nav-group');
-  const groupButton = sidebarRoot.querySelector('[data-nav-group-toggle="producao"]');
-  const submenu = sidebarRoot.querySelector('#submenu-producao');
+function syncGroupAccordionDOM(groupId) {
+  const expansionKeyByGroup = {
+    comercial: 'isCommercialExpanded',
+    producao: 'isProductionExpanded',
+  };
+  const expansionKey = expansionKeyByGroup[groupId];
+  const navGroup = sidebarRoot.querySelector(`[data-nav-group="${groupId}"]`);
+  const groupButton = sidebarRoot.querySelector(`[data-nav-group-toggle="${groupId}"]`);
+  const submenu = sidebarRoot.querySelector(`#submenu-${groupId}`);
 
-  if (!navGroup || !groupButton || !submenu) {
+  if (!navGroup || !groupButton || !submenu || !expansionKey) {
     renderApp();
     return;
   }
 
-  navGroup.dataset.expanded = String(state.isProductionExpanded);
-  groupButton.classList.toggle('is-expanded', state.isProductionExpanded);
-  groupButton.setAttribute('aria-expanded', String(state.isProductionExpanded));
-  submenu.setAttribute('aria-hidden', String(!state.isProductionExpanded));
+  const isExpanded = Boolean(state[expansionKey]);
+  navGroup.dataset.expanded = String(isExpanded);
+  groupButton.classList.toggle('is-expanded', isExpanded);
+  groupButton.setAttribute('aria-expanded', String(isExpanded));
+  submenu.setAttribute('aria-hidden', String(!isExpanded));
   submenu.style.setProperty('--submenu-height', `${submenu.scrollHeight}px`);
 }
 
@@ -227,6 +254,7 @@ function resetNavigationForAccess(sectorAccess) {
   const navigationItems = getNavigationItemsForAccess(sectorAccess);
   state.activeItemId = sanitizeActiveItemForNavigation('inicio', navigationItems);
   state.isProductionExpanded = shouldStartProductionExpandedForAccess(sectorAccess);
+  state.isCommercialExpanded = shouldStartCommercialExpandedForAccess(sectorAccess);
   persistNavigationState(state);
 }
 

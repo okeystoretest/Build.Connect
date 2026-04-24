@@ -2,6 +2,7 @@ export const STORAGE_KEYS = {
   activeItem: 'build.connect.active-item',
   sidebarCollapsed: 'build.connect.sidebar-collapsed',
   productionExpanded: 'build.connect.production-expanded',
+  commercialExpanded: 'build.connect.commercial-expanded',
 };
 
 export const DEFAULT_SECTOR_CARDS = [
@@ -44,6 +45,49 @@ export const DEFAULT_SECTOR_CARDS = [
     hint: 'Canal de retorno',
     getDescription: (sectorName) =>
       `Use este espaço para compartilhar dúvidas, sugestões e melhorias relacionadas ao setor ${sectorName}.`,
+  },
+];
+
+export const COMMERCIAL_SECTOR_CARDS = [
+  {
+    id: 'documentos',
+    title: 'Material',
+    icon: 'folder-open',
+    hint: 'Campanhas',
+    getDescription: (sectorName) =>
+      `Acesse os catálogos, materiais e arquivos das campanhas ligados ao subsetor ${sectorName}.`,
+  },
+  {
+    id: 'instrucoes-escritas',
+    title: 'Instruções Escritas',
+    icon: 'file-text',
+    hint: 'Passo a passo',
+    getDescription: (sectorName) =>
+      `Aqui você encontra orientações claras para entender como as rotinas do subsetor ${sectorName} funcionam no dia a dia.`,
+  },
+  {
+    id: 'instrucoes-video',
+    title: 'Instruções em Vídeo',
+    icon: 'video',
+    hint: 'Treinamento visual',
+    getDescription: (sectorName) =>
+      `Assista aos conteúdos em vídeo do subsetor ${sectorName} para aprender as atividades de forma prática e rápida.`,
+  },
+  {
+    id: 'avaliacao',
+    title: 'Avaliação',
+    icon: 'clipboard-list',
+    hint: 'Acompanhamento',
+    getDescription: (sectorName) =>
+      `Nesta área ficam os registros de acompanhamento para apoiar seu desenvolvimento no subsetor ${sectorName}.`,
+  },
+  {
+    id: 'feedback',
+    title: 'Feedback',
+    icon: 'message-square',
+    hint: 'Canal de retorno',
+    getDescription: (sectorName) =>
+      `Use este espaço para compartilhar dúvidas, sugestões e melhorias relacionadas ao subsetor ${sectorName}.`,
   },
 ];
 
@@ -93,6 +137,8 @@ export const DHO_SECTOR_CARDS = [
 
 
 const PRODUCTION_CHILD_IDS = ['criacao', 'pcp', 'almoxarifado', 'corte', 'acabamento', 'revisao', 'externo'];
+const COMMERCIAL_CHILD_IDS = ['gestao', 'vendas'];
+const COMMERCIAL_SECTOR_IDS = new Set(COMMERCIAL_CHILD_IDS);
 
 function normalizeSectorAccessKey(value) {
   const normalizedValue = String(value || '')
@@ -117,6 +163,10 @@ function isProductionChildAccess(accessKey) {
   return PRODUCTION_CHILD_IDS.includes(accessKey);
 }
 
+function isCommercialChildAccess(accessKey) {
+  return COMMERCIAL_CHILD_IDS.includes(accessKey);
+}
+
 export const NAVIGATION_ITEMS = [
   {
     id: 'inicio',
@@ -128,7 +178,22 @@ export const NAVIGATION_ITEMS = [
     id: 'comercial',
     label: 'Comercial',
     icon: 'tag',
-    description: 'Entenda como o setor Comercial organiza atendimentos, materiais de apoio e rotinas de relacionamento com clientes.',
+    metaLabel: 'Accordion de subsetores',
+    description: 'Acesse os subsetores do Comercial e encontre materiais de campanha, instruções e conteúdos de apoio.',
+    children: [
+      {
+        id: 'gestao',
+        label: 'Gestão',
+        icon: 'briefcase-business',
+        description: 'Consulte os materiais e orientações do subsetor Gestão para acompanhar campanhas, processos e apoio comercial.',
+      },
+      {
+        id: 'vendas',
+        label: 'Vendas',
+        icon: 'badge-dollar-sign',
+        description: 'Acesse os materiais e instruções do subsetor Vendas para apoiar a rotina comercial e as campanhas ativas.',
+      },
+    ],
   },
   {
     id: 'producao',
@@ -182,6 +247,12 @@ export const NAVIGATION_ITEMS = [
     ],
   },
   {
+    id: 'marketing',
+    label: 'Marketing',
+    icon: 'megaphone',
+    description: 'Veja os materiais e orientações do setor de Marketing para campanhas, comunicação e apoio às ações da marca.',
+  },
+  {
     id: 'compras',
     label: 'Compras',
     icon: 'shopping-cart',
@@ -198,6 +269,12 @@ export const NAVIGATION_ITEMS = [
     label: 'Financeiro',
     icon: 'wallet',
     description: 'Aqui você encontra o que precisa para entender controles, processos e materiais de apoio do Financeiro.',
+  },
+  {
+    id: 'retaguarda',
+    label: 'Retaguarda',
+    icon: 'monitor-cog',
+    description: 'Acesse os conteúdos do setor de Retaguarda para suporte interno, sistemas e rotinas de TI.',
   },
   {
     id: 'dho',
@@ -217,6 +294,33 @@ export function getNavigationItemsForAccess(sectorAccess) {
   }
 
   const baseItems = homeItem ? [homeItem] : [];
+
+  if (accessKey === 'comercial') {
+    const commercialItem = NAVIGATION_ITEMS.find((item) => item.id === 'comercial');
+    return commercialItem ? [...baseItems, commercialItem] : baseItems;
+  }
+
+  if (isCommercialChildAccess(accessKey)) {
+    const commercialItem = NAVIGATION_ITEMS.find((item) => item.id === 'comercial');
+
+    if (!commercialItem) {
+      return baseItems;
+    }
+
+    const allowedChild = (commercialItem.children || []).find((child) => child.id === accessKey);
+
+    if (!allowedChild) {
+      return baseItems;
+    }
+
+    return [
+      ...baseItems,
+      {
+        ...commercialItem,
+        children: [allowedChild],
+      },
+    ];
+  }
 
   if (accessKey === 'producao') {
     const productionItem = NAVIGATION_ITEMS.find((item) => item.id === 'producao');
@@ -254,6 +358,11 @@ export function shouldStartProductionExpandedForAccess(sectorAccess) {
   return accessKey === 'producao' || isProductionChildAccess(accessKey);
 }
 
+export function shouldStartCommercialExpandedForAccess(sectorAccess) {
+  const accessKey = normalizeSectorAccessKey(sectorAccess);
+  return accessKey === 'comercial' || isCommercialChildAccess(accessKey);
+}
+
 export function sanitizeActiveItemForNavigation(itemId, navigationItems) {
   if (!itemId || isGroupItem(itemId) || !findItemById(itemId, navigationItems)) {
     return 'inicio';
@@ -267,6 +376,10 @@ export function getCardsForSector(itemId) {
     return DHO_SECTOR_CARDS;
   }
 
+  if (COMMERCIAL_SECTOR_IDS.has(itemId)) {
+    return COMMERCIAL_SECTOR_CARDS;
+  }
+
   return DEFAULT_SECTOR_CARDS;
 }
 
@@ -278,6 +391,7 @@ export function getInitialNavigationState() {
     activeItemId,
     isSidebarCollapsed: getStoredBoolean(STORAGE_KEYS.sidebarCollapsed, false),
     isProductionExpanded: getStoredBoolean(STORAGE_KEYS.productionExpanded, false),
+    isCommercialExpanded: getStoredBoolean(STORAGE_KEYS.commercialExpanded, false),
   };
 }
 
@@ -285,6 +399,7 @@ export function persistNavigationState(state) {
   localStorage.setItem(STORAGE_KEYS.activeItem, state.activeItemId);
   localStorage.setItem(STORAGE_KEYS.sidebarCollapsed, String(state.isSidebarCollapsed));
   localStorage.setItem(STORAGE_KEYS.productionExpanded, String(state.isProductionExpanded));
+  localStorage.setItem(STORAGE_KEYS.commercialExpanded, String(state.isCommercialExpanded));
 }
 
 export function findItemById(itemId, items = NAVIGATION_ITEMS) {
@@ -314,7 +429,7 @@ export function isHomeItem(itemId) {
 }
 
 export function isGroupItem(itemId) {
-  return itemId === 'producao';
+  return itemId === 'producao' || itemId === 'comercial';
 }
 
 export function isDhoSector(itemId) {
@@ -344,6 +459,10 @@ export function getSectorBreadcrumb(item) {
 export function getSectorTypeLabel(item) {
   if (item?.parentId === 'producao') {
     return 'Subsetor de Produção';
+  }
+
+  if (item?.parentId === 'comercial') {
+    return 'Subsetor Comercial';
   }
 
   return 'Setor final';

@@ -89,10 +89,14 @@ function renderNavigationItem(item, state) {
     `;
   }
 
-  const isExpanded = state.isProductionExpanded;
+  const expandedStateMap = {
+    comercial: state.isCommercialExpanded,
+    producao: state.isProductionExpanded,
+  };
+  const isExpanded = Boolean(expandedStateMap[item.id]);
 
   return `
-    <div class="nav-group" data-expanded="${isExpanded}">
+    <div class="nav-group" data-nav-group="${item.id}" data-expanded="${isExpanded}">
       <button
         class="nav-trigger ${isExpanded ? 'is-expanded' : ''}"
         type="button"
@@ -114,7 +118,7 @@ function renderNavigationItem(item, state) {
         ${commonTooltip}
       </button>
 
-      <div class="submenu" id="submenu-${item.id}" role="group" aria-label="Submenu ${item.label}">
+      <div class="submenu" id="submenu-${item.id}" role="group" aria-label="Submenu ${item.label}" aria-hidden="${String(!isExpanded)}">
         ${item.children.map((child) => renderSubmenuItem(child, state.activeItemId)).join('')}
       </div>
     </div>
