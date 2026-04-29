@@ -32,11 +32,11 @@ export const DEFAULT_SECTOR_CARDS = [
   },
   {
     id: 'avaliacao',
-    title: 'Avaliação',
+    title: 'Avaliações',
     icon: 'clipboard-list',
     hint: 'Acompanhamento',
     getDescription: (sectorName) =>
-      `Nesta área ficam os registros de acompanhamento para apoiar seu desenvolvimento no setor ${sectorName}.`,
+      `Nesta área ficam as ferramentas e registros de avaliação para apoiar seu desenvolvimento no setor ${sectorName}.`,
   },
   {
     id: 'feedback',
@@ -75,11 +75,11 @@ export const COMMERCIAL_SECTOR_CARDS = [
   },
   {
     id: 'avaliacao',
-    title: 'Avaliação',
+    title: 'Avaliações',
     icon: 'clipboard-list',
     hint: 'Acompanhamento',
     getDescription: (sectorName) =>
-      `Nesta área ficam os registros de acompanhamento para apoiar seu desenvolvimento no subsetor ${sectorName}.`,
+      `Nesta área ficam as ferramentas e registros de avaliação para apoiar seu desenvolvimento no subsetor ${sectorName}.`,
   },
   {
     id: 'feedback',
@@ -141,22 +141,35 @@ const COMMERCIAL_CHILD_IDS = ['gestao', 'vendas'];
 const COMMERCIAL_SECTOR_IDS = new Set(COMMERCIAL_CHILD_IDS);
 
 function normalizeSectorAccessKey(value) {
-  const normalizedValue = String(value || '')
+  return String(value || '')
     .trim()
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '');
+}
 
-  if (!normalizedValue) {
-    return 'all';
+function normalizeSectorAccessKeys(value) {
+  const values = Array.isArray(value)
+    ? value
+    : String(value || '')
+      .split(/[,;|]+/)
+      .map((item) => item.trim());
+
+  const normalizedKeys = values
+    .map(normalizeSectorAccessKey)
+    .filter(Boolean)
+    .map((key) => (key === 'todos' ? 'all' : key));
+
+  if (!normalizedKeys.length) {
+    return ['all'];
   }
 
-  if (normalizedValue === 'all' || normalizedValue === 'todos') {
-    return 'all';
+  if (normalizedKeys.includes('all')) {
+    return ['all'];
   }
 
-  return normalizedValue;
+  return [...new Set(normalizedKeys)];
 }
 
 function isProductionChildAccess(accessKey) {
@@ -286,81 +299,67 @@ export const NAVIGATION_ITEMS = [
 
 
 export function getNavigationItemsForAccess(sectorAccess) {
-  const accessKey = normalizeSectorAccessKey(sectorAccess);
+  const accessKeys = normalizeSectorAccessKeys(sectorAccess);
   const homeItem = NAVIGATION_ITEMS.find((item) => item.id === 'inicio');
 
-  if (accessKey === 'all') {
+  if (accessKeys.includes('all')) {
     return NAVIGATION_ITEMS;
   }
 
   const baseItems = homeItem ? [homeItem] : [];
+  const accessSet = new Set(accessKeys);
 
-  if (accessKey === 'comercial') {
-    const commercialItem = NAVIGATION_ITEMS.find((item) => item.id === 'comercial');
-    return commercialItem ? [...baseItems, commercialItem] : baseItems;
-  }
-
-  if (isCommercialChildAccess(accessKey)) {
-    const commercialItem = NAVIGATION_ITEMS.find((item) => item.id === 'comercial');
-
-    if (!commercialItem) {
-      return baseItems;
+  NAVIGATION_ITEMS.forEach((item) => {
+    if (item.id === 'inicio') {
+      return;
     }
 
-    const allowedChild = (commercialItem.children || []).find((child) => child.id === accessKey);
+    if (item.id === 'comercial') {
+      const allowFullCommercial = accessSet.has('comercial');
+      const allowedChildren = allowFullCommercial
+        ? item.children || []
+        : (item.children || []).filter((child) => accessSet.has(child.id));
 
-    if (!allowedChild) {
-      return baseItems;
+      if (allowFullCommercial || allowedChildren.length) {
+        baseItems.push({
+          ...item,
+          children: allowedChildren,
+        });
+      }
+
+      return;
     }
 
-    return [
-      ...baseItems,
-      {
-        ...commercialItem,
-        children: [allowedChild],
-      },
-    ];
-  }
+    if (item.id === 'producao') {
+      const allowFullProduction = accessSet.has('producao');
+      const allowedChildren = allowFullProduction
+        ? item.children || []
+        : (item.children || []).filter((child) => accessSet.has(child.id));
 
-  if (accessKey === 'producao') {
-    const productionItem = NAVIGATION_ITEMS.find((item) => item.id === 'producao');
-    return productionItem ? [...baseItems, productionItem] : baseItems;
-  }
+      if (allowFullProduction || allowedChildren.length) {
+        baseItems.push({
+          ...item,
+          children: allowedChildren,
+        });
+      }
 
-  if (isProductionChildAccess(accessKey)) {
-    const productionItem = NAVIGATION_ITEMS.find((item) => item.id === 'producao');
-
-    if (!productionItem) {
-      return baseItems;
+      return;
     }
 
-    const allowedChild = (productionItem.children || []).find((child) => child.id === accessKey);
-
-    if (!allowedChild) {
-      return baseItems;
+    if (accessSet.has(item.id)) {
+      baseItems.push(item);
     }
+  });
 
-    return [
-      ...baseItems,
-      {
-        ...productionItem,
-        children: [allowedChild],
-      },
-    ];
-  }
-
-  const directItem = NAVIGATION_ITEMS.find((item) => item.id === accessKey);
-  return directItem ? [...baseItems, directItem] : baseItems;
+  return baseItems;
 }
 
 export function shouldStartProductionExpandedForAccess(sectorAccess) {
-  const accessKey = normalizeSectorAccessKey(sectorAccess);
-  return accessKey === 'producao' || isProductionChildAccess(accessKey);
+  return normalizeSectorAccessKeys(sectorAccess).some((accessKey) => accessKey === 'producao' || isProductionChildAccess(accessKey));
 }
 
 export function shouldStartCommercialExpandedForAccess(sectorAccess) {
-  const accessKey = normalizeSectorAccessKey(sectorAccess);
-  return accessKey === 'comercial' || isCommercialChildAccess(accessKey);
+  return normalizeSectorAccessKeys(sectorAccess).some((accessKey) => accessKey === 'comercial' || isCommercialChildAccess(accessKey));
 }
 
 export function sanitizeActiveItemForNavigation(itemId, navigationItems) {

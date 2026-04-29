@@ -4,6 +4,10 @@ const USERS_REQUEST_TIMEOUT_MS = 15000;
 
 let activeUsersCache = null;
 
+export function clearActiveUsersCache() {
+  activeUsersCache = null;
+}
+
 export async function loadActiveUsers({ forceRefresh = false } = {}) {
   if (!forceRefresh && Array.isArray(activeUsersCache)) {
     return {

@@ -41,6 +41,7 @@ export function getAuthenticatedUser() {
     return {
       ...parsedValue,
       setor: typeof parsedValue?.setor === 'string' ? parsedValue.setor : '',
+      setorList: Array.isArray(parsedValue?.setorList) ? parsedValue.setorList : [],
       setorLabel: typeof parsedValue?.setorLabel === 'string' ? parsedValue.setorLabel : '',
     };
   } catch {
@@ -183,6 +184,7 @@ function normalizeAuthResponse(response) {
       user: {
         ...response.user,
         setor: typeof response.user?.setor === 'string' ? response.user.setor : '',
+        setorList: Array.isArray(response.user?.setorList) ? response.user.setorList : [],
         setorLabel: typeof response.user?.setorLabel === 'string' ? response.user.setorLabel : '',
       },
     };
