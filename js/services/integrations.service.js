@@ -1,19 +1,22 @@
-const INTEGRATIONS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyNBAJy1nrKG1_alpIfa4NBj_VGsF5BgJ9RK4dBHRgTuFoojcZjslQvTKPFWN6WQS5I/exec';
-const INTEGRATIONS_BRIDGE_MESSAGE_TYPE = 'BUILD_CONNECT_MODULE_RESULT';
-const MODULE_REQUEST_TIMEOUT_MS = 18000;
+import {
+  BRIDGE_MESSAGE_TYPES,
+  BRIDGE_REQUEST_TIMEOUTS,
+} from '../config/app.config.js';
+import {
+  APP_SOURCE_LABEL,
+  DOCUMENT_MODULE_IDS,
+  DYNAMIC_EXTERNAL_MODULE_IDS,
+  MODULE_IDS,
+  MODULE_SOURCE_LABELS,
+} from '../constants/module.constants.js';
+import { requestAppsScriptBridge } from './gas-bridge.service.js';
 
 const moduleCache = new Map();
 
-export const MODULE_SOURCE_LABELS = {
-  documentos: 'Google Drive',
-  'instrucoes-escritas': 'Google Drive',
-  'instrucoes-video': 'YouTube',
-  avaliacao: 'Build.Connect',
-  feedback: 'Build.Connect',
-};
+export { MODULE_SOURCE_LABELS };
 
 export function isDynamicExternalModule(moduleId) {
-  return moduleId === 'documentos' || moduleId === 'instrucoes-escritas' || moduleId === 'instrucoes-video';
+  return DYNAMIC_EXTERNAL_MODULE_IDS.has(moduleId);
 }
 
 export async function loadModuleContent({ sectorId, moduleId, forceRefresh = false }) {
@@ -29,7 +32,7 @@ export async function loadModuleContent({ sectorId, moduleId, forceRefresh = fal
       code: 'MODULE_STATIC',
       module: {
         id: moduleId,
-        source: MODULE_SOURCE_LABELS[moduleId] || 'Build.Connect',
+        source: MODULE_SOURCE_LABELS[moduleId] || APP_SOURCE_LABEL,
       },
       items: [],
       emptyMessage: 'Este módulo continua disponível no fluxo interno do Build.Connect.',
@@ -54,72 +57,16 @@ export function clearModuleContentCache() {
 }
 
 function requestModuleContentViaBridge({ sectorId, moduleId }) {
-  if (!INTEGRATIONS_WEB_APP_URL) {
-    return Promise.reject(new Error('URL do Web App não configurada para carregar os módulos.'));
-  }
-
-  return new Promise((resolve, reject) => {
-    const requestId = `module-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const iframe = document.createElement('iframe');
-    const form = document.createElement('form');
-    const timeoutId = window.setTimeout(() => {
-      cleanup();
-      reject(new Error('O carregamento do conteúdo demorou mais que o esperado.'));
-    }, MODULE_REQUEST_TIMEOUT_MS);
-
-    iframe.name = `build-connect-module-iframe-${requestId}`;
-    iframe.hidden = true;
-    iframe.setAttribute('aria-hidden', 'true');
-    iframe.tabIndex = -1;
-    iframe.style.display = 'none';
-
-    form.method = 'POST';
-    form.action = INTEGRATIONS_WEB_APP_URL;
-    form.target = iframe.name;
-    form.style.display = 'none';
-    form.noValidate = true;
-
-    appendHiddenField(form, 'action', 'module-content');
-    appendHiddenField(form, 'bridge', 'iframe-post-message');
-    appendHiddenField(form, 'messageType', INTEGRATIONS_BRIDGE_MESSAGE_TYPE);
-    appendHiddenField(form, 'requestId', requestId);
-    appendHiddenField(form, 'origin', getParentOrigin());
-    appendHiddenField(form, 'sectorId', sectorId);
-    appendHiddenField(form, 'moduleId', moduleId);
-
-    function handleMessage(event) {
-      if (!isAllowedBridgeOrigin(event.origin)) {
-        return;
-      }
-
-      const message = parseBridgeMessage(event.data);
-
-      if (!message || message.type !== INTEGRATIONS_BRIDGE_MESSAGE_TYPE || message.requestId !== requestId) {
-        return;
-      }
-
-      cleanup();
-      resolve(message.payload);
-    }
-
-    function handleIframeError() {
-      cleanup();
-      reject(new Error('Não foi possível carregar o conteúdo do módulo.'));
-    }
-
-    function cleanup() {
-      window.clearTimeout(timeoutId);
-      window.removeEventListener('message', handleMessage);
-      iframe.removeEventListener('error', handleIframeError);
-      form.remove();
-      iframe.remove();
-    }
-
-    window.addEventListener('message', handleMessage);
-    iframe.addEventListener('error', handleIframeError);
-
-    document.body.append(iframe, form);
-    form.submit();
+  return requestAppsScriptBridge({
+    action: 'module-content',
+    fields: { sectorId, moduleId },
+    messageType: BRIDGE_MESSAGE_TYPES.modules,
+    requestIdPrefix: 'module',
+    iframeNamePrefix: 'build-connect-module-iframe',
+    timeoutMs: BRIDGE_REQUEST_TIMEOUTS.modules,
+    timeoutMessage: 'O carregamento do conteúdo demorou mais que o esperado.',
+    bridgeLoadErrorMessage: 'Não foi possível carregar o conteúdo do módulo.',
+    webAppUrlErrorMessage: 'URL do Web App não configurada para carregar os módulos.',
   });
 }
 
@@ -128,7 +75,7 @@ function normalizeModuleResponse(response, moduleId) {
     return {
       success: true,
       code: response.code || 'MODULE_DATA_OK',
-      module: response.module || { id: moduleId, source: MODULE_SOURCE_LABELS[moduleId] || 'Build.Connect' },
+      module: response.module || { id: moduleId, source: MODULE_SOURCE_LABELS[moduleId] || APP_SOURCE_LABEL },
       items: normalizeModuleItems(Array.isArray(response.items) ? response.items : [], moduleId),
       emptyMessage: response.emptyMessage || 'Nenhum conteúdo disponível neste momento.',
       message: response.message || '',
@@ -139,71 +86,29 @@ function normalizeModuleResponse(response, moduleId) {
     success: false,
     code: response?.code || 'MODULE_DATA_ERROR',
     message: response?.message || getModuleFallbackMessage(moduleId),
-    module: response?.module || { id: moduleId, source: MODULE_SOURCE_LABELS[moduleId] || 'Build.Connect' },
+    module: response?.module || { id: moduleId, source: MODULE_SOURCE_LABELS[moduleId] || APP_SOURCE_LABEL },
     items: [],
   };
 }
 
 function getModuleFallbackMessage(moduleId) {
   switch (moduleId) {
-    case 'documentos':
-    case 'instrucoes-escritas':
+    case MODULE_IDS.documents:
+    case MODULE_IDS.writtenInstructions:
       return 'Não foi possível carregar os arquivos.';
-    case 'instrucoes-video':
+    case MODULE_IDS.videoInstructions:
       return 'Não foi possível carregar os vídeos do YouTube.';
     default:
       return 'Não foi possível carregar o conteúdo deste módulo.';
   }
 }
 
-function appendHiddenField(form, name, value) {
-  const input = document.createElement('input');
-  input.type = 'hidden';
-  input.name = name;
-  input.value = String(value ?? '');
-  form.appendChild(input);
-}
-
-function getParentOrigin() {
-  const origin = window.location.origin;
-  return !origin || origin === 'null' ? '*' : origin;
-}
-
-function isAllowedBridgeOrigin(origin) {
-  if (!origin) {
-    return false;
-  }
-
-  return origin === 'https://script.google.com' || /https:\/\/[\w.-]*googleusercontent\.com$/.test(origin);
-}
-
-function parseBridgeMessage(data) {
-  if (!data) {
-    return null;
-  }
-
-  if (typeof data === 'string') {
-    try {
-      return JSON.parse(data);
-    } catch {
-      return null;
-    }
-  }
-
-  if (typeof data === 'object') {
-    return data;
-  }
-
-  return null;
-}
-
-
 function normalizeModuleItems(items, moduleId) {
   if (!Array.isArray(items)) {
     return [];
   }
 
-  if (moduleId === 'documentos' || moduleId === 'instrucoes-escritas') {
+  if (DOCUMENT_MODULE_IDS.has(moduleId)) {
     return items.map(normalizeDocumentItem);
   }
 

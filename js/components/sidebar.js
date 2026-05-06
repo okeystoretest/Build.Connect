@@ -1,10 +1,12 @@
 import { refreshLucideIcons } from '../services/icons.service.js';
+import { sanitizeAttribute, sanitizeText } from '../utils/sanitize.js';
 
 export function renderSidebar(rootElement, state, handlers, navigationItems, theme) {
   rootElement.innerHTML = `
     <div class="sidebar-panel">
       <div class="sidebar-header">
         <div class="brand" aria-label="Build.Connect">
+          <img class="brand-logo" src="./assets/build-connect-logo.png" alt="Logo da plataforma Build.Connect" />
           <div class="brand-copy">
             <strong class="brand-title">
               <span class="brand-title-accent">Build</span><span class="brand-title-dot">.</span>Connect
@@ -66,23 +68,23 @@ export function renderSidebar(rootElement, state, handlers, navigationItems, the
 function renderNavigationItem(item, state) {
   const hasChildren = Boolean(item.children?.length);
   const isActive = state.activeItemId === item.id;
-  const commonTooltip = `<span class="item-tooltip">${item.label}</span>`;
+  const commonTooltip = `<span class="item-tooltip">${sanitizeText(item.label)}</span>`;
 
   if (!hasChildren) {
     return `
       <button
         class="nav-item ${isActive ? 'is-active' : ''}"
         type="button"
-        data-nav-item="${item.id}"
+        data-nav-item="${sanitizeAttribute(item.id)}"
         aria-current="${isActive ? 'page' : 'false'}"
-        aria-label="${item.label}"
-        title="${item.label}"
+        aria-label="${sanitizeText(item.label)}"
+        title="${sanitizeText(item.label)}"
       >
         <span class="nav-icon" aria-hidden="true">
-          <i data-lucide="${item.icon}"></i>
+          <i data-lucide="${sanitizeAttribute(item.icon)}"></i>
         </span>
         <span class="nav-text">
-          <span class="nav-label">${item.label}</span>
+          <span class="nav-label">${sanitizeText(item.label)}</span>
         </span>
         ${commonTooltip}
       </button>
@@ -96,21 +98,21 @@ function renderNavigationItem(item, state) {
   const isExpanded = Boolean(expandedStateMap[item.id]);
 
   return `
-    <div class="nav-group" data-nav-group="${item.id}" data-expanded="${isExpanded}">
+    <div class="nav-group" data-nav-group="${sanitizeAttribute(item.id)}" data-expanded="${isExpanded}">
       <button
         class="nav-trigger ${isExpanded ? 'is-expanded' : ''}"
         type="button"
-        data-nav-group-toggle="${item.id}"
+        data-nav-group-toggle="${sanitizeAttribute(item.id)}"
         aria-expanded="${isExpanded}"
-        aria-controls="submenu-${item.id}"
-        aria-label="${item.label}"
-        title="${item.label}"
+        aria-controls="submenu-${sanitizeAttribute(item.id)}"
+        aria-label="${sanitizeText(item.label)}"
+        title="${sanitizeText(item.label)}"
       >
         <span class="nav-icon" aria-hidden="true">
-          <i data-lucide="${item.icon}"></i>
+          <i data-lucide="${sanitizeAttribute(item.icon)}"></i>
         </span>
         <span class="nav-text">
-          <span class="nav-label">${item.label}</span>
+          <span class="nav-label">${sanitizeText(item.label)}</span>
         </span>
         <span class="chevron-icon" aria-hidden="true">
           <i data-lucide="chevron-down"></i>
@@ -118,7 +120,7 @@ function renderNavigationItem(item, state) {
         ${commonTooltip}
       </button>
 
-      <div class="submenu" id="submenu-${item.id}" role="group" aria-label="Submenu ${item.label}" aria-hidden="${String(!isExpanded)}">
+      <div class="submenu" id="submenu-${sanitizeAttribute(item.id)}" role="group" aria-label="Submenu ${sanitizeText(item.label)}" aria-hidden="${String(!isExpanded)}">
         ${item.children.map((child) => renderSubmenuItem(child, state.activeItemId)).join('')}
       </div>
     </div>
@@ -132,18 +134,18 @@ function renderSubmenuItem(item, activeItemId) {
     <button
       class="submenu-item ${isActive ? 'is-active' : ''}"
       type="button"
-      data-nav-item="${item.id}"
+      data-nav-item="${sanitizeAttribute(item.id)}"
       aria-current="${isActive ? 'page' : 'false'}"
-      aria-label="${item.label}"
-      title="${item.label}"
+      aria-label="${sanitizeText(item.label)}"
+      title="${sanitizeText(item.label)}"
     >
       <span class="nav-icon" aria-hidden="true">
-        <i data-lucide="${item.icon}"></i>
+        <i data-lucide="${sanitizeAttribute(item.icon)}"></i>
       </span>
       <span class="nav-text">
-        <span class="submenu-label">${item.label}</span>
+        <span class="submenu-label">${sanitizeText(item.label)}</span>
       </span>
-      <span class="item-tooltip">${item.label}</span>
+      <span class="item-tooltip">${sanitizeText(item.label)}</span>
     </button>
   `;
 }

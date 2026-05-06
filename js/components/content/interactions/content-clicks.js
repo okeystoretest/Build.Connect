@@ -1,0 +1,241 @@
+import { openDocumentModal } from '../../modules/document-module.js';
+import { openVideoModal } from '../../modules/video-module.js';
+
+export function createClickHandler(rootElement, viewState, dependencies) {
+  const sector = viewState.selectedItem;
+  const {
+    moduleCardIds,
+    handleModuleSelection,
+    clearSelectedModule,
+    toggleModuleSort,
+    setModuleView,
+    userAdminModuleHandlers,
+    evaluationModuleHandlers,
+    feedbackModuleHandlers,
+    qualityModuleHandlers,
+  } = dependencies;
+
+  return (event) => {
+    const cardButton = event.target.closest('[data-module-card]');
+
+    if (cardButton) {
+      event.preventDefault();
+      const moduleId = cardButton.dataset.moduleId;
+
+      if (!moduleId || !moduleCardIds.has(moduleId)) {
+        return;
+      }
+
+      handleModuleSelection(rootElement, sector, moduleId, viewState.authenticatedUser);
+      return;
+    }
+
+    const retryButton = event.target.closest('[data-module-retry]');
+
+    if (retryButton) {
+      event.preventDefault();
+      const moduleId = retryButton.dataset.moduleId;
+
+      if (moduleId) {
+        handleModuleSelection(rootElement, sector, moduleId, viewState.authenticatedUser, { forceRefresh: true });
+      }
+
+      return;
+    }
+
+    const backButton = event.target.closest('[data-module-back]');
+
+    if (backButton) {
+      event.preventDefault();
+      clearSelectedModule(rootElement, sector, viewState.authenticatedUser);
+      return;
+    }
+
+    const sortButton = event.target.closest('[data-module-sort]');
+
+    if (sortButton) {
+      event.preventDefault();
+      toggleModuleSort(rootElement, sector);
+      return;
+    }
+
+    const viewButton = event.target.closest('[data-module-view]');
+
+    if (viewButton) {
+      event.preventDefault();
+      setModuleView(rootElement, sector, viewButton.dataset.moduleView || 'grid');
+      return;
+    }
+
+    const videoButton = event.target.closest('[data-video-embed-url]');
+
+    if (videoButton) {
+      event.preventDefault();
+      openVideoModal({
+        title: videoButton.dataset.videoTitle || 'Vídeo de treinamento',
+        embedUrl: videoButton.dataset.videoEmbedUrl || '',
+      });
+      return;
+    }
+
+    const documentButton = event.target.closest('[data-document-preview-url]');
+
+    if (documentButton) {
+      event.preventDefault();
+      openDocumentModal({
+        title: documentButton.dataset.documentTitle || 'Documento',
+        previewUrl: documentButton.dataset.documentPreviewUrl || '',
+      });
+      return;
+    }
+
+    const userAdminSearchButton = event.target.closest('[data-user-admin-search]');
+
+    if (userAdminSearchButton) {
+      event.preventDefault();
+      userAdminModuleHandlers.searchRecords(rootElement, sector);
+      return;
+    }
+
+    const userAdminEditButton = event.target.closest('[data-user-admin-edit]');
+
+    if (userAdminEditButton) {
+      event.preventDefault();
+      userAdminModuleHandlers.editRecord(rootElement, sector, userAdminEditButton.dataset.userId || '');
+      return;
+    }
+
+    const userAdminClearButton = event.target.closest('[data-user-admin-clear]');
+
+    if (userAdminClearButton) {
+      event.preventDefault();
+      userAdminModuleHandlers.clearForm(rootElement, sector);
+      return;
+    }
+
+    const userAdminSaveButton = event.target.closest('[data-user-admin-save]');
+
+    if (userAdminSaveButton) {
+      event.preventDefault();
+      userAdminModuleHandlers.saveRecord(rootElement, sector);
+      return;
+    }
+
+    const userAdminResetPasswordButton = event.target.closest('[data-user-admin-reset-password]');
+
+    if (userAdminResetPasswordButton) {
+      event.preventDefault();
+      userAdminModuleHandlers.resetPassword(rootElement, sector);
+      return;
+    }
+
+    const userAdminCopyPasswordButton = event.target.closest('[data-user-admin-copy-password]');
+
+    if (userAdminCopyPasswordButton) {
+      event.preventDefault();
+      userAdminModuleHandlers.copyPassword(rootElement, sector);
+      return;
+    }
+
+    const evaluationToolButton = event.target.closest('[data-evaluation-tool]');
+
+    if (evaluationToolButton) {
+      event.preventDefault();
+      evaluationModuleHandlers.selectTool(rootElement, sector, evaluationToolButton.dataset.evaluationTool || '');
+      return;
+    }
+
+    const evaluationToolsBackButton = event.target.closest('[data-evaluation-tools-back]');
+
+    if (evaluationToolsBackButton) {
+      event.preventDefault();
+      evaluationModuleHandlers.clearSelectedTool(rootElement, sector);
+      return;
+    }
+
+    const evaluateeToggle = event.target.closest('[data-evaluatee-toggle]');
+
+    if (evaluateeToggle) {
+      event.preventDefault();
+      evaluationModuleHandlers.toggleDropdown(rootElement, sector);
+      return;
+    }
+
+    const evaluateeOption = event.target.closest('[data-evaluatee-option]');
+
+    if (evaluateeOption) {
+      event.preventDefault();
+      evaluationModuleHandlers.selectUser(rootElement, sector, evaluateeOption.dataset.userId || '');
+      return;
+    }
+
+    const evaluationSaveButton = event.target.closest('[data-evaluation-save]');
+
+    if (evaluationSaveButton) {
+      event.preventDefault();
+      evaluationModuleHandlers.saveResult(rootElement, sector);
+      return;
+    }
+
+
+    const qualityToolButton = event.target.closest('[data-quality-tool]');
+
+    if (qualityToolButton) {
+      event.preventDefault();
+      qualityModuleHandlers.selectTool(rootElement, sector, qualityToolButton.dataset.qualityTool || '');
+      return;
+    }
+
+    const qualityToolsBackButton = event.target.closest('[data-quality-tools-back]');
+
+    if (qualityToolsBackButton) {
+      event.preventDefault();
+      qualityModuleHandlers.clearSelectedTool(rootElement, sector);
+      return;
+    }
+
+    const qualityEvaluateeToggle = event.target.closest('[data-quality-evaluatee-toggle]');
+
+    if (qualityEvaluateeToggle) {
+      event.preventDefault();
+      qualityModuleHandlers.toggleDropdown(rootElement, sector);
+      return;
+    }
+
+    const qualityEvaluateeOption = event.target.closest('[data-quality-evaluatee-option]');
+
+    if (qualityEvaluateeOption) {
+      event.preventDefault();
+      qualityModuleHandlers.selectUser(rootElement, sector, qualityEvaluateeOption.dataset.userId || '');
+      return;
+    }
+
+    const feedbackTargetToggle = event.target.closest('[data-feedback-target-toggle]');
+
+    if (feedbackTargetToggle) {
+      event.preventDefault();
+      feedbackModuleHandlers.toggleDropdown(rootElement, sector);
+      return;
+    }
+
+    const feedbackTargetOption = event.target.closest('[data-feedback-target-option]');
+
+    if (feedbackTargetOption) {
+      event.preventDefault();
+      feedbackModuleHandlers.selectUser(rootElement, sector, feedbackTargetOption.dataset.userId || '');
+      return;
+    }
+
+    if (!event.target.closest('[data-evaluation-picker]')) {
+      evaluationModuleHandlers.closeDropdown(rootElement, sector);
+    }
+
+    if (!event.target.closest('[data-feedback-picker]')) {
+      feedbackModuleHandlers.closeDropdown(rootElement, sector);
+    }
+
+    if (!event.target.closest('[data-quality-picker]')) {
+      qualityModuleHandlers.closeDropdown(rootElement, sector);
+    }
+  };
+}

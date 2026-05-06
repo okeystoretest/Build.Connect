@@ -1,389 +1,61 @@
-export const STORAGE_KEYS = {
-  activeItem: 'build.connect.active-item',
-  sidebarCollapsed: 'build.connect.sidebar-collapsed',
-  productionExpanded: 'build.connect.production-expanded',
-  commercialExpanded: 'build.connect.commercial-expanded',
-};
+import {
+  COMMERCIAL_SECTOR_IDS,
+  NAVIGATION_ITEMS,
+  STORAGE_KEYS,
+} from '../config/navigation.config.js';
+import {
+  COMMERCIAL_SECTOR_CARDS,
+  DEFAULT_SECTOR_CARDS,
+  DHO_SECTOR_CARDS,
+} from '../config/sector-cards.config.js';
+import { APP_SOURCE_LABEL } from '../constants/module.constants.js';
+import { ACCESS_KEYS, SECTOR_IDS } from '../constants/sector.constants.js';
+import { getCardsForUserAccess } from './access.service.js';
 
-export const DEFAULT_SECTOR_CARDS = [
-  {
-    id: 'documentos',
-    title: 'Documentos',
-    icon: 'folder-open',
-    hint: 'Leitura inicial',
-    getDescription: (sectorName) =>
-      `Comece por aqui para conhecer os arquivos, regras e registros mais importantes do setor ${sectorName}.`,
-  },
-  {
-    id: 'instrucoes-escritas',
-    title: 'Instruções Escritas',
-    icon: 'file-text',
-    hint: 'Passo a passo',
-    getDescription: (sectorName) =>
-      `Aqui você encontra orientações claras para entender como as rotinas do setor ${sectorName} funcionam no dia a dia.`,
-  },
-  {
-    id: 'instrucoes-video',
-    title: 'Instruções em Vídeo',
-    icon: 'video',
-    hint: 'Treinamento visual',
-    getDescription: (sectorName) =>
-      `Assista aos conteúdos em vídeo do setor ${sectorName} para aprender as atividades de forma prática e rápida.`,
-  },
-  {
-    id: 'avaliacao',
-    title: 'Avaliações',
-    icon: 'clipboard-list',
-    hint: 'Acompanhamento',
-    getDescription: (sectorName) =>
-      `Nesta área ficam as ferramentas e registros de avaliação para apoiar seu desenvolvimento no setor ${sectorName}.`,
-  },
-  {
-    id: 'feedback',
-    title: 'Feedback',
-    icon: 'message-square',
-    hint: 'Canal de retorno',
-    getDescription: (sectorName) =>
-      `Use este espaço para compartilhar dúvidas, sugestões e melhorias relacionadas ao setor ${sectorName}.`,
-  },
-];
-
-export const COMMERCIAL_SECTOR_CARDS = [
-  {
-    id: 'documentos',
-    title: 'Material',
-    icon: 'folder-open',
-    hint: 'Campanhas',
-    getDescription: (sectorName) =>
-      `Acesse os catálogos, materiais e arquivos das campanhas ligados ao subsetor ${sectorName}.`,
-  },
-  {
-    id: 'instrucoes-escritas',
-    title: 'Instruções Escritas',
-    icon: 'file-text',
-    hint: 'Passo a passo',
-    getDescription: (sectorName) =>
-      `Aqui você encontra orientações claras para entender como as rotinas do subsetor ${sectorName} funcionam no dia a dia.`,
-  },
-  {
-    id: 'instrucoes-video',
-    title: 'Instruções em Vídeo',
-    icon: 'video',
-    hint: 'Treinamento visual',
-    getDescription: (sectorName) =>
-      `Assista aos conteúdos em vídeo do subsetor ${sectorName} para aprender as atividades de forma prática e rápida.`,
-  },
-  {
-    id: 'avaliacao',
-    title: 'Avaliações',
-    icon: 'clipboard-list',
-    hint: 'Acompanhamento',
-    getDescription: (sectorName) =>
-      `Nesta área ficam as ferramentas e registros de avaliação para apoiar seu desenvolvimento no subsetor ${sectorName}.`,
-  },
-  {
-    id: 'feedback',
-    title: 'Feedback',
-    icon: 'message-square',
-    hint: 'Canal de retorno',
-    getDescription: (sectorName) =>
-      `Use este espaço para compartilhar dúvidas, sugestões e melhorias relacionadas ao subsetor ${sectorName}.`,
-  },
-];
-
-export const DHO_SECTOR_CARDS = [
-  {
-    id: 'cadastro-usuarios',
-    title: 'Cadastro de Usuários',
-    icon: 'user-plus',
-    hint: 'Acesso inicial',
-    getDescription: () =>
-      'Cadastre novos utilizadores, organize acessos e mantenha a base de perfis atualizada para uso no Build.Connect.',
-  },
-  {
-    id: 'historico-colaborador',
-    title: 'Histórico do Colaborador',
-    icon: 'folder-clock',
-    hint: 'Acompanhamento',
-    getDescription: () =>
-      'Consulte o percurso do colaborador, com registros importantes para acompanhar evolução, mudanças e ocorrências.',
-  },
-  {
-    id: 'questionarios',
-    title: 'Questionários',
-    icon: 'clipboard-check',
-    hint: 'Coleta guiada',
-    getDescription: () =>
-      'Acesse formulários e questionários usados para recolher informações, apoiar avaliações e orientar etapas do processo.',
-  },
-  {
-    id: 'resultado-treinamento',
-    title: 'Resultado do Treinamento',
-    icon: 'graduation-cap',
-    hint: 'Desempenho',
-    getDescription: () =>
-      'Veja os resultados dos treinamentos e acompanhe o desempenho do colaborador nas etapas concluídas.',
-  },
-  {
-    id: 'qualidade',
-    title: 'Qualidade',
-    icon: 'badge-check',
-    hint: 'Padrão interno',
-    getDescription: () =>
-      'Reúna verificações, critérios e registros ligados à qualidade para apoiar decisões e manter o padrão esperado.',
-  },
-];
-
-
-
-const PRODUCTION_CHILD_IDS = ['criacao', 'pcp', 'almoxarifado', 'corte', 'acabamento', 'revisao', 'externo'];
-const COMMERCIAL_CHILD_IDS = ['gestao', 'vendas'];
-const COMMERCIAL_SECTOR_IDS = new Set(COMMERCIAL_CHILD_IDS);
-
-function normalizeSectorAccessKey(value) {
-  return String(value || '')
-    .trim()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '');
-}
-
-function normalizeSectorAccessKeys(value) {
-  const values = Array.isArray(value)
-    ? value
-    : String(value || '')
-      .split(/[,;|]+/)
-      .map((item) => item.trim());
-
-  const normalizedKeys = values
-    .map(normalizeSectorAccessKey)
-    .filter(Boolean)
-    .map((key) => (key === 'todos' ? 'all' : key));
-
-  if (!normalizedKeys.length) {
-    return ['all'];
-  }
-
-  if (normalizedKeys.includes('all')) {
-    return ['all'];
-  }
-
-  return [...new Set(normalizedKeys)];
-}
-
-function isProductionChildAccess(accessKey) {
-  return PRODUCTION_CHILD_IDS.includes(accessKey);
-}
-
-function isCommercialChildAccess(accessKey) {
-  return COMMERCIAL_CHILD_IDS.includes(accessKey);
-}
-
-export const NAVIGATION_ITEMS = [
-  {
-    id: 'inicio',
-    label: 'Início',
-    icon: 'house',
-    description: 'Volte para a visão principal do Build.Connect e retome sua navegação pelos setores.',
-  },
-  {
-    id: 'comercial',
-    label: 'Comercial',
-    icon: 'tag',
-    metaLabel: 'Accordion de subsetores',
-    description: 'Acesse os subsetores do Comercial e encontre materiais de campanha, instruções e conteúdos de apoio.',
-    children: [
-      {
-        id: 'gestao',
-        label: 'Gestão',
-        icon: 'briefcase-business',
-        description: 'Consulte os materiais e orientações do subsetor Gestão para acompanhar campanhas, processos e apoio comercial.',
-      },
-      {
-        id: 'vendas',
-        label: 'Vendas',
-        icon: 'badge-dollar-sign',
-        description: 'Acesse os materiais e instruções do subsetor Vendas para apoiar a rotina comercial e as campanhas ativas.',
-      },
-    ],
-  },
-  {
-    id: 'producao',
-    label: 'Produção',
-    icon: 'settings-2',
-    metaLabel: 'Accordion de setores',
-    description: 'Acesse os subsetores da Produção e encontre orientações para cada etapa do fluxo operacional.',
-    children: [
-      {
-        id: 'criacao',
-        label: 'Criação',
-        icon: 'palette',
-        description: 'Conheça o setor de Criação e veja onde ficam as referências, padrões visuais e orientações para desenvolver materiais.',
-      },
-      {
-        id: 'pcp',
-        label: 'PCP',
-        icon: 'clipboard-list',
-        description: 'Aqui você acompanha como o PCP organiza o planejamento da produção e direciona o andamento das atividades.',
-      },
-      {
-        id: 'almoxarifado',
-        label: 'Almoxarifado',
-        icon: 'package',
-        description: 'Encontre as instruções do Almoxarifado para entender recebimento, armazenamento e controle dos insumos.',
-      },
-      {
-        id: 'corte',
-        label: 'Corte',
-        icon: 'scissors',
-        description: 'Veja como o setor de Corte prepara materiais e segue os padrões necessários para iniciar a produção com segurança.',
-      },
-      {
-        id: 'acabamento',
-        label: 'Acabamento',
-        icon: 'wand-sparkles',
-        description: 'Aprenda como o Acabamento organiza os processos finais e garante o padrão esperado antes da entrega.',
-      },
-      {
-        id: 'revisao',
-        label: 'Revisão',
-        icon: 'search-check',
-        description: 'Acompanhe as orientações do setor de Revisão para conferir padrões, identificar ajustes e validar o que segue para a próxima etapa.',
-      },
-      {
-        id: 'externo',
-        label: 'Externo',
-        icon: 'globe',
-        description: 'Encontre os materiais do setor Externo para entender demandas enviadas a parceiros e o acompanhamento dessas etapas fora da operação interna.',
-      },
-    ],
-  },
-  {
-    id: 'marketing',
-    label: 'Marketing',
-    icon: 'megaphone',
-    description: 'Veja os materiais e orientações do setor de Marketing para campanhas, comunicação e apoio às ações da marca.',
-  },
-  {
-    id: 'compras',
-    label: 'Compras',
-    icon: 'shopping-cart',
-    description: 'Entenda como o setor de Compras solicita, aprova e acompanha aquisições importantes para a operação.',
-  },
-  {
-    id: 'logistica',
-    label: 'Logística',
-    icon: 'truck',
-    description: 'Conheça os fluxos da Logística para recebimento, movimentação, expedição e entrega de materiais.',
-  },
-  {
-    id: 'financeiro',
-    label: 'Financeiro',
-    icon: 'wallet',
-    description: 'Aqui você encontra o que precisa para entender controles, processos e materiais de apoio do Financeiro.',
-  },
-  {
-    id: 'retaguarda',
-    label: 'Retaguarda',
-    icon: 'monitor-cog',
-    description: 'Acesse os conteúdos do setor de Retaguarda para suporte interno, sistemas e rotinas de TI.',
-  },
-  {
-    id: 'dho',
-    label: 'DHO',
-    icon: 'users-round',
-    description: 'Acompanhe os processos de desenvolvimento humano e organizacional, com materiais de apoio ao colaborador e à gestão.',
-  },
-];
-
-
-export function getNavigationItemsForAccess(sectorAccess) {
-  const accessKeys = normalizeSectorAccessKeys(sectorAccess);
-  const homeItem = NAVIGATION_ITEMS.find((item) => item.id === 'inicio');
-
-  if (accessKeys.includes('all')) {
-    return NAVIGATION_ITEMS;
-  }
-
-  const baseItems = homeItem ? [homeItem] : [];
-  const accessSet = new Set(accessKeys);
-
-  NAVIGATION_ITEMS.forEach((item) => {
-    if (item.id === 'inicio') {
-      return;
-    }
-
-    if (item.id === 'comercial') {
-      const allowFullCommercial = accessSet.has('comercial');
-      const allowedChildren = allowFullCommercial
-        ? item.children || []
-        : (item.children || []).filter((child) => accessSet.has(child.id));
-
-      if (allowFullCommercial || allowedChildren.length) {
-        baseItems.push({
-          ...item,
-          children: allowedChildren,
-        });
-      }
-
-      return;
-    }
-
-    if (item.id === 'producao') {
-      const allowFullProduction = accessSet.has('producao');
-      const allowedChildren = allowFullProduction
-        ? item.children || []
-        : (item.children || []).filter((child) => accessSet.has(child.id));
-
-      if (allowFullProduction || allowedChildren.length) {
-        baseItems.push({
-          ...item,
-          children: allowedChildren,
-        });
-      }
-
-      return;
-    }
-
-    if (accessSet.has(item.id)) {
-      baseItems.push(item);
-    }
-  });
-
-  return baseItems;
-}
-
-export function shouldStartProductionExpandedForAccess(sectorAccess) {
-  return normalizeSectorAccessKeys(sectorAccess).some((accessKey) => accessKey === 'producao' || isProductionChildAccess(accessKey));
-}
-
-export function shouldStartCommercialExpandedForAccess(sectorAccess) {
-  return normalizeSectorAccessKeys(sectorAccess).some((accessKey) => accessKey === 'comercial' || isCommercialChildAccess(accessKey));
-}
+export { NAVIGATION_ITEMS, STORAGE_KEYS } from '../config/navigation.config.js';
+export {
+  COMMERCIAL_SECTOR_CARDS,
+  DEFAULT_SECTOR_CARDS,
+  DHO_SECTOR_CARDS,
+} from '../config/sector-cards.config.js';
+export {
+  canUserAccessModule,
+  getAccessKeysForUser,
+  getCardsForUserAccess,
+  getNavigationItemsForAccess,
+  getNavigationItemsForUser,
+  isCommercialChildAccess,
+  isProductionChildAccess,
+  normalizeSectorAccessKey,
+  normalizeSectorAccessKeys,
+  shouldStartCommercialExpandedForAccess,
+  shouldStartCommercialExpandedForUser,
+  shouldStartProductionExpandedForAccess,
+  shouldStartProductionExpandedForUser,
+} from './access.service.js';
 
 export function sanitizeActiveItemForNavigation(itemId, navigationItems) {
   if (!itemId || isGroupItem(itemId) || !findItemById(itemId, navigationItems)) {
-    return 'inicio';
+    return SECTOR_IDS.home;
   }
 
   return itemId;
 }
 
-export function getCardsForSector(itemId) {
+export function getCardsForSector(itemId, authenticatedUser = null) {
+  let cards = DEFAULT_SECTOR_CARDS;
+
   if (isDhoSector(itemId)) {
-    return DHO_SECTOR_CARDS;
+    cards = DHO_SECTOR_CARDS;
+  } else if (COMMERCIAL_SECTOR_IDS.has(itemId)) {
+    cards = COMMERCIAL_SECTOR_CARDS;
   }
 
-  if (COMMERCIAL_SECTOR_IDS.has(itemId)) {
-    return COMMERCIAL_SECTOR_CARDS;
-  }
-
-  return DEFAULT_SECTOR_CARDS;
+  return getCardsForUserAccess(cards, authenticatedUser);
 }
 
 export function getInitialNavigationState() {
-  const storedActiveItem = getStoredValue(STORAGE_KEYS.activeItem, 'inicio');
+  const storedActiveItem = getStoredValue(STORAGE_KEYS.activeItem, SECTOR_IDS.home);
   const activeItemId = sanitizeActiveItem(storedActiveItem);
 
   return {
@@ -424,15 +96,15 @@ export function findItemById(itemId, items = NAVIGATION_ITEMS) {
 }
 
 export function isHomeItem(itemId) {
-  return itemId === 'inicio';
+  return itemId === SECTOR_IDS.home;
 }
 
 export function isGroupItem(itemId) {
-  return itemId === 'producao' || itemId === 'comercial';
+  return itemId === SECTOR_IDS.production || itemId === SECTOR_IDS.commercial;
 }
 
 export function isDhoSector(itemId) {
-  return itemId === 'dho';
+  return itemId === SECTOR_IDS.dho;
 }
 
 export function shouldRenderDefaultSectorCards(itemId, items = NAVIGATION_ITEMS) {
@@ -445,7 +117,7 @@ export function shouldRenderDefaultSectorCards(itemId, items = NAVIGATION_ITEMS)
 
 export function getSectorBreadcrumb(item) {
   if (!item) {
-    return 'Build.Connect';
+    return APP_SOURCE_LABEL;
   }
 
   if (item.parentLabel) {
@@ -456,11 +128,11 @@ export function getSectorBreadcrumb(item) {
 }
 
 export function getSectorTypeLabel(item) {
-  if (item?.parentId === 'producao') {
+  if (item?.parentId === SECTOR_IDS.production) {
     return 'Subsetor de Produção';
   }
 
-  if (item?.parentId === 'comercial') {
+  if (item?.parentId === SECTOR_IDS.commercial) {
     return 'Subsetor Comercial';
   }
 
@@ -469,7 +141,7 @@ export function getSectorTypeLabel(item) {
 
 function sanitizeActiveItem(itemId) {
   if (!itemId || isGroupItem(itemId) || !findItemById(itemId)) {
-    return 'inicio';
+    return SECTOR_IDS.home;
   }
 
   return itemId;

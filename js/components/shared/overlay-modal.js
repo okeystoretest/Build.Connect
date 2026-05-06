@@ -1,0 +1,70 @@
+import { refreshLucideIcons } from '../../services/icons.service.js';
+import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
+
+let activeOverlayModal = null;
+let activeEscapeHandler = null;
+
+export function openOverlayModal({ title, frameUrl, closeLabel, modalClassName, frameWrapClassName, frameClassName }) {
+  closeActiveOverlayModal();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'video-modal-backdrop';
+  overlay.innerHTML = `
+    <div class="${sanitizeAttribute(modalClassName)}" role="dialog" aria-modal="true" aria-label="${sanitizeText(title)}">
+      <div class="video-modal-head">
+        <strong class="video-modal-title">${sanitizeText(title)}</strong>
+        <button type="button" class="video-modal-close" aria-label="${sanitizeAttribute(closeLabel)}">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="${sanitizeAttribute(frameWrapClassName)}">
+        <iframe
+          class="${sanitizeAttribute(frameClassName)}"
+          src="${sanitizeAttribute(frameUrl)}"
+          title="${sanitizeAttribute(title)}"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen
+        ></iframe>
+      </div>
+    </div>
+  `;
+
+  const closeButton = overlay.querySelector('.video-modal-close');
+  const dialog = overlay.querySelector('[role="dialog"]');
+
+  function handleBackdropClick(event) {
+    if (!dialog.contains(event.target)) {
+      closeActiveOverlayModal();
+    }
+  }
+
+  activeEscapeHandler = (event) => {
+    if (event.key === 'Escape') {
+      closeActiveOverlayModal();
+    }
+  };
+
+  closeButton?.addEventListener('click', closeActiveOverlayModal);
+  overlay.addEventListener('click', handleBackdropClick);
+  document.addEventListener('keydown', activeEscapeHandler);
+  document.body.appendChild(overlay);
+  document.body.classList.add('has-video-modal');
+  refreshLucideIcons(overlay);
+  activeOverlayModal = overlay;
+}
+
+export function closeActiveOverlayModal() {
+  if (activeEscapeHandler) {
+    document.removeEventListener('keydown', activeEscapeHandler);
+    activeEscapeHandler = null;
+  }
+
+  if (!activeOverlayModal) {
+    document.body.classList.remove('has-video-modal');
+    return;
+  }
+
+  activeOverlayModal.remove();
+  activeOverlayModal = null;
+  document.body.classList.remove('has-video-modal');
+}

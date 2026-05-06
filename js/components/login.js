@@ -1,4 +1,5 @@
 import { refreshLucideIcons } from '../services/icons.service.js';
+import { sanitizeText } from '../utils/sanitize.js';
 
 export function renderLoginView(rootElement, loginState, handlers) {
   rootElement.innerHTML = `
@@ -62,7 +63,7 @@ export function renderLoginView(rootElement, loginState, handlers) {
           </label>
 
           <div class="login-alert ${loginState.errorMessage ? 'is-visible is-error' : ''}" role="alert" aria-live="assertive">
-            ${loginState.errorMessage ?? ''}
+            ${sanitizeText(loginState.errorMessage ?? '')}
           </div>
 
           <button class="login-submit" type="submit" ${loginState.isLoading ? 'disabled' : ''}>
