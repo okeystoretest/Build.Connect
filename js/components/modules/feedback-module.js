@@ -1,4 +1,6 @@
 import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
+import { MODULE_IDS } from '../../constants/module.constants.js';
+import { getFilteredEvaluationUsers } from './evaluations/evaluation.calculations.js';
 
 const MODULE_UI_DEFAULTS = Object.freeze({
   query: '',
@@ -17,7 +19,7 @@ export function getFeedbackModuleMarkup(card, moduleData, moduleUi) {
   const users = Array.isArray(moduleData?.users) ? moduleData.users : [];
   const respondent = moduleData?.respondent || null;
   const feedbackUi = getFeedbackUiState(moduleUi);
-  const filteredUsers = getFilteredFeedbackUsers(users, feedbackUi.targetUserQuery, feedbackUi.selectedTargetUserId);
+  const filteredUsers = getFilteredEvaluationUsers(users, feedbackUi.targetUserQuery, feedbackUi.selectedTargetUserId);
   const selectedUser = users.find((user) => user.id === feedbackUi.selectedTargetUserId) || null;
   const isReadyToWrite = Boolean(selectedUser);
 
@@ -93,7 +95,7 @@ export function createFeedbackModuleHandlers({ getModuleState, setModuleState, r
     toggleDropdown(rootElement, sector) {
       const state = getModuleState(sector.id);
 
-      if (state.selectedModuleId !== 'feedback') {
+      if (state.selectedModuleId !== MODULE_IDS.feedback) {
         return;
       }
 
@@ -111,7 +113,7 @@ export function createFeedbackModuleHandlers({ getModuleState, setModuleState, r
     closeDropdown(rootElement, sector) {
       const state = getModuleState(sector.id);
 
-      if (state.selectedModuleId !== 'feedback' || !state.ui?.isTargetUserListOpen) {
+      if (state.selectedModuleId !== MODULE_IDS.feedback || !state.ui?.isTargetUserListOpen) {
         return;
       }
 
@@ -129,7 +131,7 @@ export function createFeedbackModuleHandlers({ getModuleState, setModuleState, r
     updateSearch(rootElement, sector, query) {
       const state = getModuleState(sector.id);
 
-      if (state.selectedModuleId !== 'feedback') {
+      if (state.selectedModuleId !== MODULE_IDS.feedback) {
         return;
       }
 
@@ -153,7 +155,7 @@ export function createFeedbackModuleHandlers({ getModuleState, setModuleState, r
     selectUser(rootElement, sector, userId) {
       const state = getModuleState(sector.id);
 
-      if (state.selectedModuleId !== 'feedback') {
+      if (state.selectedModuleId !== MODULE_IDS.feedback) {
         return;
       }
 
@@ -179,7 +181,7 @@ export function createFeedbackModuleHandlers({ getModuleState, setModuleState, r
     updateField(rootElement, sector, field, value) {
       const state = getModuleState(sector.id);
 
-      if (state.selectedModuleId !== 'feedback') {
+      if (state.selectedModuleId !== MODULE_IDS.feedback) {
         return;
       }
 
@@ -217,18 +219,3 @@ function getFeedbackUsersDropdownMarkup(users) {
   `;
 }
 
-function getFilteredFeedbackUsers(users, query, selectedTargetUserId) {
-  const normalizedQuery = String(query || '').trim().toLocaleLowerCase('pt-BR');
-
-  if (!normalizedQuery) {
-    return users;
-  }
-
-  return users.filter((user) => {
-    const haystack = `${user.id || ''} ${user.nome || ''}`.toLocaleLowerCase('pt-BR');
-    if (user.id === selectedTargetUserId) {
-      return true;
-    }
-    return haystack.includes(normalizedQuery);
-  });
-}

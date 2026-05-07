@@ -67,7 +67,7 @@ function selectEvaluationTool(rootElement, sector, toolId) {
 function clearSelectedEvaluationTool(rootElement, sector) {
   const state = getModuleState(sector.id);
 
-  if (state.selectedModuleId !== 'avaliacao') {
+  if (state.selectedModuleId !== MODULE_IDS.evaluation) {
     return;
   }
 
@@ -86,7 +86,7 @@ function clearSelectedEvaluationTool(rootElement, sector) {
 function toggleEvaluationDropdown(rootElement, sector) {
   const state = getModuleState(sector.id);
 
-  if (state.selectedModuleId !== 'avaliacao') {
+  if (state.selectedModuleId !== MODULE_IDS.evaluation) {
     return;
   }
 
@@ -104,7 +104,7 @@ function toggleEvaluationDropdown(rootElement, sector) {
 function closeEvaluationDropdown(rootElement, sector) {
   const state = getModuleState(sector.id);
 
-  if (state.selectedModuleId !== 'avaliacao' || !state.ui?.isEvaluateeListOpen) {
+  if (state.selectedModuleId !== MODULE_IDS.evaluation || !state.ui?.isEvaluateeListOpen) {
     return;
   }
 
@@ -122,7 +122,7 @@ function closeEvaluationDropdown(rootElement, sector) {
 function updateEvaluationSearch(rootElement, sector, query) {
   const state = getModuleState(sector.id);
 
-  if (state.selectedModuleId !== 'avaliacao') {
+  if (state.selectedModuleId !== MODULE_IDS.evaluation) {
     return;
   }
 
@@ -154,7 +154,7 @@ function updateEvaluationSearch(rootElement, sector, query) {
 function selectEvaluationUser(rootElement, sector, userId) {
   const state = getModuleState(sector.id);
 
-  if (state.selectedModuleId !== 'avaliacao') {
+  if (state.selectedModuleId !== MODULE_IDS.evaluation) {
     return;
   }
 
@@ -183,7 +183,7 @@ function selectEvaluationUser(rootElement, sector, userId) {
 function updateEvaluationScore(rootElement, sector, criterionId, periodId, value) {
   const state = getModuleState(sector.id);
 
-  if (state.selectedModuleId !== 'avaliacao' || !criterionId || !periodId) {
+  if (state.selectedModuleId !== MODULE_IDS.evaluation || !criterionId || !periodId) {
     return;
   }
 
@@ -209,7 +209,7 @@ function updateEvaluationScore(rootElement, sector, criterionId, periodId, value
 function updateEvaluationNotes(rootElement, sector, notes) {
   const state = getModuleState(sector.id);
 
-  if (state.selectedModuleId !== 'avaliacao') {
+  if (state.selectedModuleId !== MODULE_IDS.evaluation) {
     return;
   }
 
@@ -234,7 +234,7 @@ function updateEvaluationNotes(rootElement, sector, notes) {
 function updateEvaluationField(rootElement, sector, fieldName, value) {
   const state = getModuleState(sector.id);
 
-  if (state.selectedModuleId !== 'avaliacao' || !fieldName) {
+  if (state.selectedModuleId !== MODULE_IDS.evaluation || !fieldName) {
     return;
   }
 

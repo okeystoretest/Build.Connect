@@ -398,6 +398,7 @@ function renderModuleStage(rootElement, sector) {
 
   stageElement.innerHTML = getModuleStageMarkup(sector, stageState);
   stageElement.classList.remove('is-module-stage-visible');
+  stageElement.classList.add('is-visible');
 
   refreshLucideIcons(stageElement);
 

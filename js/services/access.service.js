@@ -161,10 +161,10 @@ export function shouldStartCommercialExpandedForAccess(sectorAccess) {
   return normalizeSectorAccessKeys(sectorAccess).some((accessKey) => accessKey === SECTOR_IDS.commercial || isCommercialChildAccess(accessKey));
 }
 
-export function shouldStartProductionExpandedForUser(user) {
-  return getAccessKeysForUser(user).some((accessKey) => accessKey === ACCESS_KEYS.all || accessKey === SECTOR_IDS.production || isProductionChildAccess(accessKey));
+export function shouldStartProductionExpandedForUser(_user) {
+  return false;
 }
 
-export function shouldStartCommercialExpandedForUser(user) {
-  return getAccessKeysForUser(user).some((accessKey) => accessKey === ACCESS_KEYS.all || accessKey === SECTOR_IDS.commercial || isCommercialChildAccess(accessKey));
+export function shouldStartCommercialExpandedForUser(_user) {
+  return false;
 }
