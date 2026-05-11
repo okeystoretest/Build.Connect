@@ -124,6 +124,7 @@ function editUserAdminRecord(rootElement, sector, userId) {
       form: {
         id: selectedUser.id,
         nome: selectedUser.nome,
+        nivel: selectedUser.nivel || '',
         setores: normalizeUserAdminSectors(selectedUser.setorList || selectedUser.setor),
       },
       passwordResult: null,
@@ -216,6 +217,7 @@ async function saveUserAdminRecord(rootElement, sector) {
         form: response.success ? {
           id: response.user?.id || form.id,
           nome: response.user?.nome || form.nome,
+          nivel: response.user?.nivel || form.nivel,
           setores: normalizeUserAdminSectors(response.user?.setorList || form.setores),
         } : form,
         isSubmitting: false,

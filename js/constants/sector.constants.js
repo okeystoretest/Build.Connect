@@ -30,6 +30,12 @@ export const SECTOR_IDS = Object.freeze({
   dho: 'dho',
 });
 
+export const USER_LEVEL_OPTIONS = Object.freeze([
+  { id: USER_LEVELS.colaborador, label: 'Colaborador' },
+  { id: USER_LEVELS.gestor, label: 'Gestor' },
+  { id: USER_LEVELS.admin, label: 'Administrador' },
+]);
+
 export const USER_ADMIN_SECTOR_OPTIONS = Object.freeze([
   { id: ACCESS_KEYS.all, label: 'Todos' },
   { id: SECTOR_IDS.commercial, label: 'Comercial' },

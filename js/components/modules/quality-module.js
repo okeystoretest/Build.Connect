@@ -1,5 +1,6 @@
 import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
 import { searchEvaluationRecords } from '../../services/evaluations.service.js';
+import { listarFeedbacksParaUsuario, marcarFeedbackLido } from '../../services/feedbacks-reader.service.js';
 import {
   BEHAVIORAL_EVALUATION_OPTIONS,
   EVALUATION_CRITERIA,
@@ -25,6 +26,13 @@ export const QUALITY_UI_DEFAULTS = Object.freeze({
   qualityRecordsStatus: 'idle',
   qualityRecordsMessage: '',
   qualityRecords: [],
+  // Feedback reader
+  qualityView: 'evaluations',
+  feedbacksStatus: 'idle',
+  feedbacksPendentes: [],
+  feedbacksLidos: [],
+  feedbacksErrorMessage: '',
+  markingReadId: null,
 });
 
 let moduleContext = null;
@@ -39,21 +47,46 @@ export function createQualityModuleHandlers(dependencies) {
     closeDropdown: closeQualityDropdown,
     updateSearch: updateQualitySearch,
     selectUser: selectQualityUser,
+    switchView: switchQualityView,
+    loadFeedbacks: loadQualityFeedbacks,
+    markFeedbackRead: markQualityFeedbackRead,
   };
 }
 
 export function getQualityModuleMarkup(card, moduleData, moduleUi) {
   const qualityUi = getQualityUiState(moduleUi);
+  const pendingCount = qualityUi.feedbacksPendentes.length;
+
+  const tabs = `
+    <div class="quality-view-tabs" role="tablist">
+      <button type="button" class="quality-tab-btn ${qualityUi.qualityView === 'evaluations' ? 'is-active' : ''}"
+        data-quality-switch-view="evaluations" role="tab" aria-selected="${qualityUi.qualityView === 'evaluations'}">
+        <i data-lucide="clipboard-list"></i>
+        <span>Avaliações</span>
+      </button>
+      <button type="button" class="quality-tab-btn ${qualityUi.qualityView === 'feedbacks' ? 'is-active' : ''}"
+        data-quality-switch-view="feedbacks" role="tab" aria-selected="${qualityUi.qualityView === 'feedbacks'}">
+        <i data-lucide="message-circle"></i>
+        <span>Feedbacks</span>
+        ${pendingCount > 0 ? `<span class="quality-tab-count">${pendingCount}</span>` : ''}
+      </button>
+    </div>
+  `;
+
+  if (qualityUi.qualityView === 'feedbacks') {
+    return getQualityFeedbacksMarkup(card, moduleData, qualityUi, tabs);
+  }
+
   const selectedTool = EVALUATION_TOOLS.find((tool) => tool.id === qualityUi.selectedQualityToolId) || null;
 
   if (!selectedTool) {
-    return getQualityToolsCatalogMarkup(card);
+    return getQualityToolsCatalogMarkup(card, tabs);
   }
 
-  return getQualitySearchMarkup(card, moduleData, qualityUi, selectedTool);
+  return getQualitySearchMarkup(card, moduleData, qualityUi, selectedTool, tabs);
 }
 
-function getQualityToolsCatalogMarkup(card) {
+function getQualityToolsCatalogMarkup(card, tabs = '') {
   return `
     <div class="module-shell evaluation-shell" data-module-shell>
       <div class="module-shell-header module-shell-header--stacked">
@@ -65,6 +98,8 @@ function getQualityToolsCatalogMarkup(card) {
           </p>
         </div>
       </div>
+
+      ${tabs}
 
       <div class="evaluation-tools-grid" aria-label="Tipos de avaliação disponíveis para consulta">
         ${EVALUATION_TOOLS.map((tool) => `
@@ -87,7 +122,7 @@ function getQualityToolsCatalogMarkup(card) {
   `;
 }
 
-function getQualitySearchMarkup(card, moduleData, qualityUi, selectedTool) {
+function getQualitySearchMarkup(card, moduleData, qualityUi, selectedTool, tabs = '') {
   const users = Array.isArray(moduleData?.users) ? moduleData.users : [];
   const filteredUsers = getFilteredEvaluationUsers(users, qualityUi.qualityEvaluateeQuery, qualityUi.selectedQualityEvaluateeId);
   const selectedUser = users.find((user) => user.id === qualityUi.selectedQualityEvaluateeId) || null;
@@ -105,6 +140,8 @@ function getQualitySearchMarkup(card, moduleData, qualityUi, selectedTool) {
           <p class="module-description">Selecione um colaborador ativo para consultar os registros salvos deste formulário.</p>
         </div>
       </div>
+
+      ${tabs}
 
       <div class="evaluation-picker-block">
         <span class="evaluation-meta-label">Buscar colaborador</span>
@@ -333,7 +370,9 @@ function getQualityUiState(moduleUi) {
   return {
     ...QUALITY_UI_DEFAULTS,
     ...(moduleUi || {}),
-    qualityRecords: Array.isArray(moduleUi?.qualityRecords) ? moduleUi.qualityRecords : [],
+    qualityRecords:     Array.isArray(moduleUi?.qualityRecords)     ? moduleUi.qualityRecords     : [],
+    feedbacksPendentes: Array.isArray(moduleUi?.feedbacksPendentes) ? moduleUi.feedbacksPendentes : [],
+    feedbacksLidos:     Array.isArray(moduleUi?.feedbacksLidos)     ? moduleUi.feedbacksLidos     : [],
   };
 }
 
@@ -513,4 +552,175 @@ async function selectQualityUser(rootElement, sector, userId) {
   }
 
   renderModuleStage(rootElement, sector);
+}
+
+// ── Feedback view markup ──────────────────────────────────────────────────
+
+function getQualityFeedbacksMarkup(card, moduleData, qualityUi, tabs) {
+  const respondent = moduleData?.respondent || null;
+  const pendentes  = qualityUi.feedbacksPendentes;
+  const lidos      = qualityUi.feedbacksLidos;
+
+  let body = '';
+
+  if (qualityUi.feedbacksStatus === 'idle') {
+    body = `<div class="quality-fb-idle"><i data-lucide="loader-circle"></i><p>Carregando feedbacks…</p></div>`;
+  } else if (qualityUi.feedbacksStatus === 'loading') {
+    body = `<div class="quality-fb-idle"><i data-lucide="loader-circle"></i><p>Carregando feedbacks…</p></div>`;
+  } else if (qualityUi.feedbacksStatus === 'error') {
+    body = `
+      <div class="quality-fb-error">
+        <i data-lucide="circle-alert"></i>
+        <span>${sanitizeText(qualityUi.feedbacksErrorMessage || 'Erro ao carregar feedbacks.')}</span>
+      </div>`;
+  } else {
+    body = `
+      ${renderFeedbackGroup('Pendentes de leitura', pendentes, true,  qualityUi.markingReadId, respondent)}
+      ${renderFeedbackGroup('Já lidos',             lidos,     false, qualityUi.markingReadId, respondent)}
+    `;
+  }
+
+  return `
+    <div class="module-shell evaluation-shell" data-module-shell>
+      <div class="module-shell-header module-shell-header--stacked">
+        <div>
+          <p class="module-eyebrow">DHO · Qualidade</p>
+          <h2 class="module-title">${sanitizeText(card.title)}</h2>
+          <p class="module-description">Feedbacks recebidos por ${sanitizeText(respondent?.nome || 'você')}, enviados pela equipe.</p>
+        </div>
+      </div>
+
+      ${tabs}
+
+      <div class="quality-feedbacks-body">
+        ${body}
+      </div>
+    </div>
+  `;
+}
+
+function renderFeedbackGroup(title, records, isPending, markingReadId, respondent) {
+  return `
+    <section class="quality-fb-group">
+      <div class="quality-fb-group-head">
+        <h3 class="quality-fb-group-title">
+          <i data-lucide="${isPending ? 'inbox' : 'check-circle-2'}"></i>
+          ${sanitizeText(title)}
+        </h3>
+        <span class="quality-fb-count ${isPending && records.length > 0 ? 'is-pending' : 'is-read'}">${records.length}</span>
+      </div>
+
+      <div class="quality-fb-list">
+        ${records.length === 0
+          ? `<div class="quality-fb-empty"><span>${isPending ? 'Nenhum feedback pendente. Tudo lido!' : 'Nenhum feedback lido ainda.'}</span></div>`
+          : records.map((r) => renderFeedbackCard(r, isPending, markingReadId)).join('')
+        }
+      </div>
+    </section>
+  `;
+}
+
+function renderFeedbackCard(record, isPending, markingReadId) {
+  const isAnon     = record.respondent?.id === 'ANONIMO';
+  const fromName   = isAnon ? 'Anônimo' : (record.respondent?.nome || 'Desconhecido');
+  const dateStr    = record.createdAt
+    ? new Date(record.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : '—';
+  const isMarking  = markingReadId === record.id;
+
+  return `
+    <article class="quality-fb-card ${!isPending ? 'is-read' : ''}">
+      <div class="quality-fb-card-head">
+        <div class="quality-fb-sender">
+          <span class="quality-fb-sender-icon" aria-hidden="true">
+            <i data-lucide="${isAnon ? 'user-x' : 'user-round'}"></i>
+          </span>
+          <span class="quality-fb-sender-name ${isAnon ? 'is-anon' : ''}">${sanitizeText(fromName)}</span>
+        </div>
+        <span class="quality-fb-date">${sanitizeText(dateStr)}</span>
+      </div>
+
+      <p class="quality-fb-message">${sanitizeText(record.notes || '—')}</p>
+
+      ${isPending ? `
+        <div class="quality-fb-actions">
+          ${isMarking
+            ? `<span class="ti-updating"><i data-lucide="loader-circle"></i> Marcando…</span>`
+            : `<button type="button" class="module-link-button is-secondary quality-fb-read-btn"
+                data-quality-mark-read="${sanitizeAttribute(record.id)}">
+                <i data-lucide="check"></i>
+                <span>Marcar como lido</span>
+              </button>`
+          }
+        </div>` : ''
+      }
+    </article>
+  `;
+}
+
+// ── Feedback handlers ─────────────────────────────────────────────────────
+
+function switchQualityView(rootElement, sector, view) {
+  const state = getModuleState(sector.id);
+  const currentUi = getQualityUiState(state.ui);
+
+  setModuleState(sector.id, { ...state, ui: { ...currentUi, qualityView: view } });
+  renderModuleStage(rootElement, sector);
+
+  if (view === 'feedbacks' && currentUi.feedbacksStatus === 'idle') {
+    loadQualityFeedbacks(rootElement, sector);
+  }
+}
+
+async function loadQualityFeedbacks(rootElement, sector) {
+  const state = getModuleState(sector.id);
+  const currentUi = getQualityUiState(state.ui);
+  const userId = state.moduleData?.respondent?.id || '';
+
+  if (!userId) return;
+
+  setModuleState(sector.id, { ...state, ui: { ...currentUi, feedbacksStatus: 'loading', feedbacksErrorMessage: '' } });
+  renderModuleStage(rootElement, sector);
+
+  try {
+    const response = await listarFeedbacksParaUsuario(userId);
+    const nextState = getModuleState(sector.id);
+    const nextUi = getQualityUiState(nextState.ui);
+
+    if (response?.success) {
+      setModuleState(sector.id, {
+        ...nextState,
+        ui: {
+          ...nextUi,
+          feedbacksStatus: 'success',
+          feedbacksPendentes: Array.isArray(response.pendentes) ? response.pendentes : [],
+          feedbacksLidos:     Array.isArray(response.lidos)     ? response.lidos     : [],
+          feedbacksErrorMessage: '',
+        },
+      });
+    } else {
+      setModuleState(sector.id, { ...nextState, ui: { ...nextUi, feedbacksStatus: 'error', feedbacksErrorMessage: response?.message || 'Não foi possível carregar os feedbacks.' } });
+    }
+  } catch (err) {
+    const nextState = getModuleState(sector.id);
+    setModuleState(sector.id, { ...nextState, ui: { ...getQualityUiState(nextState.ui), feedbacksStatus: 'error', feedbacksErrorMessage: err?.message || 'Erro ao carregar feedbacks.' } });
+  }
+
+  renderModuleStage(rootElement, sector);
+}
+
+async function markQualityFeedbackRead(rootElement, sector, recordId) {
+  const state = getModuleState(sector.id);
+  const currentUi = getQualityUiState(state.ui);
+
+  setModuleState(sector.id, { ...state, ui: { ...currentUi, markingReadId: recordId } });
+  renderModuleStage(rootElement, sector);
+
+  try {
+    await marcarFeedbackLido(recordId);
+  } catch (_) { /* reload anyway */ }
+
+  const nextState = getModuleState(sector.id);
+  setModuleState(sector.id, { ...nextState, ui: { ...getQualityUiState(nextState.ui), markingReadId: null } });
+  await loadQualityFeedbacks(rootElement, sector);
 }

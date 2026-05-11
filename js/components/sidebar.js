@@ -35,6 +35,19 @@ export function renderSidebar(rootElement, state, handlers, navigationItems, the
         <button
           class="footer-icon-button"
           type="button"
+          id="ti-button"
+          aria-label="Fazer Requisição"
+          title="Fazer Requisição"
+        >
+          <span class="nav-icon" aria-hidden="true">
+            <i data-lucide="headset"></i>
+          </span>
+          <span class="item-tooltip">Chamado (TI)</span>
+        </button>
+
+        <button
+          class="footer-icon-button"
+          type="button"
           id="theme-switch"
           aria-label="Alternar entre modo claro e modo escuro"
           title="Alternar tema"
@@ -152,12 +165,14 @@ function renderSubmenuItem(item, activeItemId) {
 
 function bindSidebarEvents(rootElement, handlers) {
   const toggleButton = rootElement.querySelector('#sidebar-toggle');
+  const tiButton = rootElement.querySelector('#ti-button');
   const themeSwitch = rootElement.querySelector('#theme-switch');
   const logoutButton = rootElement.querySelector('#logout-button');
   const navItems = rootElement.querySelectorAll('[data-nav-item]');
   const groupToggles = rootElement.querySelectorAll('[data-nav-group-toggle]');
 
   toggleButton?.addEventListener('click', handlers.onSidebarToggle);
+  tiButton?.addEventListener('click', handlers.onTiModal);
   themeSwitch?.addEventListener('click', handlers.onThemeToggle);
   logoutButton?.addEventListener('click', handlers.onLogout);
 

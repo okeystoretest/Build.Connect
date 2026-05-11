@@ -143,6 +143,37 @@
   line-height: 1.4;
 }
 
+.user-admin-nivel-block {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-2) 82%, transparent);
+}
+
+.user-admin-select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: inherit;
+  font-size: inherit;
+  font-family: inherit;
+  outline: 0;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-soft), box-shadow var(--duration-fast) var(--ease-soft), background-color var(--duration-fast) var(--ease-soft);
+  appearance: auto;
+}
+
+.user-admin-select:focus {
+  border-color: var(--primary);
+  background: var(--surface);
+  box-shadow: 0 0 0 4px rgba(212, 162, 87, 0.12);
+}
+
 .user-admin-sector-block {
   display: grid;
   gap: 10px;
@@ -312,7 +343,7 @@
 
 .user-admin-result-card {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
   align-items: center;
   gap: 12px;
   padding: 12px;
@@ -358,6 +389,38 @@
 }
 
 .user-admin-status.is-inactive {
+  color: var(--muted);
+}
+
+.user-admin-nivel-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.user-admin-nivel-badge.is-admin {
+  border-color: color-mix(in srgb, #6366f1 40%, var(--border) 60%);
+  background: color-mix(in srgb, #6366f1 10%, transparent);
+  color: #6366f1;
+}
+
+.user-admin-nivel-badge.is-gestor {
+  border-color: color-mix(in srgb, var(--primary) 38%, var(--border) 62%);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.user-admin-nivel-badge.is-colaborador {
   color: var(--muted);
 }
 

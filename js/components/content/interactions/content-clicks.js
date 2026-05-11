@@ -1,5 +1,6 @@
 import { openDocumentModal } from '../../modules/document-module.js';
 import { openVideoModal } from '../../modules/video-module.js';
+import { MODULE_IDS } from '../../../constants/module.constants.js';
 
 export function createClickHandler(rootElement, viewState, dependencies) {
   const sector = viewState.selectedItem;
@@ -13,6 +14,7 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     evaluationModuleHandlers,
     feedbackModuleHandlers,
     qualityModuleHandlers,
+    tiRequestsModuleHandlers,
   } = dependencies;
 
   return (event) => {
@@ -194,6 +196,22 @@ export function createClickHandler(rootElement, viewState, dependencies) {
       return;
     }
 
+    const qualitySwitchView = event.target.closest('[data-quality-switch-view]');
+
+    if (qualitySwitchView) {
+      event.preventDefault();
+      qualityModuleHandlers.switchView?.(rootElement, sector, qualitySwitchView.dataset.qualitySwitchView || 'evaluations');
+      return;
+    }
+
+    const qualityMarkRead = event.target.closest('[data-quality-mark-read]');
+
+    if (qualityMarkRead) {
+      event.preventDefault();
+      qualityModuleHandlers.markFeedbackRead?.(rootElement, sector, qualityMarkRead.dataset.qualityMarkRead || '');
+      return;
+    }
+
     const qualityEvaluateeToggle = event.target.closest('[data-quality-evaluatee-toggle]');
 
     if (qualityEvaluateeToggle) {
@@ -223,6 +241,72 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     if (feedbackTargetOption) {
       event.preventDefault();
       feedbackModuleHandlers.selectUser(rootElement, sector, feedbackTargetOption.dataset.userId || '');
+      return;
+    }
+
+    // ── TI Requests ────────────────────────────────────────────────────
+
+    const tiReloadBtn = event.target.closest('[data-ti-reload]');
+    if (tiReloadBtn) {
+      event.preventDefault();
+      tiRequestsModuleHandlers?.reloadTickets(rootElement, sector);
+      return;
+    }
+
+    const tiExpandBtn = event.target.closest('[data-ti-expand]');
+    if (tiExpandBtn) {
+      event.preventDefault();
+      tiRequestsModuleHandlers?.expandTicket(rootElement, sector, tiExpandBtn.dataset.tiExpand || '');
+      return;
+    }
+
+    const tiExpandCompleted = event.target.closest('[data-ti-expand-completed]');
+    if (tiExpandCompleted) {
+      event.preventDefault();
+      tiRequestsModuleHandlers?.expandCompleted(rootElement, sector, tiExpandCompleted.dataset.tiExpandCompleted || '');
+      return;
+    }
+
+    const tiStatusBtn = event.target.closest('[data-ti-status]');
+    if (tiStatusBtn) {
+      event.preventDefault();
+      tiRequestsModuleHandlers?.updateStatus(
+        rootElement, sector,
+        tiStatusBtn.dataset.tiStatus     || '',
+        tiStatusBtn.dataset.tiNextStatus || '',
+        viewState.authenticatedUser,
+      );
+      return;
+    }
+
+    const tiStartConclusion = event.target.closest('[data-ti-start-conclusion]');
+    if (tiStartConclusion) {
+      event.preventDefault();
+      tiRequestsModuleHandlers?.startConclusion(rootElement, sector, tiStartConclusion.dataset.tiStartConclusion || '');
+      return;
+    }
+
+    const tiCancelConclusion = event.target.closest('[data-ti-cancel-conclusion]');
+    if (tiCancelConclusion) {
+      event.preventDefault();
+      tiRequestsModuleHandlers?.cancelConclusion(rootElement, sector);
+      return;
+    }
+
+    const tiConfirmConclusion = event.target.closest('[data-ti-confirm-conclusion]');
+    if (tiConfirmConclusion) {
+      event.preventDefault();
+      const ticketId = tiConfirmConclusion.dataset.tiConfirmConclusion || '';
+      const textarea = rootElement.querySelector(`[data-ti-obs-input="${CSS.escape(ticketId)}"]`);
+      const obsError = rootElement.querySelector('[data-ti-obs-error]');
+      const obs = textarea?.value?.trim() || '';
+      if (!obs) {
+        if (obsError) obsError.style.display = '';
+        textarea?.focus();
+        return;
+      }
+      if (obsError) obsError.style.display = 'none';
+      tiRequestsModuleHandlers?.confirmConclusion(rootElement, sector, ticketId, obs, viewState.authenticatedUser);
       return;
     }
 

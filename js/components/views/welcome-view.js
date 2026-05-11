@@ -32,7 +32,7 @@ export function getWelcomeViewMarkup(authenticatedUser) {
 
         <article class="welcome-copy-card">
           <p class="eyebrow">Hub de integração</p>
-          <h2 class="welcome-section-title">Seja bem-vindo(a) ao Build.Connect</h2>
+          <h2 class="welcome-section-title">Bem-vindo(a) ao Build.Connect</h2>
           <div class="welcome-copy-flow">
             <p>Este portal centraliza todos os materiais de integração (documentos, vídeos e manuais) para apoiar sua jornada na empresa e facilitar o entendimento dos nossos processos. Use o menu lateral para navegar entre os setores e retorne a este painel inicial para ter uma visão geral.</p>
             

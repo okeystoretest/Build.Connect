@@ -1,4 +1,4 @@
-import { ACCESS_KEYS, SECTOR_IDS, USER_ADMIN_SECTOR_OPTIONS } from '../../../constants/sector.constants.js';
+import { ACCESS_KEYS, SECTOR_IDS, USER_ADMIN_SECTOR_OPTIONS, USER_LEVEL_OPTIONS, USER_LEVELS } from '../../../constants/sector.constants.js';
 import { MODULE_UI_DEFAULTS, USER_ADMIN_UI_DEFAULTS } from './user-admin.constants.js';
 
 export function getUserAdminUiState(moduleUi) {
@@ -17,10 +17,20 @@ export function getUserAdminUiState(moduleUi) {
     ...mergedUi,
     form: {
       ...form,
+      nivel: normalizeUserAdminNivel(form.nivel),
       setores: normalizeUserAdminSectors(form.setores),
     },
     searchResults: Array.isArray(mergedUi.searchResults) ? mergedUi.searchResults : [],
   };
+}
+
+export function normalizeUserAdminNivel(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  const valid = new Set(USER_LEVEL_OPTIONS.map((o) => o.id));
+  if (valid.has(normalized)) return normalized;
+  if (normalized === 'user') return USER_LEVELS.colaborador;
+  if (normalized === 'admin') return USER_LEVELS.admin;
+  return USER_LEVELS.colaborador;
 }
 
 export function normalizeUserAdminSectors(sectors) {
@@ -40,11 +50,13 @@ export function normalizeUserAdminSectors(sectors) {
 export function readUserAdminFormData(rootElement) {
   const id = rootElement.querySelector('[data-user-admin-field="id"]')?.value || '';
   const nome = rootElement.querySelector('[data-user-admin-field="nome"]')?.value || '';
+  const nivel = rootElement.querySelector('[data-user-admin-field="nivel"]')?.value || '';
   const setores = [...rootElement.querySelectorAll('[data-user-admin-sector]:checked')].map((input) => input.value);
 
   return {
     id: id.trim(),
     nome: nome.trim(),
+    nivel: normalizeUserAdminNivel(nivel),
     setores: normalizeUserAdminSectors(setores),
   };
 }

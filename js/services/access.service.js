@@ -16,7 +16,9 @@ export function normalizeSectorAccessKey(value) {
 }
 
 export function normalizeUserLevel(value) {
-  return normalizeSectorAccessKey(value);
+  const normalized = normalizeSectorAccessKey(value);
+  if (normalized === 'user') return USER_LEVELS.colaborador;
+  return normalized;
 }
 
 export function isAdminUser(user) {

@@ -1,5 +1,5 @@
 import { MODULE_SORT_ORDER, MODULE_STATUS, MODULE_VIEW_MODE } from '../../../constants/module.constants.js';
-import { SECTOR_IDS } from '../../../constants/sector.constants.js';
+import { SECTOR_IDS, USER_LEVELS } from '../../../constants/sector.constants.js';
 
 export const MODULE_UI_DEFAULTS = Object.freeze({
   query: '',
@@ -12,6 +12,7 @@ export const USER_ADMIN_UI_DEFAULTS = Object.freeze({
   form: {
     id: '',
     nome: '',
+    nivel: USER_LEVELS.colaborador,
     setores: [SECTOR_IDS.dho],
   },
   searchQuery: '',

@@ -37,6 +37,10 @@
     max-width: 100%;
   }
 
+  .welcome-showcase {
+    grid-template-columns: 1fr;
+  }
+
   .welcome-grid {
     grid-template-columns: 1fr;
   }

@@ -18,6 +18,7 @@ import {
   MODULE_SORT_ORDER,
   MODULE_STATUS,
   MODULE_VIEW_MODE,
+  SELF_LOADING_MODULE_IDS,
 } from '../constants/module.constants.js';
 import { loadActiveUsers } from '../services/users.service.js';
 import {
@@ -45,6 +46,10 @@ import {
   createQualityModuleHandlers,
   QUALITY_UI_DEFAULTS,
 } from './modules/quality-module.js';
+import {
+  createTiRequestsModuleHandlers,
+  TI_REQUESTS_UI_DEFAULTS,
+} from './modules/ti-requests-module.js';
 import { bindContentInteractions } from './content/content-interactions.js';
 import {
   activateRevealAnimations,
@@ -56,6 +61,7 @@ export { resetModuleSelectionForSector } from '../state/module-state.js';
 
 const VIEW_EXIT_DURATION_MS = 180;
 const MODULE_CARD_IDS = new Set([...DEFAULT_SECTOR_CARDS, ...getCardsForSector('dho')].map((card) => card.id));
+MODULE_CARD_IDS.add(MODULE_IDS.tiRequest);
 const MODULE_REQUEST_TOKENS = new Map();
 let currentRenderToken = 0;
 
@@ -78,6 +84,12 @@ const evaluationModuleHandlers = createEvaluationModuleHandlers({
 });
 
 const qualityModuleHandlers = createQualityModuleHandlers({
+  getModuleState,
+  setModuleState,
+  renderModuleStage,
+});
+
+const tiRequestsModuleHandlers = createTiRequestsModuleHandlers({
   getModuleState,
   setModuleState,
   renderModuleStage,
@@ -124,6 +136,7 @@ function mountView(rootElement, viewState) {
     evaluationModuleHandlers,
     feedbackModuleHandlers,
     qualityModuleHandlers,
+    tiRequestsModuleHandlers,
   });
 }
 
@@ -183,6 +196,20 @@ async function handleModuleSelection(rootElement, sector, moduleId, authenticate
     ui: { ...MODULE_UI_DEFAULTS },
   });
   renderModuleStage(rootElement, sector);
+
+  // Modules that load their own data via handlers (e.g. TI Requests)
+  if (SELF_LOADING_MODULE_IDS.has(moduleId)) {
+    setModuleState(sector.id, {
+      selectedModuleId: moduleId,
+      status: MODULE_STATUS.success,
+      moduleData: { respondent: authenticatedUser },
+      errorMessage: '',
+      ui: { ...MODULE_UI_DEFAULTS, ...TI_REQUESTS_UI_DEFAULTS, loadStatus: 'loading' },
+    });
+    renderModuleStage(rootElement, sector);
+    tiRequestsModuleHandlers.loadTickets(rootElement, sector);
+    return;
+  }
 
   if (requiresActiveUsers(moduleId)) {
     const defaultUi = moduleId === MODULE_IDS.evaluation

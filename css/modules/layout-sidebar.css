@@ -323,7 +323,7 @@
 
 .sidebar-footer {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   padding-top: 8px;
 }
@@ -467,6 +467,13 @@
   justify-items: center;
   gap: 8px;
 }
+
+/* Closing submenu item stagger (reverse order) */
+.nav-group:not([data-expanded='true']) .submenu-item:nth-child(1) { transition-delay: 48ms; }
+.nav-group:not([data-expanded='true']) .submenu-item:nth-child(2) { transition-delay: 32ms; }
+.nav-group:not([data-expanded='true']) .submenu-item:nth-child(3) { transition-delay: 16ms; }
+.nav-group:not([data-expanded='true']) .submenu-item:nth-child(4) { transition-delay: 6ms; }
+.nav-group:not([data-expanded='true']) .submenu-item:nth-child(5) { transition-delay: 0ms; }
 
 .app-shell.is-sidebar-collapsed .submenu {
   position: absolute;

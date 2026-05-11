@@ -1,5 +1,6 @@
 import { createAuthController } from './app/auth.controller.js';
 import { appDom, syncAppShellState as syncShellState } from './app/dom.js';
+import { openTiModal } from './components/shared/ti-modal.js';
 import {
   renderApplication,
   renderAuthentication,
@@ -56,6 +57,7 @@ handlers = {
   onNavigate: navigationController.handleNavigation,
   onGroupToggle: navigationController.handleGroupToggle,
   onLogout: authController.handleLogout,
+  onTiModal: () => openTiModal({ user: state.authenticatedUser }),
 };
 
 authController.bootstrap();

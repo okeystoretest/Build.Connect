@@ -1,5 +1,5 @@
 import { MODULE_STATUS } from '../../../constants/module.constants.js';
-import { USER_ADMIN_SECTOR_OPTIONS } from '../../../constants/sector.constants.js';
+import { USER_ADMIN_SECTOR_OPTIONS, USER_LEVEL_OPTIONS } from '../../../constants/sector.constants.js';
 import { sanitizeAttribute, sanitizeText } from '../../../utils/sanitize.js';
 import { getUserAdminUiState } from './user-admin.form.js';
 
@@ -50,6 +50,16 @@ export function getUserManagementModuleMarkup(card, moduleData, moduleUi) {
               <span class="form-label">Nome completo</span>
               <input class="user-admin-input" type="text" value="${sanitizeAttribute(adminUi.form.nome)}" data-user-admin-field="nome" autocomplete="off" placeholder="Nome do colaborador" aria-label="Nome completo do colaborador" />
             </label>
+          </div>
+
+          <div class="user-admin-nivel-block">
+            <div class="user-admin-section-label">
+              <span class="form-label">Nível de acesso</span>
+              <small>Define as permissões do colaborador no sistema.</small>
+            </div>
+            <select class="user-admin-select" data-user-admin-field="nivel" aria-label="Nível de acesso do colaborador">
+              ${USER_LEVEL_OPTIONS.map((option) => renderUserAdminNivelOption(option, adminUi.form.nivel)).join('')}
+            </select>
           </div>
 
           <div class="user-admin-sector-block">
@@ -111,6 +121,11 @@ export function getUserManagementModuleMarkup(card, moduleData, moduleUi) {
       </div>
     </div>
   `;
+}
+
+function renderUserAdminNivelOption(option, selectedNivel) {
+  const selected = option.id === selectedNivel ? 'selected' : '';
+  return `<option value="${sanitizeAttribute(option.id)}" ${selected}>${sanitizeText(option.label)}</option>`;
 }
 
 function renderUserAdminSectorOption(option, selectedSectors) {
@@ -186,6 +201,10 @@ function renderUserAdminResults(adminUi) {
 }
 
 function renderUserAdminResultItem(user) {
+  const nivelOption = USER_LEVEL_OPTIONS.find((o) => o.id === String(user.nivel || '').trim().toLowerCase());
+  const nivelLabel = nivelOption?.label || sanitizeText(user.nivel || '—');
+  const nivelKey = nivelOption?.id || 'colaborador';
+
   return `
     <article class="user-admin-result-card">
       <span class="user-admin-result-icon" aria-hidden="true"><i data-lucide="user-round"></i></span>
@@ -193,6 +212,7 @@ function renderUserAdminResultItem(user) {
         <strong class="user-admin-result-id">${sanitizeText(user.id)}</strong>
         <p class="user-admin-result-name">${sanitizeText(user.nome)}</p>
       </div>
+      <span class="user-admin-nivel-badge is-${sanitizeAttribute(nivelKey)}" aria-label="Nível ${nivelLabel}">${nivelLabel}</span>
       <span class="user-admin-status ${user.status ? 'is-active' : 'is-inactive'}">${user.status ? 'Ativo' : 'Inativo'}</span>
       <button type="button" class="module-link-button is-secondary" data-user-admin-edit data-user-id="${sanitizeAttribute(user.id)}">
         <i data-lucide="pencil"></i>

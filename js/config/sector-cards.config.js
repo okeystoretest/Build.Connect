@@ -84,6 +84,18 @@ export const COMMERCIAL_SECTOR_CARDS = [
   },
 ];
 
+export const RETAGUARDA_SECTOR_CARDS = [
+  ...DEFAULT_SECTOR_CARDS,
+  {
+    id: 'requisicoes-ti',
+    title: 'Requisições',
+    icon: 'headset',
+    hint: 'Suporte técnico',
+    getDescription: () =>
+      'Auditar e processar as ordens de serviço pendentes, garantindo o atendimento de requisições.',
+  },
+];
+
 export const DHO_SECTOR_CARDS = [
   {
     id: 'cadastro-usuarios',

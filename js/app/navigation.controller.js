@@ -27,14 +27,29 @@ export function createNavigationController({
   renderApp,
 }) {
   function handleSidebarToggle() {
-    state.isSidebarCollapsed = !state.isSidebarCollapsed;
+    const newCollapsed = !state.isSidebarCollapsed;
+    state.isSidebarCollapsed = newCollapsed;
 
-    if (state.isSidebarCollapsed) {
+    if (newCollapsed) {
       state.isProductionExpanded = false;
       state.isCommercialExpanded = false;
     }
 
-    persistAndRender({ shouldRenderContent: false });
+    // Animate the existing toggle button icon before the sidebar re-renders
+    const toggleBtn = sidebarRoot.querySelector('#sidebar-toggle');
+    if (toggleBtn) {
+      toggleBtn.dataset.collapsed = String(newCollapsed);
+      const label = newCollapsed ? 'Expandir sidebar' : 'Recolher sidebar';
+      toggleBtn.setAttribute('aria-label', label);
+      toggleBtn.setAttribute('title', label);
+    }
+
+    // Apply app-shell class immediately so CSS transitions fire on existing elements
+    syncAppShellState();
+    persistNavigationState(state);
+
+    // Re-render sidebar after animation completes (matches sidebar-panel 240ms transition)
+    setTimeout(renderApp, 240);
   }
 
   function handleNavigation(itemId) {

@@ -29,8 +29,19 @@ function normalizeUserPayload(payload = {}) {
     originalId: String(payload.originalId || '').trim(),
     id: String(payload.id || '').trim(),
     nome: String(payload.nome || '').trim(),
+    nivel: normalizeNivelForBackend(payload.nivel),
     setores: JSON.stringify(Array.isArray(payload.setores) ? payload.setores : []),
   };
+}
+
+function normalizeNivelForBackend(nivel) {
+  const map = {
+    admin: 'Admin',
+    gestor: 'Gestor',
+    colaborador: 'Colaborador',
+    user: 'Colaborador',
+  };
+  return map[String(nivel || '').trim().toLowerCase()] || 'Colaborador';
 }
 
 function requestAdminUsersViaBridge(action, payload = {}) {

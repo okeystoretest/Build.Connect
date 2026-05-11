@@ -20,6 +20,7 @@ import { getFeedbackModuleMarkup } from './feedback-module.js';
 import { getUserManagementModuleMarkup } from './user-admin-module.js';
 import { getEvaluationModuleMarkup } from './evaluation-module.js';
 import { getQualityModuleMarkup } from './quality-module.js';
+import { getTiRequestsModuleMarkup } from './ti-requests-module.js';
 
 export function getModuleStageMarkup(sector, stageState) {
   if (!stageState.selectedModuleId) {
@@ -82,6 +83,10 @@ export function getModuleStageMarkup(sector, stageState) {
 
   if (stageState.selectedModuleId === MODULE_IDS.quality) {
     return getQualityModuleMarkup(selectedCard, stageState.moduleData, stageState.ui);
+  }
+
+  if (stageState.selectedModuleId === MODULE_IDS.tiRequest) {
+    return getTiRequestsModuleMarkup(selectedCard, stageState.moduleData, stageState.ui);
   }
 
   return getInternalModuleMarkup(selectedCard);

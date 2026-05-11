@@ -1,5 +1,6 @@
 import { refreshLucideIcons } from '../services/icons.service.js';
 import { sanitizeText } from '../utils/sanitize.js';
+import { openAnonFeedbackModal } from './shared/anon-feedback-modal.js';
 
 export function renderLoginView(rootElement, loginState, handlers) {
   rootElement.innerHTML = `
@@ -76,6 +77,13 @@ export function renderLoginView(rootElement, loginState, handlers) {
 
         <p class="login-hint">Dica: pressione Enter para entrar.</p>
         <p class="login-footnote">© Build.Connect</p>
+
+        <div class="login-anon-row">
+          <button type="button" class="login-anon-btn" id="anon-feedback-btn">
+            <i data-lucide="message-circle-question"></i>
+            <span>Deixar feedback anônimo</span>
+          </button>
+        </div>
       </div>
     </section>
   `;
@@ -88,6 +96,9 @@ function bindLoginEvents(rootElement, handlers) {
   const form = rootElement.querySelector('#login-form');
   const idInput = rootElement.querySelector('#login-id');
   const passwordInput = rootElement.querySelector('#login-password');
+  const anonBtn = rootElement.querySelector('#anon-feedback-btn');
+
+  anonBtn?.addEventListener('click', () => openAnonFeedbackModal());
   const toggleButton = rootElement.querySelector('#login-password-toggle');
 
 

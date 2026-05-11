@@ -1,5 +1,5 @@
 export function createChangeHandler(rootElement, sector, dependencies) {
-  const { evaluationModuleHandlers, feedbackModuleHandlers } = dependencies;
+  const { evaluationModuleHandlers, feedbackModuleHandlers, tiRequestsModuleHandlers } = dependencies;
 
   return (event) => {
     const scoreInput = event.target.closest('[data-evaluation-score]');
@@ -19,6 +19,13 @@ export function createChangeHandler(rootElement, sector, dependencies) {
 
     if (feedbackCategorySelect) {
       feedbackModuleHandlers.updateField(rootElement, sector, 'feedbackCategory', feedbackCategorySelect.value || '');
+      return;
+    }
+
+    const tiPeriodSelect = event.target.closest('[data-ti-period]');
+
+    if (tiPeriodSelect) {
+      tiRequestsModuleHandlers?.changePeriod(rootElement, sector, tiPeriodSelect.value || 'mes');
     }
   };
 }

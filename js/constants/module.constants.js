@@ -9,6 +9,7 @@ export const MODULE_IDS = Object.freeze({
   feedback: 'feedback',
   userAdmin: 'cadastro-usuarios',
   quality: 'qualidade',
+  tiRequest: 'requisicoes-ti',
 });
 
 export const MODULE_STATUS = Object.freeze({
@@ -66,4 +67,9 @@ export const INTERNAL_USER_MODULE_IDS = new Set([
   MODULE_IDS.evaluation,
   MODULE_IDS.feedback,
   MODULE_IDS.quality,
+]);
+
+// Modules that manage their own data loading via handlers
+export const SELF_LOADING_MODULE_IDS = new Set([
+  MODULE_IDS.tiRequest,
 ]);
