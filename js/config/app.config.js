@@ -1,5 +1,10 @@
 export const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyNBAJy1nrKG1_alpIfa4NBj_VGsF5BgJ9RK4dBHRgTuFoojcZjslQvTKPFWN6WQS5I/exec';
 
+export const SUPABASE_EDGE_FUNCTION_URL = 'https://mrdrfcclfbncwqyehknx.supabase.co/functions/v1/bc-api';
+
+// Substitua pela sua publishable key (Settings → API Keys → Publishable and secret API keys)
+export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_qOJLHHri-wmnwqku9EpQlg_31Aq_PI5';
+
 export const AUTH_STORAGE_KEY = 'build.connect.auth-user';
 
 export const BRIDGE_MESSAGE_TYPES = Object.freeze({

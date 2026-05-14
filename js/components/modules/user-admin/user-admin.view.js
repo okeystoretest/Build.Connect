@@ -10,8 +10,8 @@ export function getUserManagementModuleMarkup(card, moduleData, moduleUi) {
   const saveIcon = isEditMode ? 'save' : 'user-plus';
   const panelTitle = isEditMode ? 'Editar cadastro' : 'Novo cadastro';
   const panelSubtitle = isEditMode
-    ? `Atualize os dados de ${sanitizeText(adminUi.originalId)} mantendo o acesso sincronizado com a planilha.`
-    : 'Preencha os dados essenciais para criar um novo acesso com senha temporária.';
+    ? `Atualize os dados de ${sanitizeText(adminUi.originalId)} mantendo o acesso sincronizado.`
+    : 'Preencha os dados essenciais para criar um novo acesso.';
 
   return `
     <div class="module-shell user-admin-shell" data-module-shell>
@@ -50,6 +50,11 @@ export function getUserManagementModuleMarkup(card, moduleData, moduleUi) {
               <span class="form-label">Nome completo</span>
               <input class="user-admin-input" type="text" value="${sanitizeAttribute(adminUi.form.nome)}" data-user-admin-field="nome" autocomplete="off" placeholder="Nome do colaborador" aria-label="Nome completo do colaborador" />
             </label>
+
+            <label class="form-field user-admin-field">
+              <span class="form-label">${isEditMode ? 'Nova senha (deixe em branco para manter)' : 'Senha'}</span>
+              <input class="user-admin-input" type="password" data-user-admin-field="senha" autocomplete="new-password" placeholder="${isEditMode ? 'Nova senha (opcional)' : 'Defina a senha de acesso'}" aria-label="Senha do colaborador" />
+            </label>
           </div>
 
           <div class="user-admin-nivel-block">
@@ -73,19 +78,12 @@ export function getUserManagementModuleMarkup(card, moduleData, moduleUi) {
           </div>
 
           ${adminUi.feedbackMessage ? renderUserAdminFeedback(adminUi.feedbackMessage, adminUi.feedbackType) : ''}
-          ${adminUi.passwordResult ? renderUserAdminPasswordResult(adminUi.passwordResult) : ''}
 
           <div class="user-admin-actions">
             <button type="button" class="module-action-button" data-user-admin-save ${adminUi.isSubmitting ? 'disabled' : ''}>
               <i data-lucide="${sanitizeAttribute(saveIcon)}"></i>
               <span>${adminUi.isSubmitting ? 'Processando...' : saveLabel}</span>
             </button>
-            ${isEditMode ? `
-              <button type="button" class="module-link-button is-secondary" data-user-admin-reset-password ${adminUi.isSubmitting ? 'disabled' : ''}>
-                <i data-lucide="key-round"></i>
-                <span>Gerar nova senha</span>
-              </button>
-            ` : ''}
             <button type="button" class="module-link-button is-secondary" data-user-admin-clear ${adminUi.isSubmitting ? 'disabled' : ''}>
               <i data-lucide="rotate-ccw"></i>
               <span>Limpar</span>

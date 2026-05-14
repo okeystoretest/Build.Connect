@@ -1,7 +1,6 @@
 import { MODULE_IDS, MODULE_STATUS } from '../../../constants/module.constants.js';
 import {
   createManagedUser,
-  resetManagedUserPassword,
   searchManagedUsers,
   updateManagedUser,
 } from '../../../services/admin-users.service.js';
@@ -24,8 +23,6 @@ export function createUserAdminModuleHandlers(context) {
     editRecord: editUserAdminRecord,
     clearForm: clearUserAdminForm,
     saveRecord: saveUserAdminRecord,
-    resetPassword: resetUserAdminPassword,
-    copyPassword: copyUserAdminPassword,
   };
 }
 
@@ -170,17 +167,21 @@ async function saveUserAdminRecord(rootElement, sector) {
 
   const form = readUserAdminFormData(rootElement);
   const currentUi = getUserAdminUiState(state.ui);
+  const isEditMode = currentUi.mode === 'edit';
 
   if (!form.id || !form.nome || !form.setores.length) {
     setModuleState(sector.id, {
       ...state,
-      ui: {
-        ...currentUi,
-        form,
-        feedbackMessage: 'Informe ID, nome e pelo menos um setor.',
-        feedbackType: MODULE_STATUS.error,
-        passwordResult: null,
-      },
+      ui: { ...currentUi, form, feedbackMessage: 'Informe ID, nome e pelo menos um setor.', feedbackType: MODULE_STATUS.error },
+    });
+    renderModuleStage(rootElement, sector);
+    return;
+  }
+
+  if (!isEditMode && !form.senha) {
+    setModuleState(sector.id, {
+      ...state,
+      ui: { ...currentUi, form, feedbackMessage: 'Informe a senha para criar o usuário.', feedbackType: MODULE_STATUS.error },
     });
     renderModuleStage(rootElement, sector);
     return;
@@ -188,14 +189,7 @@ async function saveUserAdminRecord(rootElement, sector) {
 
   setModuleState(sector.id, {
     ...state,
-    ui: {
-      ...currentUi,
-      form,
-      isSubmitting: true,
-      feedbackMessage: '',
-      feedbackType: '',
-      passwordResult: null,
-    },
+    ui: { ...currentUi, form, isSubmitting: true, feedbackMessage: '', feedbackType: '' },
   });
   renderModuleStage(rootElement, sector);
 
@@ -218,10 +212,10 @@ async function saveUserAdminRecord(rootElement, sector) {
           id: response.user?.id || form.id,
           nome: response.user?.nome || form.nome,
           nivel: response.user?.nivel || form.nivel,
+          senha: '',
           setores: normalizeUserAdminSectors(response.user?.setorList || form.setores),
         } : form,
         isSubmitting: false,
-        passwordResult: response.generatedPassword || null,
         feedbackMessage: response.message,
         feedbackType: response.success ? MODULE_STATUS.success : MODULE_STATUS.error,
       },
@@ -232,111 +226,11 @@ async function saveUserAdminRecord(rootElement, sector) {
 
     setModuleState(sector.id, {
       ...nextState,
-      ui: {
-        ...nextUi,
-        form,
-        isSubmitting: false,
-        feedbackMessage: error?.message || 'Não foi possível salvar o cadastro.',
-        feedbackType: MODULE_STATUS.error,
-      },
+      ui: { ...nextUi, form, isSubmitting: false, feedbackMessage: error?.message || 'Não foi possível salvar o cadastro.', feedbackType: MODULE_STATUS.error },
     });
   }
 
   renderModuleStage(rootElement, sector);
 }
 
-async function resetUserAdminPassword(rootElement, sector) {
-  const state = getModuleState(sector.id);
-
-  if (state.selectedModuleId !== MODULE_IDS.userAdmin) {
-    return;
-  }
-
-  const currentUi = getUserAdminUiState(state.ui);
-  const userId = currentUi.originalId || currentUi.form.id;
-
-  if (!userId) {
-    return;
-  }
-
-  setModuleState(sector.id, {
-    ...state,
-    ui: {
-      ...currentUi,
-      isSubmitting: true,
-      feedbackMessage: '',
-      feedbackType: '',
-      passwordResult: null,
-    },
-  });
-  renderModuleStage(rootElement, sector);
-
-  try {
-    const response = await resetManagedUserPassword(userId);
-    const nextState = getModuleState(sector.id);
-    const nextUi = getUserAdminUiState(nextState.ui);
-
-    clearActiveUsersCache();
-
-    setModuleState(sector.id, {
-      ...nextState,
-      ui: {
-        ...nextUi,
-        isSubmitting: false,
-        passwordResult: response.generatedPassword || null,
-        feedbackMessage: response.message,
-        feedbackType: response.success ? MODULE_STATUS.success : MODULE_STATUS.error,
-      },
-    });
-  } catch (error) {
-    const nextState = getModuleState(sector.id);
-    const nextUi = getUserAdminUiState(nextState.ui);
-
-    setModuleState(sector.id, {
-      ...nextState,
-      ui: {
-        ...nextUi,
-        isSubmitting: false,
-        feedbackMessage: error?.message || 'Não foi possível redefinir a senha.',
-        feedbackType: MODULE_STATUS.error,
-      },
-    });
-  }
-
-  renderModuleStage(rootElement, sector);
-}
-
-async function copyUserAdminPassword(rootElement, sector) {
-  const password = rootElement.querySelector('[data-user-admin-copy-password]')?.dataset.password || '';
-  const state = getModuleState(sector.id);
-
-  if (!password || state.selectedModuleId !== MODULE_IDS.userAdmin) {
-    return;
-  }
-
-  const currentUi = getUserAdminUiState(state.ui);
-
-  try {
-    await navigator.clipboard.writeText(password);
-    setModuleState(sector.id, {
-      ...state,
-      ui: {
-        ...currentUi,
-        feedbackMessage: 'Senha copiada para a área de transferência.',
-        feedbackType: MODULE_STATUS.success,
-      },
-    });
-  } catch {
-    setModuleState(sector.id, {
-      ...state,
-      ui: {
-        ...currentUi,
-        feedbackMessage: 'Não foi possível copiar automaticamente. Copie a senha manualmente.',
-        feedbackType: MODULE_STATUS.error,
-      },
-    });
-  }
-
-  renderModuleStage(rootElement, sector);
-}
 

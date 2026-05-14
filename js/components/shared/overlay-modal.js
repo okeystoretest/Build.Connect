@@ -4,7 +4,28 @@ import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
 let activeOverlayModal = null;
 let activeEscapeHandler = null;
 
+const ALLOWED_FRAME_ORIGINS = [
+  'https://www.youtube.com',
+  'https://www.youtube-nocookie.com',
+  'https://docs.google.com',
+  'https://drive.google.com',
+];
+
+function isSafeFrameUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' && ALLOWED_FRAME_ORIGINS.some((origin) => parsed.origin === origin);
+  } catch {
+    return false;
+  }
+}
+
 export function openOverlayModal({ title, frameUrl, closeLabel, modalClassName, frameWrapClassName, frameClassName }) {
+  if (!isSafeFrameUrl(frameUrl)) {
+    console.error('openOverlayModal: URL de origem não permitida.', frameUrl);
+    return;
+  }
+
   closeActiveOverlayModal();
 
   const overlay = document.createElement('div');

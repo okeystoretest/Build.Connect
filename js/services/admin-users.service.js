@@ -1,27 +1,24 @@
-import {
-  BRIDGE_MESSAGE_TYPES,
-  BRIDGE_REQUEST_TIMEOUTS,
-} from '../config/app.config.js';
-import { requestAppsScriptBridge } from './gas-bridge.service.js';
+import { requestApi } from './api.service.js';
 
 export function searchManagedUsers(query) {
-  return requestAdminUsersViaBridge('search-users', { query });
+  return requestAdminApi('search-users', { query });
 }
 
 export function createManagedUser(payload) {
-  return requestAdminUsersViaBridge('create-user', normalizeUserPayload(payload));
+  return requestAdminApi('create-user', normalizeUserPayload(payload));
 }
 
 export function updateManagedUser(payload) {
-  return requestAdminUsersViaBridge('update-user', normalizeUserPayload(payload));
+  return requestAdminApi('update-user', normalizeUserPayload(payload));
 }
 
 export function resetManagedUserPassword(id) {
-  return requestAdminUsersViaBridge('reset-user-password', { id });
+  return requestAdminApi('reset-user-password', { id });
 }
 
+// Mantido por compatibilidade — não é mais necessário com Supabase
 export function diagnoseManagedUsersStorage() {
-  return requestAdminUsersViaBridge('users-diagnostics');
+  return Promise.resolve({ success: true, code: 'SUPABASE_OK', message: 'Usando Supabase PostgreSQL.' });
 }
 
 function normalizeUserPayload(payload = {}) {
@@ -30,88 +27,40 @@ function normalizeUserPayload(payload = {}) {
     id: String(payload.id || '').trim(),
     nome: String(payload.nome || '').trim(),
     nivel: normalizeNivelForBackend(payload.nivel),
-    setores: JSON.stringify(Array.isArray(payload.setores) ? payload.setores : []),
+    senha: String(payload.senha || ''),
+    setores: Array.isArray(payload.setores) ? payload.setores : [],
   };
 }
 
 function normalizeNivelForBackend(nivel) {
-  const map = {
-    admin: 'Admin',
-    gestor: 'Gestor',
-    colaborador: 'Colaborador',
-    user: 'Colaborador',
-  };
+  const map = { admin: 'Admin', gestor: 'Gestor', colaborador: 'Colaborador', user: 'Colaborador' };
   return map[String(nivel || '').trim().toLowerCase()] || 'Colaborador';
 }
 
-function requestAdminUsersViaBridge(action, payload = {}) {
-  return requestAppsScriptBridge({
-    action,
-    fields: payload,
-    messageType: BRIDGE_MESSAGE_TYPES.users,
-    requestIdPrefix: 'admin-users',
-    iframeNamePrefix: 'build-connect-admin-users-iframe',
-    timeoutMs: BRIDGE_REQUEST_TIMEOUTS.adminUsers,
-    timeoutMessage: 'A operação de usuários demorou mais que o esperado.',
-    bridgeLoadErrorMessage: 'Não foi possível carregar a bridge de gerenciamento de usuários.',
-    webAppUrlErrorMessage: 'URL do Web App não configurada para gerenciar usuários.',
-  }).then((response) => normalizeAdminUsersResponse(response));
-}
-
-function normalizeAdminUsersResponse(response) {
-  const target = normalizeStorageTarget(response?.target);
-  const message = appendStorageTargetToMessage(
-    response?.message || (response?.success ? 'Operação concluída com sucesso.' : 'Não foi possível concluir a operação de usuários.'),
-    target,
-    response?.success,
-  );
+async function requestAdminApi(action, payload = {}) {
+  const response = await requestApi(action, payload).catch((error) => ({
+    success: false,
+    code: 'NETWORK_ERROR',
+    message: error?.message || 'Falha ao comunicar com o servidor.',
+  }));
 
   if (response?.success) {
     return {
       success: true,
       code: response.code || 'ADMIN_USERS_OK',
-      message,
+      message: response.message || 'Operação concluída com sucesso.',
       users: Array.isArray(response.users) ? response.users : [],
       user: response.user || null,
       generatedPassword: String(response.generatedPassword || ''),
-      target,
     };
   }
 
   return {
     success: false,
     code: response?.code || 'ADMIN_USERS_ERROR',
-    message,
+    message: response?.message || 'Não foi possível concluir a operação.',
     users: [],
     user: null,
     generatedPassword: '',
-    target,
   };
 }
-
-function normalizeStorageTarget(target) {
-  if (!target || typeof target !== 'object') {
-    return null;
-  }
-
-  return {
-    spreadsheetId: String(target.spreadsheetId || ''),
-    spreadsheetName: String(target.spreadsheetName || ''),
-    spreadsheetUrl: String(target.spreadsheetUrl || ''),
-    sheetName: String(target.sheetName || ''),
-    rowNumber: Number(target.rowNumber || 0),
-    logicalLastRow: Number(target.logicalLastRow || 0),
-    physicalLastRow: Number(target.physicalLastRow || 0),
-  };
-}
-
-function appendStorageTargetToMessage(message, target, success) {
-  const baseMessage = String(message || '').trim();
-
-  if (!success || !target?.sheetName || !target?.rowNumber) {
-    return baseMessage;
-  }
-
-  return `${baseMessage} Aba ${target.sheetName}, linha ${target.rowNumber}.`;
-}
-

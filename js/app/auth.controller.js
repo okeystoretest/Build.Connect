@@ -3,6 +3,7 @@ import {
   clearAuthenticatedUser,
   getAuthenticatedUser,
   loginUser,
+  logoutUser,
   persistAuthenticatedUser,
 } from '../services/auth.service.js';
 import {
@@ -69,8 +70,8 @@ export function createAuthController({
     renderLoginScreen();
   }
 
-  function handleLogout() {
-    clearAuthenticatedUser();
+  async function handleLogout() {
+    await logoutUser();
     state.authenticatedUser = null;
     state.activeItemId = SECTOR_IDS.home;
     state.isProductionExpanded = false;

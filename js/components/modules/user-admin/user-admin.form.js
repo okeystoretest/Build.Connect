@@ -51,12 +51,14 @@ export function readUserAdminFormData(rootElement) {
   const id = rootElement.querySelector('[data-user-admin-field="id"]')?.value || '';
   const nome = rootElement.querySelector('[data-user-admin-field="nome"]')?.value || '';
   const nivel = rootElement.querySelector('[data-user-admin-field="nivel"]')?.value || '';
+  const senha = rootElement.querySelector('[data-user-admin-field="senha"]')?.value || '';
   const setores = [...rootElement.querySelectorAll('[data-user-admin-sector]:checked')].map((input) => input.value);
 
   return {
     id: id.trim(),
     nome: nome.trim(),
     nivel: normalizeUserAdminNivel(nivel),
+    senha: senha,
     setores: normalizeUserAdminSectors(setores),
   };
 }
