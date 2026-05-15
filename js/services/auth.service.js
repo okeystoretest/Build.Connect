@@ -63,11 +63,12 @@ function normalizeAuthResponse(response) {
 
 function getFallbackMessage(code) {
   switch (code) {
-    case 'USER_INACTIVE':      return 'Usuário inativo. Procure um administrador.';
-    case 'INVALID_PASSWORD':   return 'Senha incorreta.';
-    case 'ID_NOT_FOUND':       return 'ID não encontrado.';
-    case 'INVALID_SECTOR':     return 'Setor de acesso inválido.';
-    case 'TOO_MANY_ATTEMPTS':  return 'Muitas tentativas. Aguarde 15 minutos e tente novamente.';
-    default:                   return 'Não foi possível concluir o login.';
+    case 'USER_INACTIVE':     return 'Usuário inativo. Procure um administrador.';
+    case 'AUTH_FAILED':       return 'ID ou senha incorretos.';
+    case 'INVALID_PASSWORD':  return 'ID ou senha incorretos.';
+    case 'ID_NOT_FOUND':      return 'ID ou senha incorretos.';
+    case 'INVALID_SECTOR':    return 'Setor de acesso inválido.';
+    case 'TOO_MANY_ATTEMPTS': return 'Muitas tentativas. Aguarde 15 minutos e tente novamente.';
+    default:                  return 'Não foi possível concluir o login.';
   }
 }
