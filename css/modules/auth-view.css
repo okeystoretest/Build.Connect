@@ -30,6 +30,7 @@ body.is-auth-view .auth-glow-left {
   width: 240px;
   height: 240px;
   background: rgba(212, 162, 87, 0.14);
+  animation: bc-login-glow-drift 8s ease-in-out infinite;
 }
 
 body.is-auth-view .auth-glow-right {
@@ -38,6 +39,7 @@ body.is-auth-view .auth-glow-right {
   width: 360px;
   height: 360px;
   background: rgba(23, 46, 98, 0.22);
+  animation: bc-login-glow-drift 11s ease-in-out infinite reverse;
 }
 
 body.is-auth-view .login-panel {
@@ -190,3 +192,32 @@ body.is-auth-view .login-footnote {
 }
 
 
+
+/* ── Login panel entrance ─────────────────────────────────────────────────── */
+@keyframes bc-login-panel-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0px, 0) scale(1);
+  }
+}
+
+@keyframes bc-login-glow-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(10px, -14px) scale(1.06); }
+}
+
+body.is-auth-view .login-panel {
+  animation: bc-login-panel-enter 420ms var(--ease-premium) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.is-auth-view .login-panel,
+  body.is-auth-view .auth-glow-left,
+  body.is-auth-view .auth-glow-right {
+    animation: none !important;
+  }
+}

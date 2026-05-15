@@ -1,6 +1,7 @@
 import { refreshLucideIcons } from '../../services/icons.service.js';
 import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
 import { criarChamadoTI } from '../../services/ti-requests.service.js';
+import { animateOut } from '../../utils/motion.js';
 
 const TI_UNITS = ['1', '2', '3', '4', 'Iguatemi', 'Centro Fashion', 'Showroom'];
 
@@ -79,9 +80,13 @@ export function closeTiModal() {
     return;
   }
 
-  activeTiModal.remove();
+  const target = activeTiModal;
   activeTiModal = null;
-  document.body.classList.remove('has-video-modal');
+
+  animateOut(target, 'is-closing', 200, () => {
+    target.remove();
+    document.body.classList.remove('has-video-modal');
+  });
 }
 
 async function submitTiForm(overlay, user) {

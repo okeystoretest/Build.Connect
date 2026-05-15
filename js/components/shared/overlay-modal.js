@@ -1,5 +1,6 @@
 import { refreshLucideIcons } from '../../services/icons.service.js';
 import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
+import { animateOut } from '../../utils/motion.js';
 
 let activeOverlayModal = null;
 let activeEscapeHandler = null;
@@ -85,7 +86,11 @@ export function closeActiveOverlayModal() {
     return;
   }
 
-  activeOverlayModal.remove();
+  const target = activeOverlayModal;
   activeOverlayModal = null;
-  document.body.classList.remove('has-video-modal');
+
+  animateOut(target, 'is-closing', 200, () => {
+    target.remove();
+    document.body.classList.remove('has-video-modal');
+  });
 }

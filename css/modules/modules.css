@@ -1838,3 +1838,77 @@ body.has-video-modal {
 .quality-fb-read-btn {
   font-size: 0.82rem;
 }
+
+/* ── Animações globais Build.Connect ──────────────────────────────────────── */
+
+/* Keyframes */
+@keyframes bc-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes bc-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes bc-dialog-enter {
+  from { opacity: 0; transform: scale(0.96) translate3d(0, 14px, 0); }
+  to   { opacity: 1; transform: scale(1)    translate3d(0,  0px, 0); }
+}
+
+@keyframes bc-dialog-exit {
+  from { opacity: 1; transform: scale(1)    translate3d(0,  0px, 0); }
+  to   { opacity: 0; transform: scale(0.97) translate3d(0,  6px, 0); }
+}
+
+@keyframes bc-feedback-in {
+  from { opacity: 0; transform: translate3d(0, -6px, 0); }
+  to   { opacity: 1; transform: translate3d(0,  0px, 0); }
+}
+
+/* ── Modal backdrop ───────────────────────────────────────────────────────── */
+.video-modal-backdrop {
+  animation: bc-fade-in 220ms var(--ease-soft) both;
+}
+
+.video-modal-backdrop.is-closing {
+  animation: bc-fade-out 180ms var(--ease-soft) both;
+}
+
+/* ── Modal dialogs (video, TI, feedback) ──────────────────────────────────── */
+.video-modal,
+.ti-modal,
+.anon-fb-dialog {
+  animation: bc-dialog-enter 280ms var(--ease-premium) both;
+}
+
+.video-modal-backdrop.is-closing .video-modal,
+.video-modal-backdrop.is-closing .ti-modal,
+.video-modal-backdrop.is-closing .anon-fb-dialog {
+  animation: bc-dialog-exit 180ms var(--ease-soft) both;
+}
+
+/* ── Feedback / alert messages ────────────────────────────────────────────── */
+.user-admin-feedback,
+.ti-modal-feedback,
+.login-alert.is-visible {
+  animation: bc-feedback-in 240ms var(--ease-premium) both;
+}
+
+/* ── Respeita prefers-reduced-motion ──────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .video-modal-backdrop,
+  .video-modal-backdrop.is-closing,
+  .video-modal,
+  .ti-modal,
+  .anon-fb-dialog,
+  .user-admin-feedback,
+  .ti-modal-feedback,
+  .login-alert.is-visible,
+  .content-panel[data-view-panel],
+  .content-panel.is-view-exit {
+    animation: none !important;
+    transition: none !important;
+  }
+}

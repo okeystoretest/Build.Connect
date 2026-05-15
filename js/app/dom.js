@@ -13,11 +13,16 @@ export function showAuthenticatedShell({ authRoot, appShell }) {
   document.body.classList.remove('is-auth-view');
   authRoot.hidden = true;
   appShell.hidden = false;
+  appShell.classList.add('is-entering');
+  requestAnimationFrame(() => {
+    appShell.addEventListener('animationend', () => appShell.classList.remove('is-entering'), { once: true });
+  });
 }
 
 export function showLoginShell({ authRoot, appShell, contentRoot }) {
   document.body.classList.add('is-auth-view');
   appShell.hidden = true;
+  appShell.classList.remove('is-entering');
   authRoot.hidden = false;
   contentRoot.innerHTML = '';
 }

@@ -4,6 +4,34 @@
   align-items: stretch;
 }
 
+/* ── Content panel ──────────────────────────────────────────────────────────
+   Entrada: keyframe automático via [data-view-panel]
+   Saída:   keyframe via .is-view-exit (adicionado pelo JS antes de desmontar)
+   Reveal:  .is-view-active + IntersectionObserver → .is-visible nos filhos
+   ───────────────────────────────────────────────────────────────────────── */
+
+@keyframes bc-panel-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes bc-panel-exit {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
 .content-panel {
   width: 100%;
   min-height: calc(100vh - 48px);
@@ -12,24 +40,21 @@
   border-radius: var(--radius-xl);
   background: var(--surface);
   box-shadow: var(--shadow);
-  transform: translateZ(0);
+  will-change: opacity, transform;
 }
 
-.content-panel.is-view-entering {
-  opacity: 0;
-  transform: translate3d(0, 18px, 0);
-}
-
-.content-panel.is-view-active {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-  transition: opacity 280ms var(--ease-premium), transform 320ms var(--ease-premium);
+.content-panel[data-view-panel] {
+  animation: bc-panel-enter 340ms var(--ease-premium) both;
 }
 
 .content-panel.is-view-exit {
-  opacity: 0;
-  transform: translate3d(0, -8px, 0);
-  transition: opacity 180ms var(--ease-soft), transform 180ms var(--ease-soft);
+  animation: bc-panel-exit 160ms var(--ease-soft) both !important;
+  pointer-events: none;
+}
+
+/* is-view-active: habilita stagger dos reveal-items via IntersectionObserver */
+.content-panel.is-view-active {
+  /* sem estilos visuais — apenas seletor de contexto para os filhos */
 }
 
 .eyebrow {

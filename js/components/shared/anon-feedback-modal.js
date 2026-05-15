@@ -2,6 +2,7 @@ import { refreshLucideIcons } from '../../services/icons.service.js';
 import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
 import { loadActiveUsers } from '../../services/users.service.js';
 import { saveEvaluationRecord } from '../../services/evaluations.service.js';
+import { animateOut } from '../../utils/motion.js';
 
 let activeModal = null;
 let escHandler  = null;
@@ -42,9 +43,14 @@ export async function openAnonFeedbackModal() {
 export function closeAnonFeedbackModal() {
   if (escHandler) { document.removeEventListener('keydown', escHandler); escHandler = null; }
   if (!activeModal) { document.body.classList.remove('has-video-modal'); return; }
-  activeModal.remove();
+
+  const target = activeModal;
   activeModal = null;
-  document.body.classList.remove('has-video-modal');
+
+  animateOut(target, 'is-closing', 200, () => {
+    target.remove();
+    document.body.classList.remove('has-video-modal');
+  });
 }
 
 function bindFormEvents(overlay, users) {
@@ -157,7 +163,7 @@ function bindFormEvents(overlay, users) {
 
 function getLoadingMarkup() {
   return `
-    <div class="anon-fb-modal" role="dialog" aria-modal="true" aria-label="Feedback anônimo">
+    <div class="anon-fb-modal anon-fb-dialog" role="dialog" aria-modal="true" aria-label="Feedback anônimo">
       <div class="anon-fb-head">
         <div class="anon-fb-head-copy">
           <span class="anon-fb-eyebrow">Anônimo &amp; privado</span>
@@ -175,7 +181,7 @@ function getFormMarkup(users) {
   const hasUsers = users.length > 0;
 
   return `
-    <div class="anon-fb-modal" role="dialog" aria-modal="true" aria-label="Feedback anônimo">
+    <div class="anon-fb-modal anon-fb-dialog" role="dialog" aria-modal="true" aria-label="Feedback anônimo">
       <div class="anon-fb-head">
         <div class="anon-fb-head-copy">
           <span class="anon-fb-eyebrow">Anônimo &amp; privado</span>

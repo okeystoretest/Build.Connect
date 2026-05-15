@@ -500,3 +500,19 @@
   overflow: visible;
   pointer-events: auto;
 }
+
+/* ── App shell entrance (após login) ─────────────────────────────────────── */
+@keyframes bc-shell-enter {
+  from { opacity: 0; transform: translate3d(0, 12px, 0); }
+  to   { opacity: 1; transform: translate3d(0,  0px, 0); }
+}
+
+.app-shell.is-entering {
+  animation: bc-shell-enter 360ms var(--ease-premium) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell.is-entering {
+    animation: none !important;
+  }
+}

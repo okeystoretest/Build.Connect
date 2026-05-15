@@ -11,8 +11,16 @@ export function criarChamadoTI(payload) {
   });
 }
 
-export function listarChamadosTI(period = 'mes') {
-  return requestApi('listar-chamados-ti', { period });
+export async function listarChamadosTI(period = 'mes') {
+  const response = await requestApi('listar-chamados-ti', { period });
+
+  if (!response?.success) return response;
+
+  return {
+    ...response,
+    tickets:          Array.isArray(response.tickets)          ? response.tickets.map(normalizeTicket)          : [],
+    completedTickets: Array.isArray(response.completedTickets) ? response.completedTickets.map(normalizeTicket) : [],
+  };
 }
 
 export function atualizarStatusChamadoTI(ticketId, novoStatus, usuarioId, usuarioNome, observacao) {
@@ -23,4 +31,28 @@ export function atualizarStatusChamadoTI(ticketId, novoStatus, usuarioId, usuari
     usuarioNome: String(usuarioNome || ''),
     observacao:  String(observacao  || ''),
   });
+}
+
+// Normaliza snake_case do Supabase → camelCase esperado pela view
+function normalizeTicket(t) {
+  if (!t) return t;
+  return {
+    id:                t.id,
+    status:            t.status,
+    timestamp:         t.timestamp,
+    solicitanteId:     t.solicitante_id    ?? t.solicitanteId    ?? '',
+    solicitanteNome:   t.solicitante_nome  ?? t.solicitanteNome  ?? '',
+    solicitanteSetor:  t.solicitante_setor ?? t.solicitanteSetor ?? '',
+    unidade:           t.unidade           ?? '',
+    categoria:         t.categoria         ?? '',
+    descricao:         t.descricao         ?? '',
+    atribuidoParaId:   t.atribuido_para_id   ?? t.atribuidoParaId   ?? '',
+    atribuidoParaNome: t.atribuido_para_nome ?? t.atribuidoParaNome ?? '',
+    dataAtribuicao:    t.data_atribuicao   ?? t.dataAtribuicao   ?? null,
+    dataInicio:        t.data_inicio       ?? t.dataInicio       ?? null,
+    dataConclusao:     t.data_conclusao    ?? t.dataConclusao    ?? null,
+    dataFim:           t.data_fim          ?? t.dataFim          ?? null,
+    duracaoMinutos:    t.duracao_minutos   ?? t.duracaoMinutos   ?? null,
+    observacao:        t.observacao        ?? '',
+  };
 }

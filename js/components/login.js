@@ -71,7 +71,7 @@ export function renderLoginView(rootElement, loginState, handlers) {
             <span class="login-submit-icon" aria-hidden="true">
               <i data-lucide="log-in"></i>
             </span>
-            <span>${loginState.isLoading ? 'Validando...' : 'Entrar'}</span>
+            <span>${loginState.isLoading ? 'Entrando...' : 'Entrar'}</span>
           </button>
         </form>
 

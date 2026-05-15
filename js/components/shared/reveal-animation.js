@@ -9,16 +9,17 @@ export function activateViewTransition(rootElement) {
     return;
   }
 
+  // A entrada do painel é animada automaticamente pelo CSS (@keyframes bc-panel-enter
+  // aplicado via [data-view-panel]). Aqui apenas ativamos is-view-active para que
+  // os reveal-items possam ser observados pelo IntersectionObserver.
   if (prefersReducedMotion()) {
     panel.classList.add('is-view-active');
     return;
   }
 
-  panel.classList.add('is-view-entering');
-
+  // Pequeno delay para o reveal começar após o painel já ter iniciado a entrada
   requestAnimationFrame(() => {
     panel.classList.add('is-view-active');
-    panel.classList.remove('is-view-entering');
   });
 }
 
