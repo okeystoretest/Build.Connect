@@ -21,13 +21,22 @@ function isSafeFrameUrl(url) {
   }
 }
 
-export function openOverlayModal({ title, frameUrl, closeLabel, modalClassName, frameWrapClassName, frameClassName }) {
+export function openOverlayModal({ title, frameUrl, closeLabel, modalClassName, frameWrapClassName, frameClassName, onFinishReading = null }) {
   if (!isSafeFrameUrl(frameUrl)) {
     console.error('openOverlayModal: URL de origem não permitida.', frameUrl);
     return;
   }
 
   closeActiveOverlayModal();
+
+  const finishButtonMarkup = onFinishReading ? `
+    <div class="document-modal-finish">
+      <button type="button" class="module-action-button document-finish-btn" data-finish-reading>
+        <i data-lucide="check-circle"></i>
+        <span>Finalizar Leitura</span>
+      </button>
+    </div>
+  ` : '';
 
   const overlay = document.createElement('div');
   overlay.className = 'video-modal-backdrop';
@@ -48,10 +57,12 @@ export function openOverlayModal({ title, frameUrl, closeLabel, modalClassName, 
           allowfullscreen
         ></iframe>
       </div>
+      ${finishButtonMarkup}
     </div>
   `;
 
   const closeButton = overlay.querySelector('.video-modal-close');
+  const finishButton = overlay.querySelector('[data-finish-reading]');
   const dialog = overlay.querySelector('[role="dialog"]');
 
   function handleBackdropClick(event) {
@@ -67,6 +78,9 @@ export function openOverlayModal({ title, frameUrl, closeLabel, modalClassName, 
   };
 
   closeButton?.addEventListener('click', closeActiveOverlayModal);
+  finishButton?.addEventListener('click', () => {
+    if (onFinishReading) onFinishReading();
+  });
   overlay.addEventListener('click', handleBackdropClick);
   document.addEventListener('keydown', activeEscapeHandler);
   document.body.appendChild(overlay);

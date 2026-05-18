@@ -21,6 +21,7 @@ import { getUserManagementModuleMarkup } from './user-admin-module.js';
 import { getEvaluationModuleMarkup } from './evaluation-module.js';
 import { getQualityModuleMarkup } from './quality-module.js';
 import { getTiRequestsModuleMarkup } from './ti-requests-module.js';
+import { getHistoricoModuleMarkup } from './historico-module.js';
 
 export function getModuleStageMarkup(sector, stageState) {
   if (!stageState.selectedModuleId) {
@@ -87,6 +88,10 @@ export function getModuleStageMarkup(sector, stageState) {
 
   if (stageState.selectedModuleId === MODULE_IDS.tiRequest) {
     return getTiRequestsModuleMarkup(selectedCard, stageState.moduleData, stageState.ui);
+  }
+
+  if (stageState.selectedModuleId === MODULE_IDS.historico) {
+    return getHistoricoModuleMarkup(selectedCard, stageState.moduleData, stageState.ui?.historico || {});
   }
 
   return getInternalModuleMarkup(selectedCard);

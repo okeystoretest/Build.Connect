@@ -1912,3 +1912,212 @@ body.has-video-modal {
     transition: none !important;
   }
 }
+
+/* ── Histórico do Colaborador ─────────────────────────────────────────────── */
+
+.historico-shell {}
+
+.historico-search-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.historico-search-wrap {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.historico-search-input {
+  flex: 1;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 200ms var(--ease-soft);
+}
+
+.historico-search-input:focus {
+  border-color: var(--primary);
+}
+
+.historico-user-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.historico-user-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: border-color 180ms var(--ease-soft), background 180ms var(--ease-soft);
+}
+
+.historico-user-option small {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.historico-user-option:hover,
+.historico-user-option.is-selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.historico-user-option.is-selected {
+  font-weight: 500;
+}
+
+.historico-empty,
+.historico-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 56px 24px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.historico-empty i,
+.historico-loading i {
+  width: 36px;
+  height: 36px;
+  opacity: 0.45;
+}
+
+.historico-loading i {
+  animation: spin 1s linear infinite;
+}
+
+.historico-timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.historico-count {
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--muted);
+  background: var(--surface-3, var(--border));
+  padding: 2px 10px;
+  border-radius: 99px;
+}
+
+.historico-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+}
+
+.historico-timeline::before {
+  content: '';
+  position: absolute;
+  left: 17px;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.historico-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0;
+  position: relative;
+  animation: bc-feedback-in 240ms var(--ease-premium) both;
+}
+
+.historico-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.historico-item-icon i {
+  width: 16px;
+  height: 16px;
+}
+
+.historico-item-body {
+  flex: 1;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.historico-item-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  display: block;
+  margin-bottom: 3px;
+}
+
+.historico-item-title {
+  font-size: 0.93rem;
+  font-weight: 500;
+  color: var(--text);
+  margin: 0 0 3px;
+  line-height: 1.4;
+}
+
+.historico-item-sub {
+  font-size: 0.83rem;
+  color: var(--muted);
+  margin: 0 0 4px;
+}
+
+.historico-item-date {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+/* ── Botão Finalizar Leitura ──────────────────────────────────────────────── */
+
+.document-modal-finish {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 16px 8px;
+  border-top: 1px solid var(--border);
+}
+
+.document-finish-btn {
+  gap: 8px;
+}

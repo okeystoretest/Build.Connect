@@ -28,6 +28,7 @@ import {
   setModuleState,
 } from '../state/module-state.js';
 import { closeActiveOverlayModal } from './shared/overlay-modal.js';
+import { closeVideoModal } from './modules/video-module.js';
 import { getWelcomeViewMarkup } from './views/welcome-view.js';
 import { getSectorCardsViewMarkup } from './views/sector-cards-view.js';
 import { getModuleStageMarkup } from './modules/module-stage.js';
@@ -50,6 +51,7 @@ import {
   createTiRequestsModuleHandlers,
   TI_REQUESTS_UI_DEFAULTS,
 } from './modules/ti-requests-module.js';
+import { createHistoricoModuleHandlers } from './modules/historico/historico.handlers.js';
 import { bindContentInteractions } from './content/content-interactions.js';
 import {
   activateRevealAnimations,
@@ -95,12 +97,19 @@ const tiRequestsModuleHandlers = createTiRequestsModuleHandlers({
   renderModuleStage,
 });
 
+const historicoModuleHandlers = createHistoricoModuleHandlers({
+  getModuleState,
+  setModuleState,
+  renderModuleStage,
+});
+
 export function renderContentView(rootElement, viewState, options = {}) {
   const { animate = true } = options;
   const nextToken = ++currentRenderToken;
   const currentPanel = rootElement.querySelector('.content-panel');
 
   closeActiveOverlayModal();
+  closeVideoModal();
 
   if (animate && currentPanel) {
     currentPanel.classList.add('is-view-exit');
@@ -137,6 +146,7 @@ function mountView(rootElement, viewState) {
     feedbackModuleHandlers,
     qualityModuleHandlers,
     tiRequestsModuleHandlers,
+    historicoModuleHandlers,
   });
 }
 

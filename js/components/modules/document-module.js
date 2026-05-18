@@ -1,8 +1,9 @@
 import { MODULE_ITEM_TYPES, MODULE_VIEW_MODE } from '../../constants/module.constants.js';
 import { formatDateLabel } from '../../utils/date.js';
 import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
-import { openOverlayModal } from '../shared/overlay-modal.js';
+import { openOverlayModal, closeActiveOverlayModal } from '../shared/overlay-modal.js';
 import { prepareModuleItems } from './module-items.js';
+import { registrarAtividade } from '../../services/historico.service.js';
 
 export function getDocumentModuleMarkup(card, moduleData, moduleUi, renderDependencies) {
   const items = Array.isArray(moduleData?.items) ? moduleData.items : [];
@@ -27,28 +28,39 @@ export function getDocumentModuleMarkup(card, moduleData, moduleUi, renderDepend
       </div>
 
       <div class="module-items-grid module-items-grid-docs ${moduleUi.view === MODULE_VIEW_MODE.list ? 'is-list-view' : 'is-grid-view'}" data-module-items-container>
-        ${preparedItems.length ? preparedItems.map(renderDocumentItemCard).join('') : getModuleSearchEmptyMarkup()}
+        ${preparedItems.length ? preparedItems.map((item) => renderDocumentItemCard(item, card.id)).join('') : getModuleSearchEmptyMarkup()}
       </div>
     </div>
   `;
 }
 
 export function openDocumentModal(documentItem) {
-  if (!documentItem.previewUrl) {
-    return;
-  }
+  if (!documentItem.previewUrl) return;
+
+  const title = resolveDocumentTitle(documentItem);
+  const tipo = documentItem.moduloId === 'instrucoes-escritas' ? 'instrucao_escrita' : 'documento';
 
   openOverlayModal({
-    title: resolveDocumentTitle(documentItem),
+    title,
     frameUrl: documentItem.previewUrl,
     closeLabel: 'Fechar documento',
     modalClassName: 'video-modal document-modal',
     frameWrapClassName: 'video-modal-frame-wrap document-modal-frame-wrap',
     frameClassName: 'video-modal-frame document-modal-frame',
+    onFinishReading: () => {
+      registrarAtividade({
+        tipo,
+        titulo: title,
+        setorId: documentItem.sectorId || '',
+        moduloId: documentItem.moduloId || 'documentos',
+        referenciaId: `doc-${documentItem.previewUrl}`.slice(0, 128),
+      });
+      closeActiveOverlayModal();
+    },
   });
 }
 
-function renderDocumentItemCard(item) {
+function renderDocumentItemCard(item, moduloId = 'documentos') {
   const extension = sanitizeText(item.extension || 'Arquivo').toUpperCase();
   const modifiedLabel = formatDateLabel(item.modifiedAt);
   const sizeLabel = sanitizeText(item.sizeLabel || '');
@@ -74,6 +86,7 @@ function renderDocumentItemCard(item) {
           class="module-link-button"
           data-document-preview-url="${sanitizeAttribute(previewUrl)}"
           data-document-title="${sanitizeAttribute(item.name || 'Documento')}"
+          data-document-modulo-id="${sanitizeAttribute(moduloId || 'documentos')}"
           ${canPreview ? '' : 'disabled'}
         >
           <i data-lucide="external-link"></i>

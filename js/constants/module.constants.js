@@ -10,6 +10,7 @@ export const MODULE_IDS = Object.freeze({
   userAdmin: 'cadastro-usuarios',
   quality: 'qualidade',
   tiRequest: 'requisicoes-ti',
+  historico: 'historico-colaborador',
 });
 
 export const MODULE_STATUS = Object.freeze({

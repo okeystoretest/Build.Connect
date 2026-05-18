@@ -4,6 +4,7 @@ export function createInputHandler(rootElement, sector, dependencies) {
     evaluationModuleHandlers,
     feedbackModuleHandlers,
     qualityModuleHandlers,
+    historicoModuleHandlers,
   } = dependencies;
 
   return (event) => {
@@ -58,6 +59,11 @@ export function createInputHandler(rootElement, sector, dependencies) {
 
     if (feedbackMessageInput) {
       feedbackModuleHandlers.updateField(rootElement, sector, 'feedbackMessage', feedbackMessageInput.value || '');
+    }
+
+    const historicoSearchInput = event.target.closest('[data-historico-search]');
+    if (historicoSearchInput) {
+      historicoModuleHandlers?.updateQuery(rootElement, sector, historicoSearchInput.value || '');
     }
   };
 }

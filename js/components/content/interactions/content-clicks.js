@@ -15,6 +15,7 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     feedbackModuleHandlers,
     qualityModuleHandlers,
     tiRequestsModuleHandlers,
+    historicoModuleHandlers,
   } = dependencies;
 
   return (event) => {
@@ -73,10 +74,16 @@ export function createClickHandler(rootElement, viewState, dependencies) {
 
     if (videoButton) {
       event.preventDefault();
-      openVideoModal({
-        title: videoButton.dataset.videoTitle || 'Vídeo de treinamento',
-        embedUrl: videoButton.dataset.videoEmbedUrl || '',
-      });
+      openVideoModal(
+        {
+          title: videoButton.dataset.videoTitle || 'Vídeo de treinamento',
+          embedUrl: videoButton.dataset.videoEmbedUrl || '',
+        },
+        {
+          sectorId: sector.id,
+          moduloId: 'instrucoes-video',
+        },
+      );
       return;
     }
 
@@ -87,6 +94,8 @@ export function createClickHandler(rootElement, viewState, dependencies) {
       openDocumentModal({
         title: documentButton.dataset.documentTitle || 'Documento',
         previewUrl: documentButton.dataset.documentPreviewUrl || '',
+        moduloId: documentButton.dataset.documentModuloId || 'documentos',
+        sectorId: sector.id,
       });
       return;
     }
@@ -307,6 +316,21 @@ export function createClickHandler(rootElement, viewState, dependencies) {
       }
       if (obsError) obsError.style.display = 'none';
       tiRequestsModuleHandlers?.confirmConclusion(rootElement, sector, ticketId, obs, viewState.authenticatedUser);
+      return;
+    }
+
+    // ── Histórico do Colaborador ───────────────────────────────────────────
+    const historicoSearchBtn = event.target.closest('[data-historico-search-btn]');
+    if (historicoSearchBtn) {
+      event.preventDefault();
+      historicoModuleHandlers?.searchUsers(rootElement, sector);
+      return;
+    }
+
+    const historicoSelectUser = event.target.closest('[data-historico-select-user]');
+    if (historicoSelectUser) {
+      event.preventDefault();
+      historicoModuleHandlers?.selectUser(rootElement, sector, historicoSelectUser.dataset.historicoSelectUser || '');
       return;
     }
 
