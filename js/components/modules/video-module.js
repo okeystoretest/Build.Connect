@@ -140,6 +140,8 @@ export function openVideoModal(video, context = {}) {
 
       ytPlayer = new YT.Player('bc-yt-player', {
         videoId,
+        width: '100%',
+        height: '100%',
         playerVars: {
           autoplay: 1,
           rel: 0,

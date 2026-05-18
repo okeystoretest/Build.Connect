@@ -12,16 +12,15 @@
     <!-- Security headers -->
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
-      script-src 'self' https://unpkg.com;
+      script-src 'self' https://unpkg.com https://www.youtube.com https://s.ytimg.com;
       style-src 'self';
       img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com https://i.ytimg.com;
       frame-src https://script.google.com https://*.googleusercontent.com https://docs.google.com https://drive.google.com https://www.youtube.com https://www.youtube-nocookie.com;
-      connect-src 'self' https://*.supabase.co;
+      connect-src 'self' https://*.supabase.co https://www.googleapis.com;
       font-src 'self';
       object-src 'none';
       base-uri 'self';
       form-action 'self' https://script.google.com;
-      frame-ancestors 'none';
       upgrade-insecure-requests;
     " />
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />

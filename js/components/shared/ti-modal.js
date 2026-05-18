@@ -6,9 +6,11 @@ import { animateOut } from '../../utils/motion.js';
 const TI_UNITS = ['1', '2', '3', '4', 'Iguatemi', 'Centro Fashion', 'Showroom'];
 
 const TI_CATEGORIES = [
-  'Hardware e Equipamentos',
-  'Software e Aplicativos',
-  'Redes e Conectividade',
+  'Equipamentos',
+  'Aplicativos',
+  'Planilhas e Documentos',
+  'Internet e Rede',
+  'Sites e Sistemas Internos',
   'Acessos e Segurança',
   'Solicitações de Novos Recursos',
   'Desenvolvimento',

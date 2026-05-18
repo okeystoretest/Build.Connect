@@ -15,7 +15,7 @@ export function getHistoricoModuleMarkup(card, moduleData, ui) {
         <div>
           <p class="module-eyebrow">DHO</p>
           <h2 class="module-title">${sanitizeText(card.title)}</h2>
-          <p class="module-description">Consulte o percurso de um colaborador — vídeos assistidos, documentos lidos, avaliações e feedbacks.</p>
+          <p class="module-description">Consulte o percurso de um colaborador.</p>
         </div>
       </div>
 

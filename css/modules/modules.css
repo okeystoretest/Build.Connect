@@ -495,13 +495,19 @@
 }
 
 .video-modal-frame-wrap {
+  position: relative;
   aspect-ratio: 16 / 9;
   background: #000000;
+  width: 100%;
 }
 
-.video-modal-frame {
-  width: 100%;
-  height: 100%;
+.video-modal-frame,
+#bc-yt-player,
+#bc-yt-player iframe {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
   border: 0;
 }
 
@@ -1914,8 +1920,6 @@ body.has-video-modal {
 }
 
 /* ── Histórico do Colaborador ─────────────────────────────────────────────── */
-
-.historico-shell {}
 
 .historico-search-row {
   display: flex;
