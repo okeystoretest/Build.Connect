@@ -4,7 +4,9 @@ import { animateOut } from '../../utils/motion.js';
 import { registrarAtividade } from '../../services/historico.service.js';
 import { prepareModuleItems } from './module-items.js';
 
-const WATCH_THRESHOLD = 0.90; // 90% do vídeo assistido
+const WATCH_THRESHOLD = 0.90;
+const DURATION_RETRY_INTERVAL_MS = 1000;
+const DURATION_MAX_RETRIES = 10;
 
 let activeVideoModal = null;
 let ytPlayer = null;
@@ -17,18 +19,34 @@ let activeVideoContext = null;
 // ── YouTube IFrame API ─────────────────────────────────────────────────────
 
 function loadYouTubeAPI() {
-  return new Promise((resolve) => {
-    if (window.YT?.Player) { resolve(window.YT); return; }
+  return new Promise((resolve, reject) => {
+    // API já carregada
+    if (window.YT && window.YT.Player) {
+      resolve(window.YT);
+      return;
+    }
 
+    // Timeout de segurança: 10s
+    const timeout = setTimeout(() => {
+      reject(new Error('YouTube IFrame API não carregou a tempo.'));
+    }, 10000);
+
+    // Injeta o script se ainda não existir
     if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
       const script = document.createElement('script');
       script.src = 'https://www.youtube.com/iframe_api';
+      script.onerror = () => {
+        clearTimeout(timeout);
+        reject(new Error('Falha ao carregar a API do YouTube.'));
+      };
       document.head.appendChild(script);
     }
 
+    // Encadeia com callbacks anteriores para não quebrar múltiplas chamadas
     const prev = window.onYouTubeIframeAPIReady;
     window.onYouTubeIframeAPIReady = () => {
-      if (prev) prev();
+      clearTimeout(timeout);
+      if (typeof prev === 'function') prev();
       resolve(window.YT);
     };
   });
@@ -39,20 +57,36 @@ function extractVideoId(embedUrl) {
   return match ? match[1] : null;
 }
 
-function startWatchTracking(player, onComplete) {
+// Aguarda a duração ficar disponível (getDuration retorna 0 antes dos metadados carregarem)
+function waitForDuration(player, retries = 0) {
+  const d = player.getDuration?.() ?? 0;
+  if (d > 0) return Promise.resolve(d);
+  if (retries >= DURATION_MAX_RETRIES) return Promise.resolve(0);
+  return new Promise((res) =>
+    setTimeout(() => res(waitForDuration(player, retries + 1)), DURATION_RETRY_INTERVAL_MS)
+  );
+}
+
+function startWatchTracking(player, duration, onComplete) {
   clearInterval(watchInterval);
   watchedSeconds = 0;
   completionRegistered = false;
+  videoDuration = duration;
+
+  if (duration <= 0) {
+    // Duração desconhecida — não registra
+    return;
+  }
+
+  const required = duration * WATCH_THRESHOLD;
 
   watchInterval = setInterval(() => {
     if (!player || typeof player.getPlayerState !== 'function') return;
-    const state = player.getPlayerState();
 
-    // YT.PlayerState.PLAYING = 1
-    if (state === 1) {
+    // 1 = PLAYING
+    if (player.getPlayerState() === 1) {
       watchedSeconds += 1;
-      const required = videoDuration * WATCH_THRESHOLD;
-      if (watchedSeconds >= required && !completionRegistered) {
+      if (!completionRegistered && watchedSeconds >= required) {
         completionRegistered = true;
         clearInterval(watchInterval);
         onComplete();
@@ -77,7 +111,7 @@ export function openVideoModal(video, context = {}) {
   backdrop.className = 'video-modal-backdrop';
   backdrop.innerHTML = `
     <div class="video-modal" role="dialog" aria-modal="true" aria-label="${sanitizeAttribute(video.title || 'Vídeo')}">
-      <div class="video-modal-header">
+      <div class="video-modal-head">
         <strong class="video-modal-title">${sanitizeText(video.title || 'Vídeo de treinamento')}</strong>
         <button type="button" class="video-modal-close" aria-label="Fechar vídeo" data-video-close>
           <i data-lucide="x"></i>
@@ -100,31 +134,51 @@ export function openVideoModal(video, context = {}) {
   activeVideoModal = backdrop;
 
   // Carrega YT API e cria player
-  loadYouTubeAPI().then((YT) => {
-    if (!activeVideoModal) return; // modal foi fechado antes da API carregar
+  loadYouTubeAPI()
+    .then((YT) => {
+      if (!activeVideoModal) return;
 
-    ytPlayer = new YT.Player('bc-yt-player', {
-      videoId,
-      playerVars: {
-        autoplay: 1,
-        rel: 0,
-        modestbranding: 1,
-        origin: window.location.origin,
-      },
-      events: {
-        onReady: (e) => {
-          videoDuration = e.target.getDuration();
-          startWatchTracking(e.target, handleVideoComplete);
+      ytPlayer = new YT.Player('bc-yt-player', {
+        videoId,
+        playerVars: {
+          autoplay: 1,
+          rel: 0,
+          modestbranding: 1,
+          origin: window.location.origin,
         },
-        onStateChange: (e) => {
-          // YT.PlayerState.ENDED = 0 — não registra se acabou sem ter assistido
-          if (e.data === 0 && !completionRegistered) {
-            clearInterval(watchInterval);
-          }
+        events: {
+          onReady: async (e) => {
+            // Espera duração ficar disponível antes de iniciar o tracking
+            const duration = await waitForDuration(e.target);
+            if (activeVideoModal) {
+              startWatchTracking(e.target, duration, handleVideoComplete);
+            }
+          },
+          onStateChange: (e) => {
+            // ENDED (0) sem ter completado — limpa intervalo
+            if (e.data === 0 && !completionRegistered) {
+              clearInterval(watchInterval);
+            }
+          },
         },
-      },
+      });
+    })
+    .catch(() => {
+      // Fallback: abre iframe direto se a API falhar
+      if (!activeVideoModal) return;
+      const wrap = activeVideoModal.querySelector('.video-modal-frame-wrap');
+      if (wrap) {
+        wrap.innerHTML = `
+          <iframe
+            class="video-modal-frame"
+            src="https://www.youtube.com/embed/${sanitizeAttribute(videoId)}?autoplay=1&rel=0"
+            title="${sanitizeAttribute(video.title || 'Vídeo')}"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+          ></iframe>
+        `;
+      }
     });
-  });
 }
 
 function handleEscapeVideo(e) {
