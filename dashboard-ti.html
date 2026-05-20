@@ -318,6 +318,38 @@
     .s-progress { background: rgba(59,130,246,0.12);  color: var(--blue); }
     .s-done     { background: rgba(16,185,129,0.12);  color: var(--green); }
 
+    .table-filters {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .filter-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .filter-select {
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.8rem;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .filter-select:focus { border-color: var(--primary); }
+
     /* ── Loading / Error ── */
     .dash-loading, .dash-error {
       display: flex;
@@ -414,6 +446,58 @@
     };
   }
 
+  function renderTable(rows) {
+    if (!rows.length) return '<p style="padding:24px;text-align:center;color:var(--muted)">Nenhum chamado para o filtro selecionado.</p>';
+    return `<table>
+      <thead><tr>
+        <th>ID</th><th>Status</th><th>Solicitante</th><th>Setor</th>
+        <th>Unidade</th><th>Categoria</th><th>Responsável</th><th>Aberto em</th><th>Duração</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(t => `<tr>
+          <td class="td-id">${esc(t.id||'—')}</td>
+          <td>${statusBadge(t.status||'—')}</td>
+          <td>${esc(t.solicitanteNome||'—')}</td>
+          <td>${esc(t.solicitanteSetor||'—')}</td>
+          <td>${esc(t.unidade||'—')}</td>
+          <td>${esc(t.categoria||'—')}</td>
+          <td>${esc(t.atribuidoParaNome||'—')}</td>
+          <td>${fmtDate(t.timestamp)}</td>
+          <td>${fmtDuration(t.duracaoMinutos)||'—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  let _allTickets = [];
+
+  function applyFilters() {
+    const nowD = new Date();
+    const startMonth = new Date(nowD.getFullYear(), nowD.getMonth(), 1);
+    const periodFilter = document.getElementById('period-select')?.value || 'mes';
+    const statusFilter = document.getElementById('status-select')?.value || 'Pendente';
+
+    const periodStart = {
+      semana: new Date(nowD.getFullYear(), nowD.getMonth(), nowD.getDate() - 7),
+      mes: startMonth,
+      tudo: null,
+    }[periodFilter] ?? null;
+
+    const periodFiltered = periodStart
+      ? _allTickets.filter(t => t.timestamp && new Date(t.timestamp) >= periodStart)
+      : _allTickets;
+
+    const filtered = statusFilter === 'all'    ? periodFiltered
+      : statusFilter === 'active' ? periodFiltered.filter(t => t.status !== 'Concluído')
+      : statusFilter === 'done'   ? periodFiltered.filter(t => t.status === 'Concluído')
+      : periodFiltered.filter(t => t.status === statusFilter);
+
+    const wrap = document.getElementById('table-wrap');
+    const count = document.getElementById('table-count');
+    if (wrap) wrap.innerHTML = renderTable(filtered);
+    if (count) count.textContent = filtered.length + ' registros';
+  }
+
   // ── Fetch data ─────────────────────────────────────────────────────────
   async function fetchData() {
     setRefreshing(true);
@@ -427,6 +511,7 @@
       if (data.success) {
         data.tickets          = (data.tickets          || []).map(normalizeTicket);
         data.completedTickets = (data.completedTickets || []).map(normalizeTicket);
+        _allTickets = [...data.tickets, ...data.completedTickets];
         renderDashboard(data);
       } else {
         renderError(data.message || 'Erro ao carregar dados.');
@@ -531,6 +616,30 @@
       : null;
     const avgLabel = avgMins !== null ? fmtDuration(avgMins) : '—';
     const conclusionRate = all.length > 0 ? Math.round((done.length / all.length) * 100) : 0;
+
+    // Total do mês
+    const nowD = new Date();
+    const startMonth = new Date(nowD.getFullYear(), nowD.getMonth(), 1);
+    const monthCount = all.filter(t => t.timestamp && new Date(t.timestamp) >= startMonth).length;
+
+    // Categoria por unidade
+    const catByUnit = countBy(all, t => `${t.unidade||'N/I'} · ${t.categoria||'N/I'}`);
+
+    // Filtros
+    let periodFilter = document.getElementById('period-select')?.value || 'mes';
+    let statusFilter = document.getElementById('status-select')?.value || 'Pendente';
+
+    const periodStart = {
+      semana: new Date(nowD.getFullYear(), nowD.getMonth(), nowD.getDate() - 7),
+      mes:    startMonth,
+      tudo:   null,
+    }[periodFilter] ?? null;
+
+    const periodFiltered = periodStart ? all.filter(t => t.timestamp && new Date(t.timestamp) >= periodStart) : all;
+    const filtered = statusFilter === 'all'    ? periodFiltered
+      : statusFilter === 'active' ? periodFiltered.filter(t => t.status !== 'Concluído')
+      : statusFilter === 'done'   ? periodFiltered.filter(t => t.status === 'Concluído')
+      : periodFiltered.filter(t => t.status === statusFilter);
     const total = all.length || 1;
 
     const segments = [
@@ -617,8 +726,8 @@
           <div><span class="metric-value">${conclusionRate}%</span><span class="metric-label">Taxa de conclusão</span></div>
         </div>
         <div class="metric-card">
-          <i data-lucide="ticket"></i>
-          <div><span class="metric-value">${tickets.length}</span><span class="metric-label">Chamados em aberto</span></div>
+          <i data-lucide="calendar"></i>
+          <div><span class="metric-value">${monthCount}</span><span class="metric-label">Total de chamados do mês</span></div>
         </div>
         <div class="metric-card">
           <i data-lucide="users"></i>
@@ -637,8 +746,8 @@
           ${colorBars(countBy(all, 'unidade'), COLORS_UNIT)}
         </div>
         <div class="chart-card">
-          <div class="chart-head"><i data-lucide="user"></i><span>Concluídos por Responsável</span></div>
-          ${colorBars(countBy(done, 'atribuidoParaNome'), COLORS_USER)}
+          <div class="chart-head"><i data-lucide="layout-grid"></i><span>Categoria por Unidade</span></div>
+          ${colorBars(catByUnit, COLORS_CAT)}
         </div>
         <div class="dist-card">
           <div class="chart-head"><i data-lucide="pie-chart"></i><span>Distribuição</span></div>
@@ -660,38 +769,31 @@
       <div class="table-section">
         <div class="table-head">
           <div class="table-title"><i data-lucide="table-2"></i><span>Todos os Chamados</span></div>
-          <span class="table-count">${all.length} registros</span>
+          <div class="table-filters">
+            <div class="filter-group">
+              <label class="filter-label">Período:</label>
+              <select id="period-select" class="filter-select" onchange="applyFilters()">
+                <option value="semana">Última semana</option>
+                <option value="mes" selected>Este mês</option>
+                <option value="tudo">Todos os períodos</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label class="filter-label">Status:</label>
+              <select id="status-select" class="filter-select" onchange="applyFilters()">
+                <option value="Pendente" selected>Pendentes</option>
+                <option value="Atribuído">Atribuídos</option>
+                <option value="Em andamento">Em andamento</option>
+                <option value="done">Concluídos</option>
+                <option value="active">Todos os ativos</option>
+                <option value="all">Todos</option>
+              </select>
+            </div>
+            <span class="table-count" id="table-count">${filtered.length} registros</span>
+          </div>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Status</th>
-                <th>Solicitante</th>
-                <th>Setor</th>
-                <th>Unidade</th>
-                <th>Categoria</th>
-                <th>Responsável</th>
-                <th>Aberto em</th>
-                <th>Duração</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${all.map(t => `
-                <tr>
-                  <td class="td-id">${esc(t.id || '—')}</td>
-                  <td>${statusBadge(t.status || '—')}</td>
-                  <td>${esc(t.solicitanteNome || '—')}</td>
-                  <td>${esc(t.solicitanteSetor || '—')}</td>
-                  <td>${esc(t.unidade || '—')}</td>
-                  <td>${esc(t.categoria || '—')}</td>
-                  <td>${esc(t.atribuidoParaNome || '—')}</td>
-                  <td>${fmtDate(t.timestamp)}</td>
-                  <td>${fmtDuration(t.duracaoMinutos) || '—'}</td>
-                </tr>`).join('')}
-            </tbody>
-          </table>
+        <div class="table-wrap" id="table-wrap">
+          ${renderTable(filtered)}
         </div>
       </div>
     `;
