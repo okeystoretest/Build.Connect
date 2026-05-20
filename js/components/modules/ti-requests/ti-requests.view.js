@@ -44,6 +44,10 @@ export function getTiRequestsModuleMarkup(card, moduleData, moduleUi) {
   const ui = { ...TI_REQUESTS_UI_DEFAULTS, ...(moduleUi || {}) };
   const respondent = moduleData?.respondent || null;
 
+  if (ui.dashboardFullOpen && ui.loadStatus === 'success') {
+    return renderFullDashboard(ui);
+  }
+
   return `
     <div class="module-shell ti-requests-shell" data-module-shell>
       <div class="module-shell-header ti-requests-hero">
@@ -52,9 +56,15 @@ export function getTiRequestsModuleMarkup(card, moduleData, moduleUi) {
           <h2 class="module-title">${sanitizeText(card.title)}</h2>
           <p class="module-description">Gerencie chamados técnicos, acompanhe atribuições e visualize indicadores de desempenho do suporte.</p>
         </div>
-        <div class="module-source-pill" aria-label="Sincronizado com a planilha">
-          <i data-lucide="shield-check"></i>
-          <span>Banco de dados sincronizado</span>
+        <div class="ti-header-actions">
+          <a href="./dashboard-ti.html" target="_blank" rel="noopener noreferrer" class="module-action-button ti-full-dashboard-btn">
+            <i data-lucide="maximize-2"></i>
+            <span>Tela cheia</span>
+          </a>
+          <div class="module-source-pill" aria-label="Sincronizado com a planilha">
+            <i data-lucide="shield-check"></i>
+            <span>Banco de dados sincronizado</span>
+          </div>
         </div>
       </div>
       ${renderBody(ui, respondent)}
@@ -374,4 +384,275 @@ function renderDetailRow(label, value, icon) {
       <span class="ti-completed-row-label"><i data-lucide="${sanitizeAttribute(icon)}"></i>${sanitizeText(label)}</span>
       <span class="ti-completed-row-value">${sanitizeText(String(value || '—'))}</span>
     </div>`;
+}
+
+// ── Full Dashboard View ───────────────────────────────────────────────────
+
+function renderFullDashboard(ui) {
+  const all = [...(ui.tickets || []), ...(ui.completedTickets || [])];
+  const filter = ui.fullDashboardFilter || 'all';
+
+  const pending    = all.filter(t => t.status === 'Pendente');
+  const assigned   = all.filter(t => t.status === 'Atribuído');
+  const inProgress = all.filter(t => t.status === 'Em andamento');
+  const done       = all.filter(t => t.status === 'Concluído');
+  const active     = all.filter(t => t.status !== 'Concluído');
+
+  // Tempo médio de conclusão
+  const doneWithTime = done.filter(t => t.duracaoMinutos > 0);
+  const avgMinutes = doneWithTime.length
+    ? Math.round(doneWithTime.reduce((s, t) => s + t.duracaoMinutos, 0) / doneWithTime.length)
+    : null;
+  const avgLabel = avgMinutes !== null ? fmtDuration(avgMinutes) : '—';
+
+  // Taxa de conclusão
+  const conclusionRate = all.length > 0 ? Math.round((done.length / all.length) * 100) : 0;
+
+  // Filtro da tabela
+  const filtered = filter === 'all' ? all
+    : filter === 'active' ? active
+    : filter === 'done' ? done
+    : all.filter(t => t.status === filter);
+
+  const filterOpts = [
+    { id: 'all',          label: `Todos (${all.length})` },
+    { id: 'active',       label: `Ativos (${active.length})` },
+    { id: 'Pendente',     label: `Pendentes (${pending.length})` },
+    { id: 'Atribuído',    label: `Atribuídos (${assigned.length})` },
+    { id: 'Em andamento', label: `Em andamento (${inProgress.length})` },
+    { id: 'done',         label: `Concluídos (${done.length})` },
+  ];
+
+  return `
+    <div class="module-shell ti-full-dashboard" data-module-shell>
+      <div class="ti-full-header">
+        <button type="button" class="module-link-button is-secondary ti-back-btn" data-ti-close-full-dashboard>
+          <i data-lucide="arrow-left"></i>
+          <span>Voltar</span>
+        </button>
+        <div>
+          <p class="module-eyebrow">Retaguarda · TI</p>
+          <h2 class="module-title">Dashboard Completo</h2>
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="ti-kpi-grid">
+        ${renderKpi('Total de Chamados', all.length, 'inbox', 'kpi-total', null)}
+        ${renderKpi('Pendentes', pending.length, 'clock', 'kpi-pending', all.length)}
+        ${renderKpi('Atribuídos', assigned.length, 'user-check', 'kpi-assigned', all.length)}
+        ${renderKpi('Em Andamento', inProgress.length, 'loader-circle', 'kpi-progress', all.length)}
+        ${renderKpi('Concluídos', done.length, 'circle-check', 'kpi-done', all.length)}
+      </div>
+
+      <!-- Metrics row -->
+      <div class="ti-metrics-row">
+        <div class="ti-metric-card">
+          <i data-lucide="timer"></i>
+          <div>
+            <span class="ti-metric-value">${avgLabel}</span>
+            <span class="ti-metric-label">Tempo médio de resolução</span>
+          </div>
+        </div>
+        <div class="ti-metric-card">
+          <i data-lucide="percent"></i>
+          <div>
+            <span class="ti-metric-value">${conclusionRate}%</span>
+            <span class="ti-metric-label">Taxa de conclusão</span>
+          </div>
+        </div>
+        <div class="ti-metric-card">
+          <i data-lucide="ticket"></i>
+          <div>
+            <span class="ti-metric-value">${active.length}</span>
+            <span class="ti-metric-label">Chamados em aberto</span>
+          </div>
+        </div>
+        <div class="ti-metric-card">
+          <i data-lucide="users"></i>
+          <div>
+            <span class="ti-metric-value">${getTopAssignee(done)}</span>
+            <span class="ti-metric-label">Maior resolvedor</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts row -->
+      <div class="ti-full-charts">
+        ${renderColorChart('Por Categoria', countBy(all, 'categoria'), 'tag', ['3B82F6','8B5CF6','10B981','F59E0B','EF4444','6366F1','14B8A6'])}
+        ${renderColorChart('Por Unidade', countBy(all, 'unidade'), 'building-2', ['D4A257','10B981','3B82F6','8B5CF6','F59E0B','EF4444','6366F1'])}
+        ${renderColorChart('Concluídos por Responsável', countBy(done, 'atribuidoParaNome'), 'user', ['10B981','3B82F6','8B5CF6','D4A257','F59E0B'])}
+      </div>
+
+      <!-- Status distribution -->
+      ${renderStatusDistribution(pending.length, assigned.length, inProgress.length, done.length, all.length)}
+
+      <!-- Full table -->
+      <div class="ti-full-table-section">
+        <div class="ti-full-table-head">
+          <h3 class="ti-section-title"><i data-lucide="table-2"></i>Todos os Chamados</h3>
+          <div class="ti-filter-tabs">
+            ${filterOpts.map(f => `
+              <button type="button"
+                class="ti-filter-tab ${f.id === filter ? 'is-active' : ''}"
+                data-ti-full-filter="${sanitizeAttribute(f.id)}">
+                ${sanitizeText(f.label)}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+        ${renderFullTable(filtered)}
+      </div>
+    </div>
+  `;
+}
+
+function renderKpi(label, value, icon, cls, total) {
+  const pct = total ? Math.round((value / total) * 100) : null;
+  return `
+    <div class="ti-kpi-card ${sanitizeAttribute(cls)}">
+      <div class="ti-kpi-icon"><i data-lucide="${sanitizeAttribute(icon)}"></i></div>
+      <div class="ti-kpi-body">
+        <span class="ti-kpi-value">${value}</span>
+        <span class="ti-kpi-label">${sanitizeText(label)}</span>
+        ${pct !== null ? `<span class="ti-kpi-pct">${pct}% do total</span>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderColorChart(title, data, icon, colors) {
+  const items = Array.isArray(data) ? data.slice(0, 7) : [];
+  const max = items.reduce((m, i) => Math.max(m, i.count), 0) || 1;
+  const total = items.reduce((s, i) => s + i.count, 0) || 1;
+
+  return `
+    <div class="ti-color-chart">
+      <div class="ti-chart-head"><i data-lucide="${sanitizeAttribute(icon)}"></i><span>${sanitizeText(title)}</span></div>
+      ${items.length === 0
+        ? `<p class="ti-chart-empty">Sem dados disponíveis</p>`
+        : `<div class="ti-color-bars">
+            ${items.map((item, i) => {
+              const color = colors[i % colors.length];
+              const pct = Math.round((item.count / total) * 100);
+              const barW = Math.round((item.count / max) * 100);
+              return `
+                <div class="ti-color-bar-row">
+                  <span class="ti-color-dot" style="background:#${sanitizeAttribute(color)}"></span>
+                  <span class="ti-color-bar-label" title="${sanitizeAttribute(item.label)}">${sanitizeText(item.label)}</span>
+                  <div class="ti-color-bar-track">
+                    <div class="ti-color-bar-fill" style="width:${barW}%;background:#${sanitizeAttribute(color)}"></div>
+                  </div>
+                  <span class="ti-color-bar-meta">${item.count} <small>(${pct}%)</small></span>
+                </div>`;
+            }).join('')}
+          </div>`
+      }
+    </div>
+  `;
+}
+
+function renderStatusDistribution(pending, assigned, inProgress, done, total) {
+  if (!total) return '';
+  const segments = [
+    { label: 'Pendente',     count: pending,    color: 'F59E0B' },
+    { label: 'Atribuído',    count: assigned,   color: '8B5CF6' },
+    { label: 'Em andamento', count: inProgress, color: '3B82F6' },
+    { label: 'Concluído',    count: done,       color: '10B981' },
+  ].filter(s => s.count > 0);
+
+  return `
+    <div class="ti-status-dist">
+      <div class="ti-chart-head"><i data-lucide="pie-chart"></i><span>Distribuição por Status</span></div>
+      <div class="ti-dist-bar">
+        ${segments.map(s => `
+          <div class="ti-dist-segment"
+            style="width:${Math.round((s.count / total) * 100)}%;background:#${sanitizeAttribute(s.color)}"
+            title="${sanitizeText(s.label)}: ${s.count}">
+          </div>`).join('')}
+      </div>
+      <div class="ti-dist-legend">
+        ${segments.map(s => `
+          <div class="ti-dist-legend-item">
+            <span class="ti-color-dot" style="background:#${sanitizeAttribute(s.color)}"></span>
+            <span>${sanitizeText(s.label)}</span>
+            <strong>${s.count}</strong>
+          </div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderFullTable(tickets) {
+  if (!tickets.length) {
+    return `<div class="ti-empty-state"><i data-lucide="inbox"></i><span>Nenhum chamado para o filtro selecionado.</span></div>`;
+  }
+
+  return `
+    <div class="ti-full-table-wrap">
+      <table class="ti-full-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Status</th>
+            <th>Solicitante</th>
+            <th>Setor</th>
+            <th>Unidade</th>
+            <th>Categoria</th>
+            <th>Responsável</th>
+            <th>Aberto em</th>
+            <th>Duração</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tickets.map(t => {
+            const cfg = {
+              'Pendente':     { cls: 'is-pending',  dot: 'F59E0B' },
+              'Atribuído':    { cls: 'is-assigned',  dot: '8B5CF6' },
+              'Em andamento': { cls: 'is-progress',  dot: '3B82F6' },
+              'Concluído':    { cls: 'is-done',      dot: '10B981' },
+            }[t.status] || { cls: '', dot: '8E9AAF' };
+
+            return `
+              <tr class="ti-table-row">
+                <td class="ti-table-id">${sanitizeText(t.id || '—')}</td>
+                <td>
+                  <span class="ti-table-status ${sanitizeAttribute(cfg.cls)}">
+                    <span class="ti-color-dot" style="background:#${sanitizeAttribute(cfg.dot)}"></span>
+                    ${sanitizeText(t.status || '—')}
+                  </span>
+                </td>
+                <td>${sanitizeText(t.solicitanteNome || '—')}</td>
+                <td>${sanitizeText(t.solicitanteSetor || '—')}</td>
+                <td>${sanitizeText(t.unidade || '—')}</td>
+                <td>${sanitizeText(t.categoria || '—')}</td>
+                <td>${sanitizeText(t.atribuidoParaNome || '—')}</td>
+                <td>${fmtDate(t.timestamp)}</td>
+                <td>${fmtDuration(t.duracaoMinutos) || '—'}</td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function countBy(arr, key) {
+  const map = {};
+  (arr || []).forEach(t => {
+    const k = t[key] || 'Não informado';
+    map[k] = (map[k] || 0) + 1;
+  });
+  return Object.entries(map)
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+function getTopAssignee(done) {
+  const map = {};
+  (done || []).forEach(t => {
+    if (t.atribuidoParaNome) map[t.atribuidoParaNome] = (map[t.atribuidoParaNome] || 0) + 1;
+  });
+  const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]);
+  return sorted.length ? sorted[0][0].split(' ')[0] : '—';
 }

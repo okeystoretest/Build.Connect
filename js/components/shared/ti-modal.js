@@ -18,7 +18,7 @@ const TI_CATEGORIES = [
   'Off-Boarding',
 ];
 
-const MAX_DESC = 150;
+const MAX_DESC = 500;
 
 let activeTiModal = null;
 let activeEscapeHandler = null;

@@ -7,15 +7,18 @@ let moduleContext = null;
 export function createTiRequestsModuleHandlers(context) {
   moduleContext = context;
   return {
-    loadTickets:        loadTiTickets,
-    reloadTickets:      reloadTiTickets,
-    expandTicket:       expandTiTicket,
-    expandCompleted:    expandCompletedTicket,
-    updateStatus:       updateTiTicketStatus,
-    startConclusion:    startConclusion,
-    cancelConclusion:   cancelConclusion,
-    confirmConclusion:  confirmConclusion,
-    changePeriod:       changeDashboardPeriod,
+    loadTickets:           loadTiTickets,
+    reloadTickets:         reloadTiTickets,
+    expandTicket:          expandTiTicket,
+    expandCompleted:       expandCompletedTicket,
+    updateStatus:          updateTiTicketStatus,
+    startConclusion:       startConclusion,
+    cancelConclusion:      cancelConclusion,
+    confirmConclusion:     confirmConclusion,
+    changePeriod:          changeDashboardPeriod,
+    openFullDashboard:     openFullDashboard,
+    closeFullDashboard:    closeFullDashboard,
+    setFullDashboardFilter: setFullDashboardFilter,
   };
 }
 
@@ -181,4 +184,27 @@ async function changeDashboardPeriod(rootElement, sector, period) {
   if (state.selectedModuleId !== MODULE_IDS.tiRequest) return;
   setState(sector.id, { ...state, ui: { ...ui(state), dashboardPeriod: period } });
   await loadTiTickets(rootElement, sector);
+}
+
+// ── Full Dashboard ─────────────────────────────────────────────────────────
+
+function openFullDashboard(rootElement, sector) {
+  const state = getState(sector.id);
+  if (state.selectedModuleId !== MODULE_IDS.tiRequest) return;
+  setState(sector.id, { ...state, ui: { ...ui(state), dashboardFullOpen: true, fullDashboardFilter: 'all' } });
+  render(rootElement, sector);
+}
+
+function closeFullDashboard(rootElement, sector) {
+  const state = getState(sector.id);
+  if (state.selectedModuleId !== MODULE_IDS.tiRequest) return;
+  setState(sector.id, { ...state, ui: { ...ui(state), dashboardFullOpen: false } });
+  render(rootElement, sector);
+}
+
+function setFullDashboardFilter(rootElement, sector, filter) {
+  const state = getState(sector.id);
+  if (state.selectedModuleId !== MODULE_IDS.tiRequest) return;
+  setState(sector.id, { ...state, ui: { ...ui(state), fullDashboardFilter: filter } });
+  render(rootElement, sector);
 }

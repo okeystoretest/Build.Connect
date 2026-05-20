@@ -1,4 +1,5 @@
 import { resetModuleSelectionForSector } from '../components/content.js';
+import { getModuleState } from '../state/module-state.js';
 import { ACCESS_KEYS, SECTOR_IDS } from '../constants/sector.constants.js';
 import {
   findItemById,
@@ -54,6 +55,16 @@ export function createNavigationController({
 
   function handleNavigation(itemId) {
     const previousItemId = state.activeItemId;
+
+    // Mesmo setor clicado — verifica se há módulo aberto para voltar ao menu do setor
+    if (previousItemId === itemId && !isHomeItem(itemId)) {
+      const moduleState = getModuleState(itemId);
+      if (moduleState.selectedModuleId) {
+        resetModuleSelectionForSector(itemId);
+        persistAndRender({ shouldRenderContent: true, animateContent: true });
+      }
+      return;
+    }
 
     if (previousItemId && previousItemId !== itemId && !isHomeItem(previousItemId)) {
       resetModuleSelectionForSector(previousItemId);

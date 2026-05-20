@@ -23,4 +23,6 @@ export const TI_REQUESTS_UI_DEFAULTS = Object.freeze({
   isUpdating:             false,
   updatingTicketId:       null,
   confirmingConclusionId: null,
+  dashboardFullOpen:      false,
+  fullDashboardFilter:    'all',
 });

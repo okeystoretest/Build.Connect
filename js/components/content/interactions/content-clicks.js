@@ -276,6 +276,27 @@ export function createClickHandler(rootElement, viewState, dependencies) {
       return;
     }
 
+    const tiOpenFull = event.target.closest('[data-ti-open-full-dashboard]');
+    if (tiOpenFull) {
+      event.preventDefault();
+      tiRequestsModuleHandlers?.openFullDashboard(rootElement, sector);
+      return;
+    }
+
+    const tiCloseFull = event.target.closest('[data-ti-close-full-dashboard]');
+    if (tiCloseFull) {
+      event.preventDefault();
+      tiRequestsModuleHandlers?.closeFullDashboard(rootElement, sector);
+      return;
+    }
+
+    const tiFullFilter = event.target.closest('[data-ti-full-filter]');
+    if (tiFullFilter) {
+      event.preventDefault();
+      tiRequestsModuleHandlers?.setFullDashboardFilter(rootElement, sector, tiFullFilter.dataset.tiFullFilter || 'all');
+      return;
+    }
+
     const tiStatusBtn = event.target.closest('[data-ti-status]');
     if (tiStatusBtn) {
       event.preventDefault();
