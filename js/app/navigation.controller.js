@@ -1,4 +1,5 @@
 import { resetModuleSelectionForSector } from '../components/content.js';
+import { closeVideoModal } from '../components/modules/video-module.js';
 import { getModuleState } from '../state/module-state.js';
 import { ACCESS_KEYS, SECTOR_IDS } from '../constants/sector.constants.js';
 import {
@@ -67,6 +68,7 @@ export function createNavigationController({
     }
 
     if (previousItemId && previousItemId !== itemId && !isHomeItem(previousItemId)) {
+      closeVideoModal();
       resetModuleSelectionForSector(previousItemId);
     }
 

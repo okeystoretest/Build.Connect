@@ -28,7 +28,6 @@ import {
   setModuleState,
 } from '../state/module-state.js';
 import { closeActiveOverlayModal } from './shared/overlay-modal.js';
-import { closeVideoModal } from './modules/video-module.js';
 import { getWelcomeViewMarkup } from './views/welcome-view.js';
 import { getSectorCardsViewMarkup } from './views/sector-cards-view.js';
 import { getModuleStageMarkup } from './modules/module-stage.js';
@@ -109,7 +108,6 @@ export function renderContentView(rootElement, viewState, options = {}) {
   const currentPanel = rootElement.querySelector('.content-panel');
 
   closeActiveOverlayModal();
-  closeVideoModal();
 
   if (animate && currentPanel) {
     currentPanel.classList.add('is-view-exit');
