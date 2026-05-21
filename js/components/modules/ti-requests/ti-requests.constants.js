@@ -24,5 +24,6 @@ export const TI_REQUESTS_UI_DEFAULTS = Object.freeze({
   updatingTicketId:       null,
   confirmingConclusionId: null,
   dashboardFullOpen:      false,
-  fullDashboardFilter:    'all',
+  fullDashboardFilter:    'Pendente',
+  fullDashboardPeriod:    'mes',
 });

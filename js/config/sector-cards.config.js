@@ -122,14 +122,6 @@ export const DHO_SECTOR_CARDS = [
       'Acesse formulários e questionários usados para recolher informações, apoiar avaliações e orientar etapas do processo.',
   },
   {
-    id: 'resultado-treinamento',
-    title: 'Resultado do Treinamento',
-    icon: 'graduation-cap',
-    hint: 'Desempenho',
-    getDescription: () =>
-      'Veja os resultados dos treinamentos e acompanhe o desempenho do colaborador nas etapas concluídas.',
-  },
-  {
     id: 'qualidade',
     title: 'Qualidade',
     icon: 'badge-check',

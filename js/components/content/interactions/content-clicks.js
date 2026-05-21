@@ -293,7 +293,14 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     const tiFullFilter = event.target.closest('[data-ti-full-filter]');
     if (tiFullFilter) {
       event.preventDefault();
-      tiRequestsModuleHandlers?.setFullDashboardFilter(rootElement, sector, tiFullFilter.dataset.tiFullFilter || 'all');
+      tiRequestsModuleHandlers?.setFullDashboardFilter(rootElement, sector, tiFullFilter.dataset.tiFullFilter || 'Pendente');
+      return;
+    }
+
+    const tiFullPeriod = event.target.closest('[data-ti-full-period]');
+    if (tiFullPeriod) {
+      event.preventDefault();
+      tiRequestsModuleHandlers?.setFullDashboardPeriod(rootElement, sector, tiFullPeriod.dataset.tiFullPeriod || 'mes');
       return;
     }
 
@@ -341,6 +348,20 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     }
 
     // ── Histórico do Colaborador ───────────────────────────────────────────
+    const historicoSector = event.target.closest('[data-historico-sector]');
+    if (historicoSector) {
+      event.preventDefault();
+      historicoModuleHandlers?.selectSector(rootElement, sector, historicoSector.dataset.historicoSector || '');
+      return;
+    }
+
+    const historicoTab = event.target.closest('[data-historico-tab]');
+    if (historicoTab) {
+      event.preventDefault();
+      historicoModuleHandlers?.setActiveTab(rootElement, sector, historicoTab.dataset.historicoTab || 'timeline');
+      return;
+    }
+
     const historicoSearchBtn = event.target.closest('[data-historico-search-btn]');
     if (historicoSearchBtn) {
       event.preventDefault();

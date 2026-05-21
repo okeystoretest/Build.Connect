@@ -390,13 +390,19 @@ function renderDetailRow(label, value, icon) {
 
 function renderFullDashboard(ui) {
   const all = [...(ui.tickets || []), ...(ui.completedTickets || [])];
-  const filter = ui.fullDashboardFilter || 'all';
+  const filter = ui.fullDashboardFilter || 'Pendente';
+  const period = ui.fullDashboardPeriod || 'mes';
 
   const pending    = all.filter(t => t.status === 'Pendente');
   const assigned   = all.filter(t => t.status === 'Atribuído');
   const inProgress = all.filter(t => t.status === 'Em andamento');
   const done       = all.filter(t => t.status === 'Concluído');
   const active     = all.filter(t => t.status !== 'Concluído');
+
+  // Total de chamados do mês atual
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthTickets = all.filter(t => t.timestamp && new Date(t.timestamp) >= startOfMonth);
 
   // Tempo médio de conclusão
   const doneWithTime = done.filter(t => t.duracaoMinutos > 0);
@@ -408,19 +414,36 @@ function renderFullDashboard(ui) {
   // Taxa de conclusão
   const conclusionRate = all.length > 0 ? Math.round((done.length / all.length) * 100) : 0;
 
-  // Filtro da tabela
-  const filtered = filter === 'all' ? all
-    : filter === 'active' ? active
-    : filter === 'done' ? done
-    : all.filter(t => t.status === filter);
+  // Categoria por unidade — top 7 combinações
+  const catByUnit = countBy(all, t => `${t.unidade || 'N/I'} · ${t.categoria || 'N/I'}`);
+
+  // Filtro por período
+  const periodStart = {
+    semana: new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7),
+    mes:    startOfMonth,
+    tudo:   null,
+  }[period] ?? null;
+
+  const periodFiltered = periodStart ? all.filter(t => t.timestamp && new Date(t.timestamp) >= periodStart) : all;
+
+  // Filtro por status sobre o período
+  const filtered = filter === 'all' ? periodFiltered
+    : filter === 'active' ? periodFiltered.filter(t => t.status !== 'Concluído')
+    : filter === 'done'   ? periodFiltered.filter(t => t.status === 'Concluído')
+    : periodFiltered.filter(t => t.status === filter);
+
+  const periodOpts = [
+    { id: 'semana', label: 'Última semana' },
+    { id: 'mes',    label: 'Este mês' },
+    { id: 'tudo',   label: 'Todos os períodos' },
+  ];
 
   const filterOpts = [
-    { id: 'all',          label: `Todos (${all.length})` },
-    { id: 'active',       label: `Ativos (${active.length})` },
     { id: 'Pendente',     label: `Pendentes (${pending.length})` },
     { id: 'Atribuído',    label: `Atribuídos (${assigned.length})` },
     { id: 'Em andamento', label: `Em andamento (${inProgress.length})` },
     { id: 'done',         label: `Concluídos (${done.length})` },
+    { id: 'all',          label: `Todos (${all.length})` },
   ];
 
   return `
@@ -462,10 +485,10 @@ function renderFullDashboard(ui) {
           </div>
         </div>
         <div class="ti-metric-card">
-          <i data-lucide="ticket"></i>
+          <i data-lucide="calendar"></i>
           <div>
-            <span class="ti-metric-value">${active.length}</span>
-            <span class="ti-metric-label">Chamados em aberto</span>
+            <span class="ti-metric-value">${monthTickets.length}</span>
+            <span class="ti-metric-label">Total de chamados do mês</span>
           </div>
         </div>
         <div class="ti-metric-card">
@@ -481,7 +504,7 @@ function renderFullDashboard(ui) {
       <div class="ti-full-charts">
         ${renderColorChart('Por Categoria', countBy(all, 'categoria'), 'tag', ['3B82F6','8B5CF6','10B981','F59E0B','EF4444','6366F1','14B8A6'])}
         ${renderColorChart('Por Unidade', countBy(all, 'unidade'), 'building-2', ['D4A257','10B981','3B82F6','8B5CF6','F59E0B','EF4444','6366F1'])}
-        ${renderColorChart('Concluídos por Responsável', countBy(done, 'atribuidoParaNome'), 'user', ['10B981','3B82F6','8B5CF6','D4A257','F59E0B'])}
+        ${renderColorChart('Categoria por Unidade', catByUnit, 'layout-grid', ['3B82F6','D4A257','10B981','8B5CF6','F59E0B','EF4444','6366F1'])}
       </div>
 
       <!-- Status distribution -->
@@ -491,14 +514,31 @@ function renderFullDashboard(ui) {
       <div class="ti-full-table-section">
         <div class="ti-full-table-head">
           <h3 class="ti-section-title"><i data-lucide="table-2"></i>Todos os Chamados</h3>
-          <div class="ti-filter-tabs">
-            ${filterOpts.map(f => `
-              <button type="button"
-                class="ti-filter-tab ${f.id === filter ? 'is-active' : ''}"
-                data-ti-full-filter="${sanitizeAttribute(f.id)}">
-                ${sanitizeText(f.label)}
-              </button>
-            `).join('')}
+          <div class="ti-full-table-controls">
+            <div class="ti-filter-group">
+              <span class="ti-filter-label">Período:</span>
+              <div class="ti-filter-tabs">
+                ${periodOpts.map(p => `
+                  <button type="button"
+                    class="ti-filter-tab ${p.id === period ? 'is-active' : ''}"
+                    data-ti-full-period="${sanitizeAttribute(p.id)}">
+                    ${sanitizeText(p.label)}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+            <div class="ti-filter-group">
+              <span class="ti-filter-label">Status:</span>
+              <div class="ti-filter-tabs">
+                ${filterOpts.map(f => `
+                  <button type="button"
+                    class="ti-filter-tab ${f.id === filter ? 'is-active' : ''}"
+                    data-ti-full-filter="${sanitizeAttribute(f.id)}">
+                    ${sanitizeText(f.label)}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
           </div>
         </div>
         ${renderFullTable(filtered)}

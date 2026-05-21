@@ -19,6 +19,7 @@ export function createTiRequestsModuleHandlers(context) {
     openFullDashboard:     openFullDashboard,
     closeFullDashboard:    closeFullDashboard,
     setFullDashboardFilter: setFullDashboardFilter,
+    setFullDashboardPeriod: setFullDashboardPeriod,
   };
 }
 
@@ -206,5 +207,12 @@ function setFullDashboardFilter(rootElement, sector, filter) {
   const state = getState(sector.id);
   if (state.selectedModuleId !== MODULE_IDS.tiRequest) return;
   setState(sector.id, { ...state, ui: { ...ui(state), fullDashboardFilter: filter } });
+  render(rootElement, sector);
+}
+
+function setFullDashboardPeriod(rootElement, sector, period) {
+  const state = getState(sector.id);
+  if (state.selectedModuleId !== MODULE_IDS.tiRequest) return;
+  setState(sector.id, { ...state, ui: { ...ui(state), fullDashboardPeriod: period } });
   render(rootElement, sector);
 }
