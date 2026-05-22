@@ -245,7 +245,7 @@ export function getVideoModuleMarkup(card, moduleData, moduleUi, renderDependenc
         <div>
           <p class="module-eyebrow">Conteúdo carregado</p>
           <h2 class="module-title">${sanitizeText(card.title)}</h2>
-          <p class="module-description">Vídeos carregados automaticamente a partir da playlist configurada no YouTube.</p>
+          <p class="module-description">Vídeos carregados automaticamente a partir da base de dados.</p>
         </div>
         ${getModuleToolbarMarkup(card.id, moduleUi, items.length, preparedItems.length, 'Busque por título do vídeo')}
       </div>

@@ -194,7 +194,7 @@ function renderConclusionForm(ticketId) {
           data-ti-obs-input="${sanitizeAttribute(ticketId)}"
           placeholder="Descreva o que foi feito, como foi resolvido, materiais utilizados…"
           rows="3"
-          maxlength="500"
+          maxlength="2000"
         ></textarea>
         <span class="ti-obs-error" data-ti-obs-error style="display:none">A observação é obrigatória para concluir.</span>
       </label>

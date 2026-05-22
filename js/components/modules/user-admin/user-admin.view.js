@@ -19,12 +19,12 @@ export function getUserManagementModuleMarkup(card, moduleData, moduleUi) {
         <div class="user-admin-hero-copy">
           <p class="module-eyebrow">DHO · Gestão de acessos</p>
           <h2 class="module-title">${sanitizeText(card.title)}</h2>
-          <p class="module-description">Cadastre, localize e edite acessos de colaboradores em uma área segura e integrada à planilha de credenciais.</p>
+          <p class="module-description">Cadastre, localize e edite acessos de colaboradores em uma área segura e integrada ao banco de dados.</p>
         </div>
 
         <div class="module-source-pill user-admin-hero-pill" aria-label="Cadastro integrado ao Google Sheets">
           <i data-lucide="shield-check"></i>
-          <span>Banco de dados sincronizado!</span>
+          <span>Banco de dados sincronizado</span>
         </div>
       </div>
 
@@ -97,7 +97,7 @@ export function getUserManagementModuleMarkup(card, moduleData, moduleUi) {
             <div class="user-admin-card-copy">
               <span class="evaluation-meta-label">Consulta sob demanda</span>
               <h3 class="user-admin-title">Pesquisar usuário</h3>
-              <p class="user-admin-subtitle">Localize um cadastro existente sem carregar todos os usuários ativos.</p>
+              <p class="user-admin-subtitle">Localize um cadastro existente.</p>
             </div>
           </div>
 

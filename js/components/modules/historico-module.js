@@ -79,7 +79,7 @@ function renderHistoricoContent(ui) {
     return `
       <div class="historico-empty">
         <i data-lucide="user-search"></i>
-        <p>Pesquise um colaborador para ver o histórico e o dashboard de acompanhamento.</p>
+        <p>Pesquise um colaborador para dar início ao acompanhamento.</p>
       </div>
     `;
   }

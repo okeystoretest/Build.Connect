@@ -21,7 +21,7 @@ export function getDocumentModuleMarkup(card, moduleData, moduleUi, renderDepend
         <div>
           <p class="module-eyebrow">Conteúdo carregado</p>
           <h2 class="module-title">${sanitizeText(card.title)}</h2>
-          <p class="module-description">Arquivos listados automaticamente a partir do Google Drive.</p>
+          <p class="module-description">Arquivos listados automaticamente a partir da base de dados.</p>
         </div>
 
         ${getModuleToolbarMarkup(card.id, moduleUi, items.length, preparedItems.length, 'Busque por nome do arquivo')}
