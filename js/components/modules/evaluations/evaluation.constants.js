@@ -93,6 +93,7 @@ export const BEHAVIORAL_FORM_DEFAULTS = Object.freeze({
   evaluationDate: '',
 });
 export const EVALUATION_UI_DEFAULTS = Object.freeze({
+  activeTab: 'avaliacoes',
   selectedEvaluationToolId: '',
   selectedEvaluateeId: '',
   evaluateeQuery: '',

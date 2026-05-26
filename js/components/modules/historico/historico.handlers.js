@@ -10,12 +10,14 @@ const DEFAULT_UI = {
   selectedUserNome: '',
   selectedUserSetor: '',
   selectedSectorId: '',
+  selectedToolId: '',
   historico: [],
   loadingHistorico: false,
   activeTab: 'timeline',
   allUsers: [],
   contentData: null,
   loadingContent: false,
+  contentError: false,
 };
 
 export function createHistoricoModuleHandlers({ getModuleState, setModuleState, renderModuleStage }) {
@@ -85,7 +87,7 @@ export function createHistoricoModuleHandlers({ getModuleState, setModuleState, 
   async function loadContentData(rootElement, sector, sectorId) {
     if (!sectorId) return;
 
-    patchUi(sector, { loadingContent: true });
+    patchUi(sector, { loadingContent: true, contentError: false });
     renderModuleStage(rootElement, sector);
 
     const [videosRes, docsRes, instrRes] = await Promise.allSettled([
@@ -94,13 +96,21 @@ export function createHistoricoModuleHandlers({ getModuleState, setModuleState, 
       loadModuleContent({ sectorId, moduleId: 'instrucoes-escritas' }),
     ]);
 
+    const allFailed = [videosRes, docsRes, instrRes].every(r => r.status === 'rejected');
+
+    if (allFailed) {
+      patchUi(sector, { loadingContent: false, contentError: true, contentData: null });
+      renderModuleStage(rootElement, sector);
+      return;
+    }
+
     const contentData = {
       videos:     videosRes.status === 'fulfilled' ? (videosRes.value?.items || []) : [],
       docs:       docsRes.status === 'fulfilled'   ? (docsRes.value?.items   || []) : [],
       instrucoes: instrRes.status === 'fulfilled'  ? (instrRes.value?.items  || []) : [],
     };
 
-    patchUi(sector, { contentData, loadingContent: false });
+    patchUi(sector, { contentData, loadingContent: false, contentError: false });
     renderModuleStage(rootElement, sector);
   }
 
@@ -147,14 +157,29 @@ export function createHistoricoModuleHandlers({ getModuleState, setModuleState, 
     patchUi(sector, { activeTab: tab });
     renderModuleStage(rootElement, sector);
 
-    // Carrega conteúdo do GAS ao abrir dashboard pela primeira vez
     if (tab === 'dashboard') {
       const ui = getUi(getModuleState(sector.id));
+      // Só carrega se ainda não tem dados E não está carregando
       if (ui.selectedUserSetor && !ui.contentData && !ui.loadingContent) {
         loadContentData(rootElement, sector, ui.selectedUserSetor);
       }
     }
   }
 
-  return { searchUsers, selectUser, updateQuery, setActiveTab, selectSector };
+  async function retryLoadContent(rootElement, sector) {
+    const ui = getUi(getModuleState(sector.id));
+    if (ui.selectedUserSetor) {
+      patchUi(sector, { contentData: null });
+      await loadContentData(rootElement, sector, ui.selectedUserSetor);
+    }
+  }
+
+  function selectTool(rootElement, sector, toolId) {
+    const state = getModuleState(sector.id);
+    const current = getUi(state);
+    patchUi(sector, { selectedToolId: current.selectedToolId === toolId ? '' : toolId });
+    renderModuleStage(rootElement, sector);
+  }
+
+  return { searchUsers, selectUser, updateQuery, setActiveTab, selectSector, retryLoadContent, selectTool };
 }

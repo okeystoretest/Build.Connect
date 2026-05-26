@@ -11,6 +11,8 @@ export const MODULE_IDS = Object.freeze({
   quality: 'qualidade',
   tiRequest: 'requisicoes-ti',
   historico: 'historico-colaborador',
+  mapasIntegracao: 'mapas-integracao',
+  documentosDho: 'documentos-dho',
 });
 
 export const MODULE_STATUS = Object.freeze({
@@ -47,6 +49,8 @@ export const MODULE_SOURCE_LABELS = Object.freeze({
 export const DOCUMENT_MODULE_IDS = new Set([
   MODULE_IDS.documents,
   MODULE_IDS.writtenInstructions,
+  MODULE_IDS.mapasIntegracao,
+  MODULE_IDS.documentosDho,
 ]);
 
 export const VIDEO_MODULE_IDS = new Set([

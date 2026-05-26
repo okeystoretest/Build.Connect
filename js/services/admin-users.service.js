@@ -64,3 +64,7 @@ async function requestAdminApi(action, payload = {}) {
     generatedPassword: '',
   };
 }
+
+export function deleteManagedUser(userId) {
+  return requestApi('delete-user', { userId: String(userId || '') });
+}

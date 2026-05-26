@@ -30,6 +30,7 @@ export function createEvaluationModuleHandlers(dependencies) {
     updateField: updateEvaluationField,
     saveResult: saveEvaluationResult,
     downloadGraph: downloadEvaluationGraph,
+    setActiveTab: setEvaluationActiveTab,
   };
 }
 
@@ -377,4 +378,11 @@ function downloadEvaluationGraph(rootElement, sector) {
   const computedResult = getMatrixComputedResult(nextUi, selectedToolId, selectedUser.id);
   const exportPayload = computedResult.isSaved ? computedResult : buildMatrixComputedResult(state.moduleData, nextUi, selectedUser);
   downloadEvaluationGraphFromPayload(exportPayload);
+}
+
+function setEvaluationActiveTab(rootElement, sector, tab) {
+  const state = getModuleState(sector.id);
+  const prev = state.ui || {};
+  setModuleState(sector.id, { ...state, ui: { ...prev, activeTab: tab } });
+  renderModuleStage(rootElement, sector);
 }

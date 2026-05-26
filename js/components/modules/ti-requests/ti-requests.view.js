@@ -1,19 +1,15 @@
 import { sanitizeAttribute, sanitizeText } from '../../../utils/sanitize.js';
 import { TI_DASHBOARD_PERIODS, TI_REQUEST_STATUS, TI_REQUESTS_UI_DEFAULTS } from './ti-requests.constants.js';
+import { USER_LEVELS, SETOR_LABELS } from '../../../constants/sector.constants.js';
 
-const STATUS_CFG = {
-  [TI_REQUEST_STATUS.pending]:    { label: 'Pendente',     icon: 'clock',         cls: 'is-pending'  },
-  [TI_REQUEST_STATUS.assigned]:   { label: 'Atribuído',    icon: 'user-check',    cls: 'is-assigned' },
-  [TI_REQUEST_STATUS.inProgress]: { label: 'Em andamento', icon: 'loader-circle', cls: 'is-progress' },
-  [TI_REQUEST_STATUS.done]:       { label: 'Concluído',    icon: 'circle-check',  cls: 'is-done'     },
-};
+const DONE_PAGE_SIZE = 5;
 
-const SETOR_LABELS = {
-  gestao:'Gestão',vendas:'Vendas',producao:'Produção',criacao:'Criação',
-  pcp:'PCP',almoxarifado:'Almoxarifado',corte:'Corte',acabamento:'Acabamento',
-  revisao:'Revisão',externo:'Externo',marketing:'Marketing',compras:'Compras',
-  logistica:'Logística',financeiro:'Financeiro',retaguarda:'Retaguarda',dho:'DHO',comercial:'Comercial',
-};
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 function setorLabel(id) { return SETOR_LABELS[id] || id || 'Setor'; }
 
@@ -91,11 +87,199 @@ function renderBody(ui, respondent) {
   const tickets          = Array.isArray(ui.tickets)          ? ui.tickets          : [];
   const completedTickets = Array.isArray(ui.completedTickets) ? ui.completedTickets : [];
 
+  return renderKanban(tickets, completedTickets, ui, respondent);
+}
+
+// ── Kanban ────────────────────────────────────────────────────────────────
+
+const KANBAN_COLS = [
+  { status: 'Pendente',     label: 'Pendente',     icon: 'clock',         color: '#F59E0B', cls: 'is-pending'  },
+  { status: 'Atribuído',    label: 'Atribuído',    icon: 'user-check',    color: '#8B5CF6', cls: 'is-assigned' },
+  { status: 'Em andamento', label: 'Em andamento', icon: 'loader-circle', color: '#3B82F6', cls: 'is-progress' },
+  { status: 'Concluído',    label: 'Concluído',    icon: 'circle-check',  color: '#10B981', cls: 'is-done'     },
+];
+
+function renderKanban(tickets, completedTickets, ui, respondent) {
+  const allActive     = tickets;
+  const userId        = respondent?.id || '';
+  const nivel         = respondent?.nivel || '';
+  const isPrivileged  = nivel === USER_LEVELS.admin || nivel === USER_LEVELS.gestor;
+  const donePageSize  = DONE_PAGE_SIZE;
+  const doneExpanded  = ui.doneExpanded || false;
+  const donePage      = doneExpanded ? completedTickets : completedTickets.slice(0, donePageSize);
+  const doneHasMore   = completedTickets.length > donePageSize;
+
+  // Contagem total das colunas filtradas (para exibir ao colaborador)
+  const totalAtribuido    = allActive.filter(t => t.status === 'Atribuído').length;
+  const totalEmAndamento  = allActive.filter(t => t.status === 'Em andamento').length;
+
+  const byStatus = {
+    'Pendente':     allActive.filter(t => t.status === 'Pendente'),
+    'Atribuído':    isPrivileged
+      ? allActive.filter(t => t.status === 'Atribuído')
+      : allActive.filter(t => t.status === 'Atribuído' && t.atribuidoParaId === userId),
+    'Em andamento': isPrivileged
+      ? allActive.filter(t => t.status === 'Em andamento')
+      : allActive.filter(t => t.status === 'Em andamento' && t.atribuidoParaId === userId),
+    'Concluído':    donePage,
+  };
+
   return `
-    <div class="ti-requests-layout">
-      ${renderActiveSection(tickets, ui, respondent)}
-      ${renderDashboard(ui.dashboard, ui.dashboardPeriod)}
-      ${renderCompletedSection(completedTickets, ui)}
+    <div class="ti-kanban">
+      ${KANBAN_COLS.map(col => `
+        <div class="ti-kanban-col" data-status="${sanitizeAttribute(col.status)}">
+          <div class="ti-kanban-col-head" style="border-top-color:${col.color}">
+            <div class="ti-kanban-col-title">
+              <i data-lucide="${sanitizeAttribute(col.icon)}" style="color:${col.color}"></i>
+              <span>${sanitizeText(col.label)}</span>
+            </div>
+            <div class="ti-kanban-col-counts">
+              <span class="ti-kanban-badge" style="background:${hexToRgba(col.color, 0.15)};color:${col.color}">
+                ${byStatus[col.status].length}
+              </span>
+              ${!isPrivileged && col.status === 'Atribuído' && totalAtribuido > byStatus['Atribuído'].length ? `
+                <span class="ti-kanban-total-hint" title="Total na coluna">${totalAtribuido} no total</span>
+              ` : ''}
+              ${!isPrivileged && col.status === 'Em andamento' && totalEmAndamento > byStatus['Em andamento'].length ? `
+                <span class="ti-kanban-total-hint" title="Total na coluna">${totalEmAndamento} no total</span>
+              ` : ''}
+              ${col.status === 'Concluído' && completedTickets.length > donePageSize ? `
+                <span class="ti-kanban-total-hint">${completedTickets.length} total</span>
+              ` : ''}
+            </div>
+          </div>
+          <div class="ti-kanban-cards">
+            ${byStatus[col.status].length
+              ? byStatus[col.status].map(t => renderKanbanCard(t, col, ui, respondent)).join('')
+              : `<div class="ti-kanban-empty">
+                  <i data-lucide="inbox"></i>
+                  <span>${
+                    !isPrivileged && (col.status === 'Atribuído' || col.status === 'Em andamento')
+                      ? 'Nenhum chamado seu aqui'
+                      : 'Nenhum chamado'
+                  }</span>
+                </div>`
+            }
+            ${col.status === 'Concluído' && doneHasMore ? `
+              <button type="button" class="ti-kanban-load-more" data-ti-toggle-done>
+                <i data-lucide="${doneExpanded ? 'chevron-up' : 'chevron-down'}"></i>
+                <span>${doneExpanded ? 'Ver menos' : `Ver mais ${completedTickets.length - donePageSize} concluídos`}</span>
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderKanbanCard(ticket, col, ui, respondent) {
+  const isUpdating = ui.isUpdating && ui.updatingTicketId === ticket.id;
+
+  const nextActions = {
+    'Pendente':     { label: 'Atribuir para mim', next: 'Atribuído',    icon: 'user-plus' },
+    'Atribuído':    { label: 'Iniciar',            next: 'Em andamento', icon: 'play' },
+    'Em andamento': { label: 'Concluir',           next: 'Concluído',    icon: 'check-circle' },
+    'Concluído':    null,
+  };
+
+  const action = nextActions[ticket.status];
+  const descPreview = ticket.descricao
+    ? (ticket.descricao.length > 80 ? ticket.descricao.slice(0, 80) + '…' : ticket.descricao)
+    : null;
+
+  const isExpanded = ui.expandedTicketId === ticket.id;
+
+  return `
+    <div class="ti-kc-row ${isExpanded ? 'is-expanded' : ''}"
+      style="border-left: 3px solid ${col.color}"
+      data-ti-expand="${sanitizeAttribute(ticket.id)}">
+
+      <!-- Linha principal -->
+      <div class="ti-kc-row-main">
+
+        <!-- Info central -->
+        <div class="ti-kc-info">
+          <span class="ti-kc-name">${sanitizeText(ticket.solicitanteNome || '—')}</span>
+          <span class="ti-kc-meta">
+            ${sanitizeText(setorLabel(ticket.solicitanteSetor) || '—')}
+            ${ticket.unidade ? ` <span class="ti-kc-sep">|</span> ${sanitizeText(ticket.unidade)}` : ''}
+          </span>
+          <span class="ti-kc-cat-badge">${sanitizeText(ticket.categoria || '—')}</span>
+        </div>
+
+        <!-- Chevron -->
+        <div class="ti-kc-right">
+          <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="ti-kc-chevron"></i>
+        </div>
+      </div>
+
+      <!-- Detalhe expansível -->
+      ${isExpanded ? `
+        <div class="ti-kc-detail" data-ti-no-view>
+          ${ticket.descricao ? `<p class="ti-kc-detail-desc">${sanitizeText(ticket.descricao)}</p>` : ''}
+          <div class="ti-kc-detail-grid">
+            ${ticket.atribuidoParaNome ? `
+              <div class="ti-kc-detail-field">
+                <span>Responsável: <strong>${sanitizeText(ticket.atribuidoParaNome)}</strong></span>
+              </div>` : ''}
+            <div class="ti-kc-detail-field">
+              <span>${fmtDate(ticket.timestamp)}</span>
+            </div>
+            ${ticket.duracaoMinutos ? `
+              <div class="ti-kc-detail-field">
+                <span>${fmtDuration(ticket.duracaoMinutos)}</span>
+              </div>` : ''}
+          </div>
+
+          ${action ? `
+            <div class="ti-kc-detail-action">
+              ${isUpdating
+                ? `<span class="ti-updating"><i data-lucide="loader-circle"></i> Atualizando…</span>`
+                : ui.confirmingConclusionId === ticket.id
+                  ? renderInlineConclusionPanel(ticket.id)
+                  : ticket.status === 'Em andamento'
+                    ? `<button type="button" class="ti-kc-btn is-conclude"
+                        data-ti-start-conclusion="${sanitizeAttribute(ticket.id)}">
+                        <i data-lucide="check-circle"></i>${action.label}
+                      </button>`
+                    : `<button type="button" class="ti-kc-btn"
+                        data-ti-status="${sanitizeAttribute(ticket.id)}"
+                        data-ti-next-status="${sanitizeAttribute(action.next)}">
+                        <i data-lucide="${sanitizeAttribute(action.icon)}"></i>${action.label}
+                      </button>`
+              }
+            </div>
+          ` : ''}
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderInlineConclusionPanel(ticketId) {
+  return `
+    <div class="ti-inline-conclusion" data-ti-no-view>
+      <p class="ti-inline-conclusion-label">
+        <i data-lucide="check-circle"></i>
+        Descreva o que foi feito:
+      </p>
+      <textarea
+        class="ti-conclusion-textarea"
+        placeholder="O que foi feito para resolver este chamado…"
+        data-ti-obs-input="${sanitizeAttribute(ticketId)}"
+        rows="3"
+      ></textarea>
+      <p class="ti-obs-error" data-ti-obs-error style="display:none">Descreva a resolução antes de confirmar.</p>
+      <div class="ti-inline-conclusion-btns">
+        <button type="button" class="ti-kc-btn is-conclude"
+          data-ti-confirm-conclusion="${sanitizeAttribute(ticketId)}">
+          <i data-lucide="check"></i>Confirmar
+        </button>
+        <button type="button" class="ti-kc-btn is-cancel" data-ti-cancel-conclusion>
+          <i data-lucide="x"></i>Cancelar
+        </button>
+      </div>
     </div>
   `;
 }

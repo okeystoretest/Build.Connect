@@ -145,6 +145,7 @@ function mountView(rootElement, viewState) {
     qualityModuleHandlers,
     tiRequestsModuleHandlers,
     historicoModuleHandlers,
+    getModuleState,
   });
 }
 

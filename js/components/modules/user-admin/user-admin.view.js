@@ -88,6 +88,12 @@ export function getUserManagementModuleMarkup(card, moduleData, moduleUi) {
               <i data-lucide="rotate-ccw"></i>
               <span>Limpar</span>
             </button>
+            ${isEditMode ? `
+            <button type="button" class="module-link-button is-danger" data-user-admin-delete="${sanitizeAttribute(adminUi.originalId)}" ${adminUi.isSubmitting ? 'disabled' : ''}>
+              <i data-lucide="trash-2"></i>
+              <span>Excluir usuário</span>
+            </button>
+            ` : ''}
           </div>
         </section>
 

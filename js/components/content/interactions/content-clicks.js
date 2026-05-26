@@ -1,5 +1,6 @@
 import { openDocumentModal } from '../../modules/document-module.js';
 import { openVideoModal } from '../../modules/video-module.js';
+import { openTicketDetailModal } from '../../shared/ticket-detail-modal.js';
 import { MODULE_IDS } from '../../../constants/module.constants.js';
 
 export function createClickHandler(rootElement, viewState, dependencies) {
@@ -16,6 +17,7 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     qualityModuleHandlers,
     tiRequestsModuleHandlers,
     historicoModuleHandlers,
+    getModuleState,
   } = dependencies;
 
   return (event) => {
@@ -129,6 +131,14 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     if (userAdminSaveButton) {
       event.preventDefault();
       userAdminModuleHandlers.saveRecord(rootElement, sector);
+      return;
+    }
+
+    const userAdminDeleteButton = event.target.closest('[data-user-admin-delete]');
+
+    if (userAdminDeleteButton) {
+      event.preventDefault();
+      userAdminModuleHandlers.deleteRecord(rootElement, sector, userAdminDeleteButton.dataset.userAdminDelete || '');
       return;
     }
 
@@ -276,6 +286,25 @@ export function createClickHandler(rootElement, viewState, dependencies) {
       return;
     }
 
+    const tiViewTicket = event.target.closest('[data-ti-view-ticket]');
+    if (tiViewTicket && !event.target.closest('[data-ti-no-view]')) {
+      event.preventDefault();
+      const ticketId = tiViewTicket.dataset.tiViewTicket;
+      const moduleState = dependencies.getModuleState(sector.id);
+      const ui = moduleState?.ui || {};
+      const all = [...(ui.tickets || []), ...(ui.completedTickets || [])];
+      const ticket = all.find(t => t.id === ticketId);
+      if (ticket) openTicketDetailModal(ticket);
+      return;
+    }
+
+    const tiToggleDone = event.target.closest('[data-ti-toggle-done]');
+    if (tiToggleDone) {
+      event.preventDefault();
+      tiRequestsModuleHandlers?.toggleDoneExpanded(rootElement, sector);
+      return;
+    }
+
     const tiOpenFull = event.target.closest('[data-ti-open-full-dashboard]');
     if (tiOpenFull) {
       event.preventDefault();
@@ -348,6 +377,20 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     }
 
     // ── Histórico do Colaborador ───────────────────────────────────────────
+    const evalTab = event.target.closest('[data-eval-tab]');
+    if (evalTab) {
+      event.preventDefault();
+      evaluationModuleHandlers?.setActiveTab(rootElement, sector, evalTab.dataset.evalTab || 'avaliacoes');
+      return;
+    }
+
+    const historicoTool = event.target.closest('[data-historico-tool]');
+    if (historicoTool) {
+      event.preventDefault();
+      historicoModuleHandlers?.selectTool(rootElement, sector, historicoTool.dataset.historicoTool || '');
+      return;
+    }
+
     const historicoSector = event.target.closest('[data-historico-sector]');
     if (historicoSector) {
       event.preventDefault();
@@ -359,6 +402,13 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     if (historicoTab) {
       event.preventDefault();
       historicoModuleHandlers?.setActiveTab(rootElement, sector, historicoTab.dataset.historicoTab || 'timeline');
+      return;
+    }
+
+    const historicoRetry = event.target.closest('[data-historico-retry-content]');
+    if (historicoRetry) {
+      event.preventDefault();
+      historicoModuleHandlers?.retryLoadContent(rootElement, sector);
       return;
     }
 

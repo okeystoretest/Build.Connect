@@ -1,10 +1,18 @@
 import { requestApi } from './api.service.js';
+import { showToast } from '../utils/toast.js';
 
 export async function registrarAtividade({ tipo, titulo, setorId, moduloId, referenciaId = null }) {
   try {
     await requestApi('registrar-atividade', { tipo, titulo, setorId, moduloId, referenciaId });
-  } catch {
-    // Falha silenciosa — não interrompe o fluxo do usuário
+  } catch (err) {
+    // Informa o usuário apenas se for erro de sessão — outros erros são descartados silenciosamente
+    const msg = err?.message || '';
+    if (msg.includes('401') || msg.toLowerCase().includes('sessão') || msg.toLowerCase().includes('expirada')) {
+      showToast('Sua sessão expirou. O progresso desta atividade não foi salvo — faça login novamente.', {
+        type: 'warning',
+        duration: 6000,
+      });
+    }
   }
 }
 

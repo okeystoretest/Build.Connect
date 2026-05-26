@@ -95,7 +95,7 @@ export function createFeedbackModuleHandlers({ getModuleState, setModuleState, r
     toggleDropdown(rootElement, sector) {
       const state = getModuleState(sector.id);
 
-      if (state.selectedModuleId !== MODULE_IDS.feedback) {
+      if (state.selectedModuleId !== MODULE_IDS.feedback && state.selectedModuleId !== MODULE_IDS.evaluation) {
         return;
       }
 
@@ -113,7 +113,7 @@ export function createFeedbackModuleHandlers({ getModuleState, setModuleState, r
     closeDropdown(rootElement, sector) {
       const state = getModuleState(sector.id);
 
-      if (state.selectedModuleId !== MODULE_IDS.feedback || !state.ui?.isTargetUserListOpen) {
+      if ((state.selectedModuleId !== MODULE_IDS.feedback && state.selectedModuleId !== MODULE_IDS.evaluation) || !state.ui?.isTargetUserListOpen) {
         return;
       }
 
@@ -131,7 +131,7 @@ export function createFeedbackModuleHandlers({ getModuleState, setModuleState, r
     updateSearch(rootElement, sector, query) {
       const state = getModuleState(sector.id);
 
-      if (state.selectedModuleId !== MODULE_IDS.feedback) {
+      if (state.selectedModuleId !== MODULE_IDS.feedback && state.selectedModuleId !== MODULE_IDS.evaluation) {
         return;
       }
 
@@ -155,7 +155,7 @@ export function createFeedbackModuleHandlers({ getModuleState, setModuleState, r
     selectUser(rootElement, sector, userId) {
       const state = getModuleState(sector.id);
 
-      if (state.selectedModuleId !== MODULE_IDS.feedback) {
+      if (state.selectedModuleId !== MODULE_IDS.feedback && state.selectedModuleId !== MODULE_IDS.evaluation) {
         return;
       }
 
@@ -181,7 +181,7 @@ export function createFeedbackModuleHandlers({ getModuleState, setModuleState, r
     updateField(rootElement, sector, field, value) {
       const state = getModuleState(sector.id);
 
-      if (state.selectedModuleId !== MODULE_IDS.feedback) {
+      if (state.selectedModuleId !== MODULE_IDS.feedback && state.selectedModuleId !== MODULE_IDS.evaluation) {
         return;
       }
 

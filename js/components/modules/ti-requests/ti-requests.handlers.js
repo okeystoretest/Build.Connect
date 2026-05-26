@@ -20,6 +20,7 @@ export function createTiRequestsModuleHandlers(context) {
     closeFullDashboard:    closeFullDashboard,
     setFullDashboardFilter: setFullDashboardFilter,
     setFullDashboardPeriod: setFullDashboardPeriod,
+    toggleDoneExpanded:     toggleDoneExpanded,
   };
 }
 
@@ -214,5 +215,14 @@ function setFullDashboardPeriod(rootElement, sector, period) {
   const state = getState(sector.id);
   if (state.selectedModuleId !== MODULE_IDS.tiRequest) return;
   setState(sector.id, { ...state, ui: { ...ui(state), fullDashboardPeriod: period } });
+  render(rootElement, sector);
+}
+// ── Toggle done expanded ──────────────────────────────────────────────────
+
+function toggleDoneExpanded(rootElement, sector) {
+  const state = getState(sector.id);
+  if (state.selectedModuleId !== MODULE_IDS.tiRequest) return;
+  const current = ui(state);
+  setState(sector.id, { ...state, ui: { ...current, doneExpanded: !current.doneExpanded } });
   render(rootElement, sector);
 }

@@ -5,8 +5,8 @@ import { registrarAtividade } from '../../services/historico.service.js';
 import { prepareModuleItems } from './module-items.js';
 
 const WATCH_THRESHOLD = 0.90;
-const DURATION_RETRY_INTERVAL_MS = 1000;
-const DURATION_MAX_RETRIES = 10;
+const DURATION_RETRY_INTERVAL_MS = 500;
+const DURATION_MAX_RETRIES = 6; // max 3s de espera (6 × 500ms)
 
 let activeVideoModal = null;
 let ytPlayer = null;

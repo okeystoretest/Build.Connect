@@ -13,7 +13,7 @@ export const USER_ADMIN_UI_DEFAULTS = Object.freeze({
     id: '',
     nome: '',
     nivel: USER_LEVELS.colaborador,
-    setores: [SECTOR_IDS.dho],
+    setores: [],
     senha: '',
   },
   searchQuery: '',

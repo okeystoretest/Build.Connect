@@ -1,6 +1,7 @@
 import { MODULE_IDS, MODULE_STATUS } from '../../../constants/module.constants.js';
 import {
   createManagedUser,
+  deleteManagedUser,
   searchManagedUsers,
   updateManagedUser,
 } from '../../../services/admin-users.service.js';
@@ -23,6 +24,7 @@ export function createUserAdminModuleHandlers(context) {
     editRecord: editUserAdminRecord,
     clearForm: clearUserAdminForm,
     saveRecord: saveUserAdminRecord,
+    deleteRecord: deleteUserAdminRecord,
   };
 }
 
@@ -202,19 +204,27 @@ async function saveUserAdminRecord(rootElement, sector) {
 
     clearActiveUsersCache();
 
+    const isCreate = currentUi.mode === 'create';
+
     setModuleState(sector.id, {
       ...nextState,
       ui: {
         ...nextUi,
-        mode: response.success ? 'edit' : currentUi.mode,
-        originalId: response.success ? (response.user?.id || form.id) : currentUi.originalId,
-        form: response.success ? {
-          id: response.user?.id || form.id,
-          nome: response.user?.nome || form.nome,
-          nivel: response.user?.nivel || form.nivel,
-          senha: '',
-          setores: normalizeUserAdminSectors(response.user?.setorList || form.setores),
-        } : form,
+        // Após criar: limpa tudo para próximo cadastro
+        // Após editar: permanece em modo edição com dados atualizados
+        mode: response.success && isCreate ? 'create' : response.success ? 'edit' : currentUi.mode,
+        originalId: response.success && !isCreate ? (response.user?.id || form.id) : '',
+        form: response.success && isCreate
+          ? { ...USER_ADMIN_UI_DEFAULTS.form }
+          : response.success
+            ? {
+                id: response.user?.id || form.id,
+                nome: response.user?.nome || form.nome,
+                nivel: response.user?.nivel || form.nivel,
+                senha: '',
+                setores: normalizeUserAdminSectors(response.user?.setorList || form.setores),
+              }
+            : form,
         isSubmitting: false,
         feedbackMessage: response.message,
         feedbackType: response.success ? MODULE_STATUS.success : MODULE_STATUS.error,
@@ -234,3 +244,47 @@ async function saveUserAdminRecord(rootElement, sector) {
 }
 
 
+
+async function deleteUserAdminRecord(rootElement, sector, userId) {
+  if (!userId) return;
+  if (!window.confirm(`Confirma a exclusão definitiva do usuário "${userId}"? Esta ação não pode ser desfeita.`)) return;
+
+  const state = getModuleState(sector.id);
+  const currentUi = getUserAdminUiState(state.ui);
+
+  setModuleState(sector.id, {
+    ...state,
+    ui: { ...currentUi, isSubmitting: true, feedbackMessage: 'Excluindo usuário...', feedbackType: '' },
+  });
+  renderModuleStage(rootElement, sector);
+
+  try {
+    const response = await deleteManagedUser(userId);
+    clearActiveUsersCache();
+
+    const nextState = getModuleState(sector.id);
+    const nextUi = getUserAdminUiState(nextState.ui);
+
+    setModuleState(sector.id, {
+      ...nextState,
+      ui: {
+        ...nextUi,
+        mode: 'create',
+        originalId: '',
+        form: { ...USER_ADMIN_UI_DEFAULTS.form },
+        isSubmitting: false,
+        feedbackMessage: response.success ? `Usuário ${userId} excluído com sucesso.` : (response.message || 'Erro ao excluir.'),
+        feedbackType: response.success ? MODULE_STATUS.success : MODULE_STATUS.error,
+      },
+    });
+  } catch (error) {
+    const nextState = getModuleState(sector.id);
+    const nextUi = getUserAdminUiState(nextState.ui);
+    setModuleState(sector.id, {
+      ...nextState,
+      ui: { ...nextUi, isSubmitting: false, feedbackMessage: error?.message || 'Erro ao excluir usuário.', feedbackType: MODULE_STATUS.error },
+    });
+  }
+
+  renderModuleStage(rootElement, sector);
+}

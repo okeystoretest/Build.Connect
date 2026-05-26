@@ -79,7 +79,7 @@ function renderHistoricoContent(ui) {
     return `
       <div class="historico-empty">
         <i data-lucide="user-search"></i>
-        <p>Pesquise um colaborador para dar início ao acompanhamento.</p>
+        <p>Pesquise um colaborador ou selecione um setor para dar início ao acompanhamento.</p>
       </div>
     `;
   }
@@ -121,7 +121,10 @@ function renderHistoricoContent(ui) {
 // ── Timeline ───────────────────────────────────────────────────────────────
 
 function renderTimeline(ui) {
-  if (!ui.historico?.length) {
+  const historico = ui.historico || [];
+  const selectedTool = ui.selectedToolId || '';
+
+  if (!historico.length) {
     return `
       <div class="historico-empty">
         <i data-lucide="inbox"></i>
@@ -130,13 +133,44 @@ function renderTimeline(ui) {
     `;
   }
 
+  // Extrai ferramentas únicas das hashtags (#ferramenta) no final dos títulos
+  const toolsMap = new Map();
+  historico.forEach(item => {
+    const match = String(item.titulo || '').match(/#([\w\-\u00C0-\u024F ]+)$/);
+    if (match) { const t = match[1].trim(); if (t) toolsMap.set(t.toLowerCase(), t); }
+  });
+  const tools = [...toolsMap.entries()];
+
+  const filtered = selectedTool
+    ? historico.filter(item => {
+        const match = String(item.titulo || '').match(/#([\w\-\u00C0-\u024F ]+)$/);
+        return match && match[1].trim().toLowerCase() === selectedTool;
+      })
+    : historico;
+
   return `
     <div class="historico-timeline-header">
       <strong>${sanitizeText(ui.selectedUserNome || ui.selectedUserId)}</strong>
-      <span class="historico-count">${ui.historico.length} atividade${ui.historico.length !== 1 ? 's' : ''}</span>
+      <span class="historico-count">${filtered.length} atividade${filtered.length !== 1 ? 's' : ''}</span>
     </div>
+
+    ${tools.length ? `
+      <div class="historico-tool-btns">
+        ${tools.map(([id, label]) =>
+          `<button type="button"
+            class="historico-sector-btn ${selectedTool === id ? 'is-active' : ''}"
+            data-historico-tool="${sanitizeAttribute(id)}">
+            #${sanitizeText(label)}
+          </button>`
+        ).join('')}
+      </div>
+    ` : ''}
+
     <ol class="historico-timeline" aria-label="Linha do tempo de atividades">
-      ${ui.historico.map(renderTimelineItem).join('')}
+      ${filtered.length ? filtered.map(renderTimelineItem).join('') : `
+        <li class="historico-empty" style="list-style:none;padding:20px 0">
+          <p>Nenhuma atividade com #${sanitizeText(selectedTool)}.</p>
+        </li>`}
     </ol>
   `;
 }
@@ -179,6 +213,19 @@ function renderDashboard(ui) {
       <div class="historico-loading">
         <i data-lucide="loader-circle"></i>
         <p>Carregando conteúdo disponível do setor ${sanitizeText(ui.selectedUserSetor || '')}…</p>
+      </div>
+    `;
+  }
+
+  if (ui.contentError) {
+    return `
+      <div class="historico-empty">
+        <i data-lucide="wifi-off"></i>
+        <p>Não foi possível carregar o conteúdo do setor. Verifique a conexão e tente novamente.</p>
+        <button type="button" class="module-action-button is-secondary" data-historico-retry-content style="margin-top:8px">
+          <i data-lucide="refresh-cw"></i>
+          <span>Tentar novamente</span>
+        </button>
       </div>
     `;
   }
@@ -258,32 +305,78 @@ function renderDashboard(ui) {
 
       ${!content ? renderHistoricoOnlyDashboard(historico) : `
 
-      <!-- Progresso geral -->
-      <div class="hd-progress-card">
-        <div class="hd-progress-ring-wrap">
-          ${renderProgressRing(pctGeral, totalConsum, totalDisp)}
+      <!-- Linha principal: anel + barras por categoria -->
+      <div class="hd-main-row">
+        <div class="hd-ring-card">
+          <div class="hd-card-head"><i data-lucide="target"></i><span>Progresso Geral</span></div>
+          <div class="hd-ring-center">${renderProgressRing(pctGeral)}</div>
+          <p class="hd-ring-sub">${totalConsum} de ${totalDisp} conteúdos</p>
         </div>
-        <div class="hd-progress-info">
-          <h3 class="hd-progress-title">Progresso Geral de Conteúdo</h3>
-          <p class="hd-progress-subtitle">
-            <strong>${totalConsum}</strong> de <strong>${totalDisp}</strong> conteúdos consumidos
-          </p>
-          <div class="hd-progress-bar-wrap">
-            <div class="hd-progress-bar-track">
-              <div class="hd-progress-bar-fill" style="width:${pctGeral}%"></div>
-            </div>
-            <span class="hd-progress-pct">${pctGeral}%</span>
+
+        <div class="hd-kpi-col">
+          ${categorias.map(c => {
+            const pct = c.disponivel > 0 ? Math.round((c.consumido / c.disponivel) * 100) : 0;
+            return `
+              <div class="hd-kpi-row">
+                <div class="hd-kpi-row-icon" style="color:${c.color};background:${c.color}18">
+                  <i data-lucide="${sanitizeAttribute(c.icon)}"></i>
+                </div>
+                <div class="hd-kpi-row-info">
+                  <span class="hd-kpi-row-label">${sanitizeText(c.label)}</span>
+                  <div class="hd-kpi-row-bar-wrap">
+                    <div class="hd-kpi-row-track">
+                      <div class="hd-kpi-row-fill" style="width:${pct}%;background:${progressColor(pct)}"></div>
+                    </div>
+                    <span class="hd-kpi-row-counts">${c.consumido}/${c.disponivel}</span>
+                  </div>
+                </div>
+                <span class="hd-kpi-row-pct" style="color:${c.color}">${pct}%</span>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- Indicadores detalhados -->
+      <div class="hd-indicators-grid">
+        <div class="hd-indicator">
+          <div class="hd-indicator-icon" style="color:#D4A257;background:rgba(212,162,87,0.12)"><i data-lucide="play-circle"></i></div>
+          <span class="hd-indicator-value">${videosConsum.length}</span>
+          <span class="hd-indicator-label">Vídeos assistidos</span>
+          <span class="hd-indicator-total">de ${videosDisp.length} disponíveis</span>
+        </div>
+        <div class="hd-indicator">
+          <div class="hd-indicator-icon" style="color:#3B82F6;background:rgba(59,130,246,0.12)"><i data-lucide="file-text"></i></div>
+          <span class="hd-indicator-value">${docsConsum.length}</span>
+          <span class="hd-indicator-label">Documentos lidos</span>
+          <span class="hd-indicator-total">de ${docsDisp.length} disponíveis</span>
+        </div>
+        <div class="hd-indicator">
+          <div class="hd-indicator-icon" style="color:#6366F1;background:rgba(99,102,241,0.12)"><i data-lucide="book-open"></i></div>
+          <span class="hd-indicator-value">${instrConsum.length}</span>
+          <span class="hd-indicator-label">Instruções lidas</span>
+          <span class="hd-indicator-total">de ${instrDisp.length} disponíveis</span>
+        </div>
+        <div class="hd-indicator">
+          <div class="hd-indicator-icon" style="color:#10B981;background:rgba(16,185,129,0.12)"><i data-lucide="clipboard-check"></i></div>
+          <span class="hd-indicator-value">${historico.filter(h => h.tipo === 'avaliacao').length}</span>
+          <span class="hd-indicator-label">Avaliações recebidas</span>
+          <span class="hd-indicator-total">registradas no histórico</span>
+        </div>
+        <div class="hd-indicator">
+          <div class="hd-indicator-icon" style="color:#8B5CF6;background:rgba(139,92,246,0.12)"><i data-lucide="message-square"></i></div>
+          <span class="hd-indicator-value">${historico.filter(h => h.tipo === 'feedback').length}</span>
+          <span class="hd-indicator-label">Feedbacks recebidos</span>
+          <span class="hd-indicator-total">registrados no histórico</span>
+        </div>
+        <div class="hd-indicator ${totalDisp > 0 && totalConsum >= totalDisp ? 'is-complete' : ''}">
+          <div class="hd-indicator-icon" style="color:${totalDisp > 0 && totalConsum >= totalDisp ? '#10B981' : '#F59E0B'};background:${totalDisp > 0 && totalConsum >= totalDisp ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)'}">
+            <i data-lucide="${totalDisp > 0 && totalConsum >= totalDisp ? 'award' : 'clock'}"></i>
           </div>
+          <span class="hd-indicator-value">${Math.max(0, totalDisp - totalConsum)}</span>
+          <span class="hd-indicator-label">Pendentes</span>
+          <span class="hd-indicator-total">${totalDisp > 0 && totalConsum >= totalDisp ? 'Tudo concluído! 🎉' : 'ainda não consumidos'}</span>
         </div>
       </div>
-
-      <!-- Por categoria -->
-      <div class="hd-categoria-grid">
-        ${categorias.map(c => renderCategoriaCard(c, refIds)).join('')}
-      </div>
-
-      <!-- Itens pendentes -->
-      ${renderItensPendentes(categorias, refIds)}
 
       `}
     </div>
@@ -315,7 +408,7 @@ function renderHistoricoOnlyDashboard(historico) {
   `;
 }
 
-function renderProgressRing(pct, consumed, total) {
+function renderProgressRing(pct) {
   const r = 44;
   const circ = 2 * Math.PI * r;
   const dash = (pct / 100) * circ;
@@ -332,8 +425,8 @@ function renderProgressRing(pct, consumed, total) {
         transform="rotate(-90 55 55)"
         style="transition:stroke-dasharray 600ms var(--ease-premium)"
       />
-      <text x="55" y="51" text-anchor="middle" fill="var(--text)" font-size="18" font-weight="700" font-family="Georgia,serif">${pct}%</text>
-      <text x="55" y="66" text-anchor="middle" fill="var(--muted)" font-size="9" font-family="Calibri,sans-serif">${consumed}/${total}</text>
+      <text x="55" y="60" text-anchor="middle" dominant-baseline="middle"
+        fill="var(--text)" font-size="20" font-weight="700" font-family="Georgia,serif">${pct}%</text>
     </svg>
   `;
 }
@@ -355,7 +448,7 @@ function renderCategoriaCard(c, refIds) {
         <span class="hd-cat-pct" style="color:${c.color}">${pct}%</span>
       </div>
       <div class="hd-cat-track">
-        <div class="hd-cat-fill" style="width:${pct}%;background:${c.color}"></div>
+        <div class="hd-cat-fill" style="width:${pct}%;background:${progressColor(pct)}"></div>
       </div>
     </div>
   `;
@@ -425,4 +518,11 @@ function formatDate(iso) {
       hour: '2-digit', minute: '2-digit',
     }).format(new Date(iso));
   } catch { return iso; }
+}
+// Cor da barra de progresso: ≤50% vermelho, 51-75% azul, 76-99% dourado, 100% verde
+function progressColor(pct) {
+  if (pct >= 100) return '#10B981';
+  if (pct > 75)   return '#D4A257';
+  if (pct > 50)   return '#3B82F6';
+  return '#EF4444';
 }

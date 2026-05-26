@@ -1,4 +1,5 @@
 import { sanitizeAttribute, sanitizeText } from '../../../utils/sanitize.js';
+import { getFeedbackModuleMarkup } from '../feedback-module.js';
 import {
   BEHAVIORAL_EVALUATION_OPTIONS,
   BEHAVIORAL_FORM_DEFAULTS,
@@ -26,16 +27,35 @@ import {
 
 export function getEvaluationModuleMarkup(card, moduleData, moduleUi) {
   const evaluationUi = getEvaluationUiState(moduleUi);
+  const activeTab = evaluationUi.activeTab || 'avaliacoes';
+
+  if (activeTab === 'feedback') {
+    return getFeedbackTabMarkup(card, moduleData, evaluationUi);
+  }
+
   const selectedTool = EVALUATION_TOOLS.find((tool) => tool.id === evaluationUi.selectedEvaluationToolId) || null;
 
   if (!selectedTool) {
-    return getEvaluationToolsCatalogMarkup(card);
+    return getEvaluationToolsCatalogMarkup(card, activeTab);
   }
 
-  return getEvaluationToolFormMarkup(card, moduleData, evaluationUi, selectedTool);
+  return getEvaluationToolFormMarkup(card, moduleData, evaluationUi, selectedTool, activeTab);
 }
 
-function getEvaluationToolsCatalogMarkup(card) {
+function renderEvalTabs(activeTab) {
+  return `
+    <div class="eval-tabs">
+      <button type="button" class="eval-tab ${activeTab === 'avaliacoes' ? 'is-active' : ''}" data-eval-tab="avaliacoes">
+        <i data-lucide="clipboard-list"></i><span>Avaliações</span>
+      </button>
+      <button type="button" class="eval-tab ${activeTab === 'feedback' ? 'is-active' : ''}" data-eval-tab="feedback">
+        <i data-lucide="message-square"></i><span>Feedback</span>
+      </button>
+    </div>
+  `;
+}
+
+function getEvaluationToolsCatalogMarkup(card, activeTab = 'avaliacoes') {
   return `
     <div class="module-shell evaluation-shell" data-module-shell>
       <div class="module-shell-header module-shell-header--stacked">
@@ -45,6 +65,8 @@ function getEvaluationToolsCatalogMarkup(card) {
           <p class="module-description">Selecione uma das ferramentas disponíveis para abrir o preenchimento correspondente.</p>
         </div>
       </div>
+
+      ${renderEvalTabs(activeTab)}
 
       <div class="evaluation-tools-grid" aria-label="Ferramentas de avaliação disponíveis">
         ${EVALUATION_TOOLS.map((tool) => `
@@ -67,7 +89,7 @@ function getEvaluationToolsCatalogMarkup(card) {
   `;
 }
 
-function getEvaluationToolFormMarkup(card, moduleData, evaluationUi, selectedTool) {
+function getEvaluationToolFormMarkup(card, moduleData, evaluationUi, selectedTool, activeTab = 'avaliacoes') {
   const users = Array.isArray(moduleData?.users) ? moduleData.users : [];
   const respondent = moduleData?.respondent || null;
   const filteredUsers = getFilteredEvaluationUsers(users, evaluationUi.evaluateeQuery, evaluationUi.selectedEvaluateeId);
@@ -86,6 +108,8 @@ function getEvaluationToolFormMarkup(card, moduleData, evaluationUi, selectedToo
           <p class="module-description">${sanitizeText(selectedTool.description)} Antes de responder, confirme quem está preenchendo e selecione o colaborador ativo que será avaliado.</p>
         </div>
       </div>
+
+      ${renderEvalTabs(activeTab)}
 
       <div class="evaluation-meta-grid">
         <div class="evaluation-meta-card">
@@ -562,3 +586,17 @@ function getBehavioralEvaluationCriterionRowMarkup(toolId, criterion, index, sco
   `;
 }
 
+
+function getFeedbackTabMarkup(card, moduleData, evaluationUi) {
+  // Get raw feedback content and inject tabs before the form body
+  const feedbackMarkup = getFeedbackModuleMarkup(
+    { ...card, title: 'Feedback', id: 'feedback' },
+    moduleData,
+    evaluationUi
+  );
+  // Insert eval tabs after the module-shell-header closing tag
+  return feedbackMarkup.replace(
+    /(<\/div>\s*<\/div>\s*<\/div>)(\s*)/,
+    `$1$2${renderEvalTabs('feedback')}$2`
+  );
+}

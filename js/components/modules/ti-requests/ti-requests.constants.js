@@ -26,4 +26,5 @@ export const TI_REQUESTS_UI_DEFAULTS = Object.freeze({
   dashboardFullOpen:      false,
   fullDashboardFilter:    'Pendente',
   fullDashboardPeriod:    'mes',
+  doneExpanded:           false,
 });

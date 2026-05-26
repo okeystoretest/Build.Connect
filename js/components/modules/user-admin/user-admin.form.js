@@ -44,7 +44,7 @@ export function normalizeUserAdminSectors(sectors) {
     return [ACCESS_KEYS.all];
   }
 
-  return [...new Set(normalized.length ? normalized : [SECTOR_IDS.dho])];
+  return [...new Set(normalized)];
 }
 
 export function readUserAdminFormData(rootElement) {

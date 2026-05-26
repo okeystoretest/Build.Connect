@@ -31,14 +31,7 @@ export const DEFAULT_SECTOR_CARDS = [
     getDescription: (sectorName) =>
       `Nesta área ficam as ferramentas e registros de avaliação para apoiar seu desenvolvimento no setor ${sectorName}.`,
   },
-  {
-    id: 'feedback',
-    title: 'Feedback',
-    icon: 'message-square',
-    hint: 'Canal de retorno',
-    getDescription: (sectorName) =>
-      `Use este espaço para compartilhar dúvidas, sugestões e melhorias relacionadas ao setor ${sectorName}.`,
-  },
+
 ];
 
 export const COMMERCIAL_SECTOR_CARDS = [
@@ -74,14 +67,7 @@ export const COMMERCIAL_SECTOR_CARDS = [
     getDescription: (sectorName) =>
       `Nesta área ficam as ferramentas e registros de avaliação para apoiar seu desenvolvimento no subsetor ${sectorName}.`,
   },
-  {
-    id: 'feedback',
-    title: 'Feedback',
-    icon: 'message-square',
-    hint: 'Canal de retorno',
-    getDescription: (sectorName) =>
-      `Use este espaço para compartilhar dúvidas, sugestões e melhorias relacionadas ao subsetor ${sectorName}.`,
-  },
+
 ];
 
 export const RETAGUARDA_SECTOR_CARDS = [
@@ -112,6 +98,22 @@ export const DHO_SECTOR_CARDS = [
     hint: 'Acompanhamento',
     getDescription: () =>
       'Consulte o percurso do colaborador, com registros importantes para acompanhar evolução, mudanças e ocorrências.',
+  },
+  {
+    id: 'mapas-integracao',
+    title: 'Mapas de Integração',
+    icon: 'map',
+    hint: 'Integração',
+    getDescription: () =>
+      'Acesse e gerencie os mapas de integração dos colaboradores, organizados por setor e ferramenta.',
+  },
+  {
+    id: 'documentos-dho',
+    title: 'Documentos',
+    icon: 'file-text',
+    hint: 'Arquivos',
+    getDescription: () =>
+      'Centralize documentos e materiais de referência do DHO com pesquisa rápida e filtros por ferramenta.',
   },
   {
     id: 'questionarios',

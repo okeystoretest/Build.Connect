@@ -56,3 +56,8 @@ export const USER_ADMIN_SECTOR_OPTIONS = Object.freeze([
   { id: SECTOR_IDS.backoffice, label: 'Retaguarda' },
   { id: SECTOR_IDS.dho, label: 'DHO' },
 ]);
+
+// Mapa id → label para uso em views (centralizado para evitar duplicação)
+export const SETOR_LABELS = Object.freeze(
+  USER_ADMIN_SECTOR_OPTIONS.reduce((acc, s) => ({ ...acc, [s.id]: s.label }), {})
+);

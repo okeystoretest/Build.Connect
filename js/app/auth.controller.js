@@ -6,6 +6,7 @@ import {
   logoutUser,
   persistAuthenticatedUser,
 } from '../services/auth.service.js';
+import { requestApi, getSessionToken, clearSessionToken } from '../services/api.service.js';
 import {
   persistNavigationState,
   sanitizeActiveItemForNavigation,
@@ -26,22 +27,41 @@ export function createAuthController({
   renderCurrentView,
   renderLoginScreen,
 }) {
-  function bootstrap() {
-    const storedUser = getAuthenticatedUser();
+  async function bootstrap() {
+    const storedUser   = getAuthenticatedUser();
+    const sessionToken = getSessionToken();
 
     applyCurrentTheme();
 
-    if (storedUser) {
-      state.authenticatedUser = storedUser;
-      resetNavigationForUser(storedUser);
-      showAuthenticatedApplication();
+    // Sem dados locais → login imediato
+    if (!storedUser || !sessionToken) {
+      clearAuthenticatedUser();
+      clearSessionToken();
+      state.authenticatedUser = null;
+      resetNavigationToHome();
+      showLoginScreen();
       return;
     }
 
-    clearAuthenticatedUser();
-    state.authenticatedUser = null;
-    resetNavigationToHome();
-    showLoginScreen();
+    // Mostra o app imediatamente (evita tela branca)
+    state.authenticatedUser = storedUser;
+    resetNavigationForUser(storedUser);
+    showAuthenticatedApplication();
+
+    // Valida o token em background sem bloquear a UI
+    try {
+      const validation = await requestApi('validate-session');
+      if (!validation?.success) {
+        // Token rejeitado pelo servidor — força novo login
+        clearAuthenticatedUser();
+        clearSessionToken();
+        state.authenticatedUser = null;
+        resetNavigationToHome();
+        showLoginScreen();
+      }
+    } catch {
+      // Falha de rede — mantém sessão local sem forçar logout
+    }
   }
 
   async function handleLoginSubmit(credentials) {
