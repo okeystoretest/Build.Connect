@@ -17,6 +17,7 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     qualityModuleHandlers,
     tiRequestsModuleHandlers,
     historicoModuleHandlers,
+    questionariosModuleHandlers,
     getModuleState,
   } = dependencies;
 
@@ -84,6 +85,7 @@ export function createClickHandler(rootElement, viewState, dependencies) {
         {
           sectorId: sector.id,
           moduloId: 'instrucoes-video',
+          userId: viewState.authenticatedUser?.id || '',
         },
       );
       return;
@@ -429,6 +431,43 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     if (historicoSelectUser) {
       event.preventDefault();
       historicoModuleHandlers?.selectUser(rootElement, sector, historicoSelectUser.dataset.historicoSelectUser || '');
+      return;
+    }
+
+    // ── Questionários (Admin) ──────────────────────────────────────────────
+
+    const quizNew = event.target.closest('[data-quiz-new]');
+    if (quizNew) {
+      event.preventDefault();
+      questionariosModuleHandlers?.openNewForm(rootElement, sector);
+      return;
+    }
+
+    const quizBack = event.target.closest('[data-quiz-back]');
+    if (quizBack) {
+      event.preventDefault();
+      questionariosModuleHandlers?.goBack(rootElement, sector);
+      return;
+    }
+
+    const quizEdit = event.target.closest('[data-quiz-edit]');
+    if (quizEdit) {
+      event.preventDefault();
+      questionariosModuleHandlers?.openEditForm(rootElement, sector, quizEdit.dataset.quizEdit || '');
+      return;
+    }
+
+    const quizSave = event.target.closest('[data-quiz-save]');
+    if (quizSave) {
+      event.preventDefault();
+      questionariosModuleHandlers?.save(rootElement, sector);
+      return;
+    }
+
+    const quizDelete = event.target.closest('[data-quiz-delete]');
+    if (quizDelete) {
+      event.preventDefault();
+      questionariosModuleHandlers?.deleteRecord(rootElement, sector, quizDelete.dataset.quizDelete || '');
       return;
     }
 

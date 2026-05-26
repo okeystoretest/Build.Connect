@@ -217,7 +217,7 @@ async function handleModuleSelection(rootElement, sector, moduleId, authenticate
   });
   renderModuleStage(rootElement, sector);
 
-  // Modules that load their own data via handlers
+  // Modules that load their own data via handlers (e.g. TI Requests)
   if (SELF_LOADING_MODULE_IDS.has(moduleId)) {
     if (moduleId === MODULE_IDS.questionarios) {
       setModuleState(sector.id, {
@@ -231,7 +231,6 @@ async function handleModuleSelection(rootElement, sector, moduleId, authenticate
       return;
     }
 
-    // TI Requests (default SELF_LOADING path)
     setModuleState(sector.id, {
       selectedModuleId: moduleId,
       status: MODULE_STATUS.success,

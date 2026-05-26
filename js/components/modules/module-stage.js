@@ -22,6 +22,7 @@ import { getEvaluationModuleMarkup } from './evaluation-module.js';
 import { getQualityModuleMarkup } from './quality-module.js';
 import { getTiRequestsModuleMarkup } from './ti-requests-module.js';
 import { getHistoricoModuleMarkup } from './historico-module.js';
+import { getQuestionariosModuleMarkup } from './questionarios-module.js';
 
 export function getModuleStageMarkup(sector, stageState) {
   if (!stageState.selectedModuleId) {
@@ -92,6 +93,10 @@ export function getModuleStageMarkup(sector, stageState) {
 
   if (stageState.selectedModuleId === MODULE_IDS.historico) {
     return getHistoricoModuleMarkup(selectedCard, stageState.moduleData, stageState.ui?.historico || {});
+  }
+
+  if (stageState.selectedModuleId === MODULE_IDS.questionarios) {
+    return getQuestionariosModuleMarkup(selectedCard, stageState.moduleData, stageState.ui?.questionarios || {});
   }
 
   return getInternalModuleMarkup(selectedCard);

@@ -65,5 +65,14 @@ export function createInputHandler(rootElement, sector, dependencies) {
     if (historicoSearchInput) {
       historicoModuleHandlers?.updateQuery(rootElement, sector, historicoSearchInput.value || '');
     }
+
+    const quizFieldInput = event.target.closest('[data-quiz-field]');
+    if (quizFieldInput) {
+      dependencies.questionariosModuleHandlers?.updateField(
+        rootElement, sector,
+        quizFieldInput.dataset.quizField || '',
+        quizFieldInput.value || '',
+      );
+    }
   };
 }

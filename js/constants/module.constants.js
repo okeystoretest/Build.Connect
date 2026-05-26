@@ -13,6 +13,7 @@ export const MODULE_IDS = Object.freeze({
   historico: 'historico-colaborador',
   mapasIntegracao: 'mapas-integracao',
   documentosDho: 'documentos-dho',
+  questionarios: 'questionarios',
 });
 
 export const MODULE_STATUS = Object.freeze({
@@ -77,4 +78,5 @@ export const INTERNAL_USER_MODULE_IDS = new Set([
 // Modules that manage their own data loading via handlers
 export const SELF_LOADING_MODULE_IDS = new Set([
   MODULE_IDS.tiRequest,
+  MODULE_IDS.questionarios,
 ]);

@@ -1,5 +1,5 @@
 export function createChangeHandler(rootElement, sector, dependencies) {
-  const { evaluationModuleHandlers, feedbackModuleHandlers, tiRequestsModuleHandlers } = dependencies;
+  const { evaluationModuleHandlers, feedbackModuleHandlers, tiRequestsModuleHandlers, questionariosModuleHandlers } = dependencies;
 
   return (event) => {
     const scoreInput = event.target.closest('[data-evaluation-score]');
@@ -26,6 +26,35 @@ export function createChangeHandler(rootElement, sector, dependencies) {
 
     if (tiPeriodSelect) {
       tiRequestsModuleHandlers?.changePeriod(rootElement, sector, tiPeriodSelect.value || 'mes');
+      return;
+    }
+
+    // ── Questionários (Admin) ─────────────────────────────────────────
+
+    const quizFilterSector = event.target.closest('[data-quiz-filter-sector]');
+    if (quizFilterSector) {
+      questionariosModuleHandlers?.selectFilterSector(rootElement, sector, quizFilterSector.value || '');
+      return;
+    }
+
+    const quizSectorSelect = event.target.closest('[data-quiz-sector]');
+    if (quizSectorSelect) {
+      questionariosModuleHandlers?.selectFormSector(rootElement, sector, quizSectorSelect.value || '');
+      return;
+    }
+
+    const quizVideoSelect = event.target.closest('[data-quiz-video]');
+    if (quizVideoSelect) {
+      const selectedOption = quizVideoSelect.options[quizVideoSelect.selectedIndex];
+      const videoTitle = selectedOption?.dataset?.videoTitle || '';
+      questionariosModuleHandlers?.selectVideo(rootElement, sector, quizVideoSelect.value || '', videoTitle);
+      return;
+    }
+
+    const quizGabaritoRadio = event.target.closest('[data-quiz-gabarito]');
+    if (quizGabaritoRadio) {
+      questionariosModuleHandlers?.setGabarito(rootElement, sector, quizGabaritoRadio.value || '');
+      return;
     }
   };
 }

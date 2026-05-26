@@ -199,7 +199,10 @@ function renderTimelineItem(item) {
 function renderDashboard(ui) {
   const historico = ui.historico || [];
 
-  if (!historico.length && !ui.loadingContent && !ui.contentData) {
+  // Só mostra "sem atividade" se o setor também não está disponível para comparação
+  // (evita flash quando loadContentData ainda não iniciou)
+  const hasSetor = !!(ui.selectedUserSetor || ui.selectedSectorId);
+  if (!historico.length && !ui.loadingContent && !ui.contentData && !hasSetor) {
     return `
       <div class="historico-empty">
         <i data-lucide="inbox"></i>
@@ -252,8 +255,13 @@ function renderDashboard(ui) {
     i.previewUrl && refIds.has((`doc-${i.previewUrl}`).slice(0, 128))
   );
 
-  const totalDisp   = videosDisp.length + docsDisp.length + instrDisp.length;
-  const totalConsum = videosConsum.length + docsConsum.length + instrConsum.length;
+  // Questionários
+  const quizzesAvail   = Array.isArray(content?.quizzesAvail)   ? content.quizzesAvail   : [];
+  const quizzesAnswered = Array.isArray(content?.quizzesAnswered) ? content.quizzesAnswered : [];
+  const quizzesCorr    = quizzesAnswered.filter(r => r.is_correta);
+
+  const totalDisp   = videosDisp.length + docsDisp.length + instrDisp.length + quizzesAvail.length;
+  const totalConsum = videosConsum.length + docsConsum.length + instrConsum.length + quizzesAnswered.length;
   const pctGeral    = totalDisp > 0 ? Math.round((totalConsum / totalDisp) * 100) : 0;
 
   const categorias = [
@@ -283,6 +291,18 @@ function renderDashboard(ui) {
       consumido: instrConsum.length,
       itensDisp: instrDisp,
       refPrefix: 'doc',
+    },
+    {
+      label: 'Questionários',
+      icon: 'help-circle',
+      color: '#10B981',
+      disponivel: quizzesAvail.length,
+      consumido: quizzesAnswered.length,
+      itensDisp: [],
+      refPrefix: '',
+      extra: quizzesAvail.length > 0
+        ? `${quizzesCorr.length}/${quizzesAnswered.length} corretas`
+        : null,
     },
   ].filter(c => c.disponivel > 0);
 
@@ -325,10 +345,11 @@ function renderDashboard(ui) {
                   <span class="hd-kpi-row-label">${sanitizeText(c.label)}</span>
                   <div class="hd-kpi-row-bar-wrap">
                     <div class="hd-kpi-row-track">
-                      <div class="hd-kpi-row-fill" style="width:${pct}%;background:${progressColor(pct)}"></div>
+                      <div class="hd-kpi-row-fill ${progressColorClass(pct)}" style="width:${pct}%"></div>
                     </div>
                     <span class="hd-kpi-row-counts">${c.consumido}/${c.disponivel}</span>
                   </div>
+                  ${c.extra ? `<span class="hd-kpi-row-extra">${sanitizeText(c.extra)}</span>` : ''}
                 </div>
                 <span class="hd-kpi-row-pct" style="color:${c.color}">${pct}%</span>
               </div>`;
@@ -448,7 +469,7 @@ function renderCategoriaCard(c, refIds) {
         <span class="hd-cat-pct" style="color:${c.color}">${pct}%</span>
       </div>
       <div class="hd-cat-track">
-        <div class="hd-cat-fill" style="width:${pct}%;background:${progressColor(pct)}"></div>
+        <div class="hd-cat-fill ${progressColorClass(pct)}" style="width:${pct}%"></div>
       </div>
     </div>
   `;
@@ -519,10 +540,15 @@ function formatDate(iso) {
     }).format(new Date(iso));
   } catch { return iso; }
 }
-// Cor da barra de progresso: ≤50% vermelho, 51-75% azul, 76-99% dourado, 100% verde
+// Cor da barra de progresso: ≤50% vermelho, 51-99% azul, 100% verde
 function progressColor(pct) {
   if (pct >= 100) return '#10B981';
-  if (pct > 75)   return '#D4A257';
   if (pct > 50)   return '#3B82F6';
   return '#EF4444';
+}
+
+function progressColorClass(pct) {
+  if (pct >= 100) return 'is-green';
+  if (pct > 50)   return 'is-blue';
+  return 'is-red';
 }

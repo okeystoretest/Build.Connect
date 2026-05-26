@@ -2,6 +2,7 @@ import { MODULE_ITEM_TYPES, MODULE_VIEW_MODE } from '../../constants/module.cons
 import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
 import { animateOut } from '../../utils/motion.js';
 import { registrarAtividade } from '../../services/historico.service.js';
+import { fetchQuizForVideo, submitQuizAnswer } from '../../services/quiz.service.js';
 import { prepareModuleItems } from './module-items.js';
 
 const WATCH_THRESHOLD = 0.90;
@@ -196,6 +197,123 @@ function handleVideoComplete() {
     moduloId: activeVideoContext.moduloId || 'instrucoes-video',
     referenciaId: `video-${activeVideoContext.videoId}`,
   });
+
+  // Verifica se o vídeo possui questionário e abre o modal
+  const ctx = { ...activeVideoContext };
+  fetchQuizForVideo(ctx.videoId).then((response) => {
+    if (response?.success && response.questionario) {
+      openQuizModal(response.questionario, ctx);
+    }
+  }).catch(() => { /* silencioso — não interrompe a experiência */ });
+}
+
+// ── Quiz Modal ─────────────────────────────────────────────────────────────
+
+let activeQuizModal = null;
+
+function openQuizModal(quiz, context) {
+  if (activeQuizModal) return;
+
+  const opcoes = [
+    { key: 'a', texto: quiz.opcao_a },
+    { key: 'b', texto: quiz.opcao_b },
+    { key: 'c', texto: quiz.opcao_c },
+  ];
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'quiz-modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="quiz-modal" role="dialog" aria-modal="true" aria-label="Questionário">
+      <div class="quiz-modal-head">
+        <strong class="quiz-modal-title">Questionário</strong>
+        <button type="button" class="video-modal-close" data-quiz-modal-close aria-label="Fechar">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="quiz-modal-body">
+        <p class="quiz-modal-pergunta">${sanitizeText(quiz.pergunta)}</p>
+        <div class="quiz-modal-opcoes" id="quiz-modal-opcoes">
+          ${opcoes.map((o) => `
+            <label class="quiz-modal-opcao" data-opcao="${sanitizeAttribute(o.key)}">
+              <input type="radio" name="quiz-modal-resposta" value="${sanitizeAttribute(o.key)}" />
+              <span class="quiz-opcao-letter">${o.key.toUpperCase()}</span>
+              <span class="quiz-opcao-texto">${sanitizeText(o.texto)}</span>
+            </label>
+          `).join('')}
+        </div>
+        <div class="quiz-modal-result" id="quiz-modal-result" style="display:none"></div>
+      </div>
+      <div class="quiz-modal-footer">
+        <button type="button" class="module-action-button" id="quiz-modal-submit">
+          <i data-lucide="send"></i>
+          <span>Confirmar resposta</span>
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Lucide icons
+  if (window.lucide) window.lucide.createIcons({ context: backdrop });
+
+  // Close button
+  backdrop.querySelector('[data-quiz-modal-close]').addEventListener('click', closeQuizModal);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeQuizModal(); });
+  document.addEventListener('keydown', handleEscapeQuiz);
+
+  // Submit
+  backdrop.querySelector('#quiz-modal-submit').addEventListener('click', async () => {
+    const selected = backdrop.querySelector('input[name="quiz-modal-resposta"]:checked');
+    if (!selected) return;
+
+    const opcaoEscolhida = selected.value;
+    const isCorreta = opcaoEscolhida === quiz.gabarito;
+
+    // Disable options after answer
+    backdrop.querySelectorAll('input[name="quiz-modal-resposta"]').forEach((el) => { el.disabled = true; });
+    backdrop.querySelector('#quiz-modal-submit').disabled = true;
+
+    // Visual feedback on options
+    backdrop.querySelectorAll('[data-opcao]').forEach((el) => {
+      const key = el.dataset.opcao;
+      if (key === quiz.gabarito) el.classList.add('is-correct');
+      else if (key === opcaoEscolhida && !isCorreta) el.classList.add('is-wrong');
+    });
+
+    // Result message
+    const resultEl = backdrop.querySelector('#quiz-modal-result');
+    resultEl.style.display = '';
+    resultEl.className = `quiz-modal-result ${isCorreta ? 'is-correct' : 'is-wrong'}`;
+    resultEl.innerHTML = isCorreta
+      ? `<i data-lucide="check-circle-2"></i><span>Resposta correta!</span>`
+      : `<i data-lucide="x-circle"></i><span>Resposta incorreta. A alternativa correta é <strong>${quiz.gabarito.toUpperCase()}</strong>.</span>`;
+    if (window.lucide) window.lucide.createIcons({ context: resultEl });
+
+    // Save answer (best-effort)
+    await submitQuizAnswer({
+      questionarioId: quiz.id,
+      userId: context.userId || '',
+      videoId: context.videoId || '',
+      sectorId: context.sectorId || '',
+      opcaoEscolhida,
+      isCorreta,
+    }).catch(() => {});
+  });
+
+  document.body.appendChild(backdrop);
+  activeQuizModal = backdrop;
+  if (window.lucide) window.lucide.createIcons({ context: backdrop });
+}
+
+function handleEscapeQuiz(e) {
+  if (e.key === 'Escape') closeQuizModal();
+}
+
+function closeQuizModal() {
+  document.removeEventListener('keydown', handleEscapeQuiz);
+  if (!activeQuizModal) return;
+  const target = activeQuizModal;
+  activeQuizModal = null;
+  animateOut(target, 'is-closing', 200, () => target.remove());
 }
 
 export function closeVideoModal() {

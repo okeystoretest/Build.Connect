@@ -1,5 +1,6 @@
 import { refreshLucideIcons } from '../services/icons.service.js';
 import { sanitizeAttribute, sanitizeText } from '../utils/sanitize.js';
+import { USER_LEVELS } from '../constants/sector.constants.js';
 
 export function renderSidebar(rootElement, state, handlers, navigationItems, theme) {
   rootElement.innerHTML = `
@@ -44,6 +45,21 @@ export function renderSidebar(rootElement, state, handlers, navigationItems, the
           </span>
           <span class="item-tooltip">Chamado (TI)</span>
         </button>
+
+        ${(state.authenticatedUser?.nivel === USER_LEVELS.admin || state.authenticatedUser?.nivel === USER_LEVELS.gestor) ? `
+        <button
+          class="footer-icon-button"
+          type="button"
+          id="broadcast-button"
+          aria-label="Comunicar setor"
+          title="Comunicar setor"
+        >
+          <span class="nav-icon" aria-hidden="true">
+            <i data-lucide="megaphone"></i>
+          </span>
+          <span class="item-tooltip">Comunicar setor</span>
+        </button>
+        ` : ''}
 
         <button
           class="footer-icon-button"
@@ -164,17 +180,19 @@ function renderSubmenuItem(item, activeItemId) {
 }
 
 function bindSidebarEvents(rootElement, handlers) {
-  const toggleButton = rootElement.querySelector('#sidebar-toggle');
-  const tiButton = rootElement.querySelector('#ti-button');
-  const themeSwitch = rootElement.querySelector('#theme-switch');
-  const logoutButton = rootElement.querySelector('#logout-button');
-  const navItems = rootElement.querySelectorAll('[data-nav-item]');
-  const groupToggles = rootElement.querySelectorAll('[data-nav-group-toggle]');
+  const toggleButton    = rootElement.querySelector('#sidebar-toggle');
+  const tiButton        = rootElement.querySelector('#ti-button');
+  const themeSwitch     = rootElement.querySelector('#theme-switch');
+  const logoutButton    = rootElement.querySelector('#logout-button');
+  const broadcastButton = rootElement.querySelector('#broadcast-button');
+  const navItems        = rootElement.querySelectorAll('[data-nav-item]');
+  const groupToggles    = rootElement.querySelectorAll('[data-nav-group-toggle]');
 
   toggleButton?.addEventListener('click', handlers.onSidebarToggle);
   tiButton?.addEventListener('click', handlers.onTiModal);
   themeSwitch?.addEventListener('click', handlers.onThemeToggle);
   logoutButton?.addEventListener('click', handlers.onLogout);
+  broadcastButton?.addEventListener('click', handlers.onBroadcast);
 
   navItems.forEach((itemButton) => {
     itemButton.addEventListener('click', () => {

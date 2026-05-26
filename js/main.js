@@ -1,6 +1,8 @@
 import { createAuthController } from './app/auth.controller.js';
 import { appDom, syncAppShellState as syncShellState } from './app/dom.js';
 import { openTiModal } from './components/shared/ti-modal.js';
+import { openNotificationsPanel } from './components/shared/notifications-panel.js';
+import { openSendNotificationModal } from './components/shared/send-notification-modal.js';
 import {
   renderApplication,
   renderAuthentication,
@@ -53,14 +55,19 @@ authController = createAuthController({
 
 handlers = {
   onSidebarToggle: navigationController.handleSidebarToggle,
-  onThemeToggle: handleThemeToggle,
-  onNavigate: navigationController.handleNavigation,
-  onGroupToggle: navigationController.handleGroupToggle,
-  onLogout: authController.handleLogout,
-  onTiModal: () => openTiModal({ user: state.authenticatedUser }),
+  onThemeToggle:   handleThemeToggle,
+  onNavigate:      navigationController.handleNavigation,
+  onGroupToggle:   navigationController.handleGroupToggle,
+  onLogout:        authController.handleLogout,
+  onTiModal:       () => openTiModal({ user: state.authenticatedUser }),
+  onBroadcast:     () => openSendNotificationModal(state.activeItemId),
 };
 
 authController.bootstrap();
+
+// Sino de notificações: vinculado uma vez — persiste em toda a navegação
+document.getElementById('notifications-button')
+  ?.addEventListener('click', () => openNotificationsPanel());
 
 function getAccessibleNavigationItems() {
   return getNavigationItemsForUser(state.authenticatedUser);

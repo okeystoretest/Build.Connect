@@ -7,6 +7,7 @@ import {
   persistAuthenticatedUser,
 } from '../services/auth.service.js';
 import { requestApi, getSessionToken, clearSessionToken } from '../services/api.service.js';
+import { startPolling, stopPolling } from '../services/notifications.service.js';
 import {
   persistNavigationState,
   sanitizeActiveItemForNavigation,
@@ -91,6 +92,7 @@ export function createAuthController({
   }
 
   async function handleLogout() {
+    stopPolling();
     await logoutUser();
     state.authenticatedUser = null;
     state.activeItemId = SECTOR_IDS.home;
@@ -108,6 +110,7 @@ export function createAuthController({
     syncAppShellState();
     renderApp();
     renderCurrentView({ animate: false });
+    startPolling();
   }
 
   function showLoginScreen() {

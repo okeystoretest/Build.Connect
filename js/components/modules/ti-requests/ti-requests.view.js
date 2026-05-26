@@ -86,8 +86,13 @@ function renderBody(ui, respondent) {
 
   const tickets          = Array.isArray(ui.tickets)          ? ui.tickets          : [];
   const completedTickets = Array.isArray(ui.completedTickets) ? ui.completedTickets : [];
+  const nivel            = respondent?.nivel || '';
+  const isPrivileged     = nivel === USER_LEVELS.admin || nivel === USER_LEVELS.gestor;
 
-  return renderKanban(tickets, completedTickets, ui, respondent);
+  return `
+    ${renderKanban(tickets, completedTickets, ui, respondent)}
+    ${isPrivileged ? renderDashboard(ui.dashboard, ui.dashboardPeriod || 'mes') : ''}
+  `;
 }
 
 // ── Kanban ────────────────────────────────────────────────────────────────
@@ -128,13 +133,13 @@ function renderKanban(tickets, completedTickets, ui, respondent) {
     <div class="ti-kanban">
       ${KANBAN_COLS.map(col => `
         <div class="ti-kanban-col" data-status="${sanitizeAttribute(col.status)}">
-          <div class="ti-kanban-col-head" style="border-top-color:${col.color}">
+          <div class="ti-kanban-col-head">
             <div class="ti-kanban-col-title">
-              <i data-lucide="${sanitizeAttribute(col.icon)}" style="color:${col.color}"></i>
+              <i data-lucide="${sanitizeAttribute(col.icon)}"></i>
               <span>${sanitizeText(col.label)}</span>
             </div>
             <div class="ti-kanban-col-counts">
-              <span class="ti-kanban-badge" style="background:${hexToRgba(col.color, 0.15)};color:${col.color}">
+              <span class="ti-kanban-badge">
                 ${byStatus[col.status].length}
               </span>
               ${!isPrivileged && col.status === 'Atribuído' && totalAtribuido > byStatus['Atribuído'].length ? `
@@ -192,11 +197,15 @@ function renderKanbanCard(ticket, col, ui, respondent) {
 
   return `
     <div class="ti-kc-row ${isExpanded ? 'is-expanded' : ''}"
-      style="border-left: 3px solid ${col.color}"
       data-ti-expand="${sanitizeAttribute(ticket.id)}">
 
       <!-- Linha principal -->
       <div class="ti-kc-row-main">
+
+        <!-- Status badge -->
+        <div class="ti-kc-status-badge">
+          <i data-lucide="${sanitizeAttribute(col.icon)}"></i>
+        </div>
 
         <!-- Info central -->
         <div class="ti-kc-info">
