@@ -1876,6 +1876,30 @@ body.has-video-modal {
   to   { opacity: 1; transform: translate3d(0,  0px, 0); }
 }
 
+/* FIX: bc-modal-in estava sendo referenciado mas nunca definido */
+@keyframes bc-modal-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Barra de progresso cresce da esquerda para a direita */
+@keyframes bc-bar-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* Anel SVG: desenha do zero até o valor calculado */
+@keyframes bc-ring-draw {
+  from { stroke-dasharray: 0 277; }
+}
+
+/* Badge de notificação: pop ao aparecer */
+@keyframes bc-badge-pop {
+  0%   { transform: scale(0.3); opacity: 0; }
+  65%  { transform: scale(1.2); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
 /* ── Modal backdrop ───────────────────────────────────────────────────────── */
 .video-modal-backdrop {
   animation: bc-fade-in 220ms var(--ease-soft) both;
@@ -2713,6 +2737,12 @@ body.has-video-modal {
 .hd-progress-ring-wrap { flex-shrink: 0; }
 .hd-ring-svg { display: block; }
 
+/* Animação de desenho do anel SVG ao renderizar */
+.hd-ring-svg circle:last-child {
+  animation: bc-ring-draw 900ms var(--ease-premium) both;
+  animation-delay: 200ms;
+}
+
 .hd-progress-info { flex: 1; min-width: 0; }
 .hd-progress-title { font-size: 1rem; font-weight: 600; color: var(--text); margin: 0 0 6px; }
 .hd-progress-subtitle { font-size: 0.88rem; color: var(--muted); margin: 0 0 12px; }
@@ -2791,6 +2821,9 @@ body.has-video-modal {
   height: 100%;
   border-radius: 4px;
   background: #EF4444; /* fallback */
+  transform-origin: left center;
+  animation: bc-bar-grow 700ms var(--ease-premium) both;
+  animation-delay: 80ms;
 }
 .hd-cat-fill.is-red  { background: #EF4444; }
 .hd-cat-fill.is-blue { background: #3B82F6; }
@@ -3227,6 +3260,9 @@ body.has-video-modal {
   border-radius: 4px;
   min-width: 3px;
   background: #EF4444; /* fallback */
+  transform-origin: left center;
+  animation: bc-bar-grow 700ms var(--ease-premium) both;
+  animation-delay: 120ms;
 }
 .hd-kpi-row-fill.is-red  { background: #EF4444; }
 .hd-kpi-row-fill.is-blue { background: #3B82F6; }
@@ -3254,7 +3290,13 @@ body.has-video-modal {
   border: 1px solid var(--border);
   background: var(--surface);
   text-align: center;
-  transition: border-color 200ms var(--ease-soft);
+  transition: border-color 200ms var(--ease-soft), transform 200ms var(--ease-premium), box-shadow 200ms var(--ease-soft);
+  animation: bc-feedback-in 240ms var(--ease-premium) both;
+}
+
+.hd-indicator:hover {
+  transform: translate3d(0, -2px, 0);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
 }
 
 .hd-indicator.is-complete { border-color: rgba(16,185,129,0.4); }
@@ -3592,6 +3634,14 @@ body.has-video-modal {
 
 .ti-kc-row:hover { background: var(--surface-3, rgba(255,255,255,0.04)); }
 .ti-kc-row.is-expanded { border-color: var(--primary); }
+
+/* Escalonamento de entrada dos cards no kanban */
+.ti-kc-row:nth-child(1) { animation-delay:   0ms; }
+.ti-kc-row:nth-child(2) { animation-delay:  35ms; }
+.ti-kc-row:nth-child(3) { animation-delay:  70ms; }
+.ti-kc-row:nth-child(4) { animation-delay: 105ms; }
+.ti-kc-row:nth-child(5) { animation-delay: 140ms; }
+.ti-kc-row:nth-child(n+6) { animation-delay: 170ms; }
 
 .ti-kc-row-main {
   display: flex;
@@ -4090,7 +4140,12 @@ body.has-video-modal {
   border: 2px solid var(--border);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: border-color 150ms, background 150ms;
+  transition: border-color 150ms var(--ease-soft), background 150ms var(--ease-soft), transform 150ms var(--ease-premium);
+}
+
+.quiz-modal-opcao:not(.is-correct):not(.is-wrong):hover {
+  transform: translate3d(3px, 0, 0);
+  border-color: var(--muted);
 }
 
 .quiz-modal-opcao:has(input:checked) {

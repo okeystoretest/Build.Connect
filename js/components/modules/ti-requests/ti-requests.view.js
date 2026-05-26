@@ -105,20 +105,15 @@ const KANBAN_COLS = [
 ];
 
 function renderKanban(tickets, completedTickets, ui, respondent) {
-  const allActive     = tickets;
-  const userId        = respondent?.id || '';
-  const nivel         = respondent?.nivel || '';
-  const isPrivileged  = nivel === USER_LEVELS.admin || nivel === USER_LEVELS.gestor;
-  const donePageSize  = DONE_PAGE_SIZE;
-  const doneExpanded  = ui.doneExpanded || false;
-  const donePage      = doneExpanded ? completedTickets : completedTickets.slice(0, donePageSize);
-  const doneHasMore   = completedTickets.length > donePageSize;
+  const allActive    = tickets;
+  const userId       = respondent?.id || '';
+  const nivel        = respondent?.nivel || '';
+  const isPrivileged = nivel === USER_LEVELS.admin || nivel === USER_LEVELS.gestor;
+  const PAGE_SIZE    = DONE_PAGE_SIZE; // 5 itens por coluna
+  const colsExpanded = ui.colsExpanded || {};
 
-  // Contagem total das colunas filtradas (para exibir ao colaborador)
-  const totalAtribuido    = allActive.filter(t => t.status === 'Atribuído').length;
-  const totalEmAndamento  = allActive.filter(t => t.status === 'Em andamento').length;
-
-  const byStatus = {
+  // Lista completa por status (antes de paginar)
+  const allByStatus = {
     'Pendente':     allActive.filter(t => t.status === 'Pendente'),
     'Atribuído':    isPrivileged
       ? allActive.filter(t => t.status === 'Atribuído')
@@ -126,12 +121,27 @@ function renderKanban(tickets, completedTickets, ui, respondent) {
     'Em andamento': isPrivileged
       ? allActive.filter(t => t.status === 'Em andamento')
       : allActive.filter(t => t.status === 'Em andamento' && t.atribuidoParaId === userId),
-    'Concluído':    donePage,
+    'Concluído':    completedTickets,
   };
+
+  // Lista paginada por status
+  const byStatus = Object.fromEntries(
+    Object.entries(allByStatus).map(([status, items]) => [
+      status,
+      colsExpanded[status] ? items : items.slice(0, PAGE_SIZE),
+    ])
+  );
 
   return `
     <div class="ti-kanban">
-      ${KANBAN_COLS.map(col => `
+      ${KANBAN_COLS.map(col => {
+        const all      = allByStatus[col.status];
+        const paged    = byStatus[col.status];
+        const hasMore  = all.length > PAGE_SIZE;
+        const expanded = !!colsExpanded[col.status];
+        const hidden   = all.length - PAGE_SIZE;
+
+        return `
         <div class="ti-kanban-col" data-status="${sanitizeAttribute(col.status)}">
           <div class="ti-kanban-col-head">
             <div class="ti-kanban-col-title">
@@ -140,22 +150,13 @@ function renderKanban(tickets, completedTickets, ui, respondent) {
             </div>
             <div class="ti-kanban-col-counts">
               <span class="ti-kanban-badge">
-                ${byStatus[col.status].length}
+                ${paged.length}${hasMore ? `<span style="opacity:.6">/${all.length}</span>` : ''}
               </span>
-              ${!isPrivileged && col.status === 'Atribuído' && totalAtribuido > byStatus['Atribuído'].length ? `
-                <span class="ti-kanban-total-hint" title="Total na coluna">${totalAtribuido} no total</span>
-              ` : ''}
-              ${!isPrivileged && col.status === 'Em andamento' && totalEmAndamento > byStatus['Em andamento'].length ? `
-                <span class="ti-kanban-total-hint" title="Total na coluna">${totalEmAndamento} no total</span>
-              ` : ''}
-              ${col.status === 'Concluído' && completedTickets.length > donePageSize ? `
-                <span class="ti-kanban-total-hint">${completedTickets.length} total</span>
-              ` : ''}
             </div>
           </div>
           <div class="ti-kanban-cards">
-            ${byStatus[col.status].length
-              ? byStatus[col.status].map(t => renderKanbanCard(t, col, ui, respondent)).join('')
+            ${paged.length
+              ? paged.map(t => renderKanbanCard(t, col, ui, respondent)).join('')
               : `<div class="ti-kanban-empty">
                   <i data-lucide="inbox"></i>
                   <span>${
@@ -165,15 +166,16 @@ function renderKanban(tickets, completedTickets, ui, respondent) {
                   }</span>
                 </div>`
             }
-            ${col.status === 'Concluído' && doneHasMore ? `
-              <button type="button" class="ti-kanban-load-more" data-ti-toggle-done>
-                <i data-lucide="${doneExpanded ? 'chevron-up' : 'chevron-down'}"></i>
-                <span>${doneExpanded ? 'Ver menos' : `Ver mais ${completedTickets.length - donePageSize} concluídos`}</span>
+            ${hasMore ? `
+              <button type="button" class="ti-kanban-load-more" data-ti-toggle-col="${sanitizeAttribute(col.status)}">
+                <i data-lucide="${expanded ? 'chevron-up' : 'chevron-down'}"></i>
+                <span>${expanded ? 'Ver menos' : `Ver mais ${hidden}`}</span>
               </button>
             ` : ''}
           </div>
         </div>
-      `).join('')}
+        `;
+      }).join('')}
     </div>
   `;
 }

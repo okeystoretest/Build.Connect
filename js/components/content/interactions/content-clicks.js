@@ -349,10 +349,10 @@ export function createClickHandler(rootElement, viewState, dependencies) {
       return;
     }
 
-    const tiToggleDone = event.target.closest('[data-ti-toggle-done]');
-    if (tiToggleDone) {
+    const tiToggleCol = event.target.closest('[data-ti-toggle-col]');
+    if (tiToggleCol) {
       event.preventDefault();
-      tiRequestsModuleHandlers?.toggleDoneExpanded(rootElement, sector);
+      tiRequestsModuleHandlers?.toggleColExpanded(rootElement, sector, tiToggleCol.dataset.tiToggleCol || '');
       return;
     }
 

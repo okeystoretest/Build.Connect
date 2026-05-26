@@ -21,6 +21,7 @@ export function createTiRequestsModuleHandlers(context) {
     setFullDashboardFilter: setFullDashboardFilter,
     setFullDashboardPeriod: setFullDashboardPeriod,
     toggleDoneExpanded:     toggleDoneExpanded,
+    toggleColExpanded:      toggleColExpanded,
   };
 }
 
@@ -224,5 +225,17 @@ function toggleDoneExpanded(rootElement, sector) {
   if (state.selectedModuleId !== MODULE_IDS.tiRequest) return;
   const current = ui(state);
   setState(sector.id, { ...state, ui: { ...current, doneExpanded: !current.doneExpanded } });
+  render(rootElement, sector);
+}
+
+// ── Toggle qualquer coluna do kanban ──────────────────────────────────────
+
+function toggleColExpanded(rootElement, sector, status) {
+  if (!status) return;
+  const state = getState(sector.id);
+  if (state.selectedModuleId !== MODULE_IDS.tiRequest) return;
+  const current    = ui(state);
+  const colsExpanded = { ...(current.colsExpanded || {}), [status]: !current.colsExpanded?.[status] };
+  setState(sector.id, { ...state, ui: { ...current, colsExpanded } });
   render(rootElement, sector);
 }

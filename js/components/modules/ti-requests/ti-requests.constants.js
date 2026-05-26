@@ -27,4 +27,6 @@ export const TI_REQUESTS_UI_DEFAULTS = Object.freeze({
   fullDashboardFilter:    'Pendente',
   fullDashboardPeriod:    'mes',
   doneExpanded:           false,
+  // Paginação por coluna (5 itens por padrão)
+  colsExpanded: { 'Pendente': false, 'Atribuído': false, 'Em andamento': false, 'Concluído': false },
 });

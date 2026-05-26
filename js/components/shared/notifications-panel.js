@@ -41,6 +41,9 @@ export function openNotificationsPanel() {
   _escHandler = e => { if (e.key === 'Escape') closeNotificationsPanel(); };
   document.addEventListener('keydown', _escHandler);
 
+  // Botão fechar
+  panel.querySelector('#notif-close-btn')?.addEventListener('click', closeNotificationsPanel);
+
   // Marcar todas como lidas
   panel.querySelector('[data-notif-mark-all]')?.addEventListener('click', async () => {
     await markAllRead();
@@ -84,10 +87,10 @@ function _rerenderList(panel) {
 
 function _refreshUnreadIndicator(panel) {
   const notifications = getNotifications();
-  const unread  = notifications.filter(n => !n.lida).length;
-  const markAll = panel.querySelector('[data-notif-mark-all]');
-  const counter = panel.querySelector('[data-notif-counter]');
-  if (markAll) markAll.style.display = unread > 0 ? '' : 'none';
+  const unread   = notifications.filter(n => !n.lida).length;
+  const subhead  = panel.querySelector('[data-notif-subhead]');
+  const counter  = panel.querySelector('[data-notif-counter]');
+  if (subhead) subhead.style.display = unread > 0 ? '' : 'none';
   if (counter) counter.textContent = `${unread} não lida${unread !== 1 ? 's' : ''}`;
 }
 
@@ -98,27 +101,30 @@ function _buildPanelMarkup(notifications) {
 
   return `
     <div class="notif-panel">
+
+      <!-- Linha 1: título + fechar -->
       <div class="notif-panel-head">
         <div class="notif-panel-title">
           <i data-lucide="bell"></i>
           <span>Notificações</span>
-          <span class="notif-counter" data-notif-counter">
-            ${unread} não lida${unread !== 1 ? 's' : ''}
-          </span>
         </div>
-        <div class="notif-panel-actions">
-          <button type="button" class="notif-mark-all-btn"
-            data-notif-mark-all
-            style="${unread === 0 ? 'display:none' : ''}">
-            <i data-lucide="check-check"></i>
-            <span>Marcar todas como lidas</span>
-          </button>
-          <button type="button" class="notif-close-btn" id="notif-close-btn" aria-label="Fechar">
-            <i data-lucide="x"></i>
-          </button>
-        </div>
+        <button type="button" class="notif-close-btn" id="notif-close-btn" aria-label="Fechar notificações">
+          <i data-lucide="x"></i>
+        </button>
       </div>
 
+      <!-- Linha 2: contador + marcar todas (só aparece quando há não lidas) -->
+      <div class="notif-panel-subhead" data-notif-subhead ${unread === 0 ? 'style="display:none"' : ''}>
+        <span class="notif-counter" data-notif-counter>
+          ${unread} não lida${unread !== 1 ? 's' : ''}
+        </span>
+        <button type="button" class="notif-mark-all-btn" data-notif-mark-all>
+          <i data-lucide="check-check"></i>
+          <span>Marcar todas como lidas</span>
+        </button>
+      </div>
+
+      <!-- Lista -->
       <div class="notif-list-wrap" data-notif-list>
         ${_buildListMarkup(notifications)}
       </div>

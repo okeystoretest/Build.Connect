@@ -13,6 +13,7 @@ import {
 import {
   ACTIVE_USERS_MODULE_IDS,
   APP_SOURCE_LABEL,
+  DYNAMIC_EXTERNAL_MODULE_IDS,
   INTERNAL_USER_MODULE_IDS,
   MODULE_IDS,
   MODULE_SORT_ORDER,
@@ -185,6 +186,12 @@ function getViewMarkup(viewState) {
 }
 
 function isInternalModule(sectorId, moduleId) {
+  // Módulos que carregam conteúdo externo (Drive/YouTube) nunca são internos,
+  // mesmo que pertençam ao setor DHO
+  if (DYNAMIC_EXTERNAL_MODULE_IDS.has(moduleId)) {
+    return false;
+  }
+
   if (isDhoSector(sectorId)) {
     return true;
   }
