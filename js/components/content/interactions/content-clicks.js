@@ -273,6 +273,55 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     }
 
     const tiExpandBtn = event.target.closest('[data-ti-expand]');
+
+    // ── Action buttons inside cards must be checked BEFORE expand ──────
+    // (they live inside [data-ti-expand] containers; closest() would
+    //  otherwise match the parent card and toggle expand instead)
+
+    const tiStatusBtn = event.target.closest('[data-ti-status]');
+    if (tiStatusBtn) {
+      event.preventDefault();
+      tiRequestsModuleHandlers?.updateStatus(
+        rootElement, sector,
+        tiStatusBtn.dataset.tiStatus     || '',
+        tiStatusBtn.dataset.tiNextStatus || '',
+        viewState.authenticatedUser,
+      );
+      return;
+    }
+
+    const tiStartConclusion = event.target.closest('[data-ti-start-conclusion]');
+    if (tiStartConclusion) {
+      event.preventDefault();
+      tiRequestsModuleHandlers?.startConclusion(rootElement, sector, tiStartConclusion.dataset.tiStartConclusion || '');
+      return;
+    }
+
+    const tiCancelConclusion = event.target.closest('[data-ti-cancel-conclusion]');
+    if (tiCancelConclusion) {
+      event.preventDefault();
+      tiRequestsModuleHandlers?.cancelConclusion(rootElement, sector);
+      return;
+    }
+
+    const tiConfirmConclusion = event.target.closest('[data-ti-confirm-conclusion]');
+    if (tiConfirmConclusion) {
+      event.preventDefault();
+      const ticketId = tiConfirmConclusion.dataset.tiConfirmConclusion || '';
+      const textarea = rootElement.querySelector(`[data-ti-obs-input="${CSS.escape(ticketId)}"]`);
+      const obsError = rootElement.querySelector('[data-ti-obs-error]');
+      const obs = textarea?.value?.trim() || '';
+      if (!obs) {
+        if (obsError) obsError.style.display = '';
+        textarea?.focus();
+        return;
+      }
+      if (obsError) obsError.style.display = 'none';
+      tiRequestsModuleHandlers?.confirmConclusion(rootElement, sector, ticketId, obs, viewState.authenticatedUser);
+      return;
+    }
+
+    // ── Expand (after action buttons) ─────────────────────────────────
     if (tiExpandBtn) {
       event.preventDefault();
       tiRequestsModuleHandlers?.expandTicket(rootElement, sector, tiExpandBtn.dataset.tiExpand || '');
@@ -330,49 +379,6 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     if (tiFullPeriod) {
       event.preventDefault();
       tiRequestsModuleHandlers?.setFullDashboardPeriod(rootElement, sector, tiFullPeriod.dataset.tiFullPeriod || 'mes');
-      return;
-    }
-
-    const tiStatusBtn = event.target.closest('[data-ti-status]');
-    if (tiStatusBtn) {
-      event.preventDefault();
-      tiRequestsModuleHandlers?.updateStatus(
-        rootElement, sector,
-        tiStatusBtn.dataset.tiStatus     || '',
-        tiStatusBtn.dataset.tiNextStatus || '',
-        viewState.authenticatedUser,
-      );
-      return;
-    }
-
-    const tiStartConclusion = event.target.closest('[data-ti-start-conclusion]');
-    if (tiStartConclusion) {
-      event.preventDefault();
-      tiRequestsModuleHandlers?.startConclusion(rootElement, sector, tiStartConclusion.dataset.tiStartConclusion || '');
-      return;
-    }
-
-    const tiCancelConclusion = event.target.closest('[data-ti-cancel-conclusion]');
-    if (tiCancelConclusion) {
-      event.preventDefault();
-      tiRequestsModuleHandlers?.cancelConclusion(rootElement, sector);
-      return;
-    }
-
-    const tiConfirmConclusion = event.target.closest('[data-ti-confirm-conclusion]');
-    if (tiConfirmConclusion) {
-      event.preventDefault();
-      const ticketId = tiConfirmConclusion.dataset.tiConfirmConclusion || '';
-      const textarea = rootElement.querySelector(`[data-ti-obs-input="${CSS.escape(ticketId)}"]`);
-      const obsError = rootElement.querySelector('[data-ti-obs-error]');
-      const obs = textarea?.value?.trim() || '';
-      if (!obs) {
-        if (obsError) obsError.style.display = '';
-        textarea?.focus();
-        return;
-      }
-      if (obsError) obsError.style.display = 'none';
-      tiRequestsModuleHandlers?.confirmConclusion(rootElement, sector, ticketId, obs, viewState.authenticatedUser);
       return;
     }
 
