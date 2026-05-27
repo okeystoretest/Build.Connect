@@ -150,6 +150,7 @@ function mountView(rootElement, viewState) {
     toggleModuleSort,
     setModuleView,
     updateModuleQuery,
+    setModuleToolFilter,
     userAdminModuleHandlers,
     evaluationModuleHandlers,
     feedbackModuleHandlers,
@@ -431,6 +432,28 @@ function updateModuleQuery(rootElement, sector, query) {
   }
 }
 
+function setModuleToolFilter(rootElement, sector, tool) {
+  const state = getModuleState(sector.id);
+
+  if (!state.selectedModuleId) {
+    return;
+  }
+
+  const currentFilter = state.ui?.selectedToolFilter || '';
+  const nextFilter = currentFilter === tool ? '' : tool;
+
+  setModuleState(sector.id, {
+    ...state,
+    ui: {
+      ...MODULE_UI_DEFAULTS,
+      ...(state.ui || {}),
+      selectedToolFilter: nextFilter,
+    },
+  });
+
+  renderModuleStage(rootElement, sector);
+}
+
 function clearSelectedModule(rootElement, sector, authenticatedUser = null) {
   resetModuleSelectionForSector(sector.id);
 
@@ -463,13 +486,20 @@ function renderModuleStage(rootElement, sector) {
     return;
   }
 
+  const alreadyVisible = stageElement.classList.contains('is-module-stage-visible');
+
   stageElement.innerHTML = getModuleStageMarkup(sector, stageState);
-  stageElement.classList.remove('is-module-stage-visible');
-  stageElement.classList.add('is-visible');
+
+  if (!alreadyVisible) {
+    stageElement.classList.remove('is-module-stage-visible');
+    stageElement.classList.add('is-visible');
+  }
 
   refreshLucideIcons(stageElement);
 
-  requestAnimationFrame(() => {
-    stageElement.classList.add('is-module-stage-visible');
-  });
+  if (!alreadyVisible) {
+    requestAnimationFrame(() => {
+      stageElement.classList.add('is-module-stage-visible');
+    });
+  }
 }

@@ -3,6 +3,31 @@ import { sanitizeText } from '../utils/sanitize.js';
 import { openAnonFeedbackModal } from './shared/anon-feedback-modal.js';
 
 export function renderLoginView(rootElement, loginState, handlers) {
+  const existingPanel = rootElement.querySelector('.login-panel');
+
+  // Se o painel já existe, atualiza apenas os elementos dinâmicos
+  // para evitar replay da animação CSS de entrada.
+  if (existingPanel) {
+    const alertEl = existingPanel.querySelector('.login-alert');
+    if (alertEl) {
+      if (loginState.errorMessage) {
+        alertEl.className = 'login-alert is-visible is-error';
+        alertEl.textContent = sanitizeText(loginState.errorMessage);
+      } else {
+        alertEl.className = 'login-alert';
+        alertEl.textContent = '';
+      }
+    }
+
+    const submitBtn = existingPanel.querySelector('.login-submit');
+    if (submitBtn) {
+      submitBtn.disabled = !!loginState.isLoading;
+      const label = submitBtn.querySelector('span:last-child');
+      if (label) label.textContent = loginState.isLoading ? 'Entrando...' : 'Entrar';
+    }
+    return;
+  }
+
   rootElement.innerHTML = `
     <section class="auth-shell" aria-labelledby="login-title">
       <div class="auth-background" aria-hidden="true">

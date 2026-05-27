@@ -53,7 +53,8 @@ export function createAuthController({
     try {
       const validation = await requestApi('validate-session');
       if (!validation?.success) {
-        // Token rejeitado pelo servidor — força novo login
+        // Token rejeitado pelo servidor — para polling e força novo login
+        stopPolling();
         clearAuthenticatedUser();
         clearSessionToken();
         state.authenticatedUser = null;

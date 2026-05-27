@@ -1,4 +1,4 @@
-import { MODULE_ITEM_TYPES, MODULE_VIEW_MODE } from '../../constants/module.constants.js';
+import { MODULE_ITEM_TYPES, MODULE_VIEW_MODE, TOOL_FILTER_OPTIONS } from '../../constants/module.constants.js';
 import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
 import { animateOut } from '../../utils/motion.js';
 import { registrarAtividade } from '../../services/historico.service.js';
@@ -349,12 +349,13 @@ export function closeVideoModal() {
 
 export function getVideoModuleMarkup(card, moduleData, moduleUi, renderDependencies) {
   const items = Array.isArray(moduleData?.items) ? moduleData.items : [];
-  const { getModuleEmptyMarkup, getModuleToolbarMarkup, getModuleSearchEmptyMarkup } = renderDependencies;
+  const { getModuleEmptyMarkup, getModuleToolbarMarkup, getModuleSearchEmptyMarkup, getModuleToolFilterMarkup } = renderDependencies;
 
   if (!items.length) {
     return getModuleEmptyMarkup(card, moduleData?.emptyMessage || 'Nenhum vídeo foi encontrado para este módulo.');
   }
 
+  const activeFilter = moduleUi?.selectedToolFilter || '';
   const preparedItems = prepareModuleItems(items, moduleUi, MODULE_ITEM_TYPES.video);
 
   return `
@@ -367,6 +368,7 @@ export function getVideoModuleMarkup(card, moduleData, moduleUi, renderDependenc
         </div>
         ${getModuleToolbarMarkup(card.id, moduleUi, items.length, preparedItems.length, 'Busque por título do vídeo')}
       </div>
+      ${getModuleToolFilterMarkup(TOOL_FILTER_OPTIONS, activeFilter)}
       <div class="module-items-grid module-items-grid-video ${moduleUi.view === MODULE_VIEW_MODE.list ? 'is-list-view' : 'is-grid-view'}" data-module-items-container>
         ${preparedItems.length ? preparedItems.map(renderVideoItemCard).join('') : getModuleSearchEmptyMarkup()}
       </div>

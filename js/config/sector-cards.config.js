@@ -13,7 +13,7 @@ export const DEFAULT_SECTOR_CARDS = [
     icon: 'file-text',
     hint: 'Passo a passo',
     getDescription: (sectorName) =>
-      `Aqui você encontra orientações claras para entender como as rotinas do setor ${sectorName} funcionam no dia a dia.`,
+      `Aqui você encontra orientações claras para entender como as rotinas do setor ${sectorName} funcionam.`,
   },
   {
     id: 'instrucoes-video',
@@ -29,7 +29,7 @@ export const DEFAULT_SECTOR_CARDS = [
     icon: 'clipboard-list',
     hint: 'Acompanhamento',
     getDescription: (sectorName) =>
-      `Nesta área ficam as ferramentas e registros de avaliação para apoiar seu desenvolvimento no setor ${sectorName}.`,
+      `Avalie o comportamento e os resultados de um colaborador do setor ${sectorName}.`,
   },
 
 ];
@@ -49,7 +49,7 @@ export const COMMERCIAL_SECTOR_CARDS = [
     icon: 'file-text',
     hint: 'Passo a passo',
     getDescription: (sectorName) =>
-      `Aqui você encontra orientações claras para entender como as rotinas do subsetor ${sectorName} funcionam no dia a dia.`,
+      `Aqui você encontra orientações claras para entender como as rotinas do subsetor ${sectorName} funcionam.`,
   },
   {
     id: 'instrucoes-video',
@@ -57,7 +57,7 @@ export const COMMERCIAL_SECTOR_CARDS = [
     icon: 'video',
     hint: 'Treinamento visual',
     getDescription: (sectorName) =>
-      `Assista aos conteúdos em vídeo do subsetor ${sectorName} para aprender as atividades de forma prática e rápida.`,
+      `Assista aos vídeos do subsetor ${sectorName} para aprender as atividades.`,
   },
   {
     id: 'avaliacao',
@@ -65,7 +65,7 @@ export const COMMERCIAL_SECTOR_CARDS = [
     icon: 'clipboard-list',
     hint: 'Acompanhamento',
     getDescription: (sectorName) =>
-      `Nesta área ficam as ferramentas e registros de avaliação para apoiar seu desenvolvimento no subsetor ${sectorName}.`,
+      `Avalie o comportamento e os resultados de um colaborador do subsetor ${sectorName}.`,
   },
 
 ];
@@ -78,7 +78,7 @@ export const RETAGUARDA_SECTOR_CARDS = [
     icon: 'headset',
     hint: 'Suporte técnico',
     getDescription: () =>
-      'Auditar e processar as ordens de serviço pendentes, garantindo o atendimento de requisições.',
+      'Acompanhe e resolva as ordens de serviço pendentes para garantir o atendimento.',
   },
 ];
 
@@ -89,7 +89,7 @@ export const DHO_SECTOR_CARDS = [
     icon: 'user-plus',
     hint: 'Acesso inicial',
     getDescription: () =>
-      'Cadastre novos utilizadores, organize acessos e mantenha a base de perfis atualizada para uso no Build.Connect.',
+      'Cadastre novos utilizadores, organize acessos e mantenha a base de perfis atualizada.',
   },
   {
     id: 'historico-colaborador',
@@ -97,7 +97,7 @@ export const DHO_SECTOR_CARDS = [
     icon: 'folder-clock',
     hint: 'Acompanhamento',
     getDescription: () =>
-      'Consulte o percurso do colaborador, com registros importantes para acompanhar evolução, mudanças e ocorrências.',
+      'Consulte registros importantes para acompanhar evolução do colaborador.',
   },
   {
     id: 'mapas-integracao',
@@ -105,7 +105,7 @@ export const DHO_SECTOR_CARDS = [
     icon: 'map',
     hint: 'Integração',
     getDescription: () =>
-      'Acesse e gerencie os mapas de integração dos colaboradores, organizados por setor e ferramenta.',
+      'Acesse e gerencie os mapas de integração dos colaboradores.',
   },
   {
     id: 'documentos-dho',
@@ -113,7 +113,7 @@ export const DHO_SECTOR_CARDS = [
     icon: 'file-text',
     hint: 'Arquivos',
     getDescription: () =>
-      'Centralize documentos e materiais de referência do DHO com pesquisa rápida e filtros por ferramenta.',
+      'Centralize documentos e materiais de referência do DHO.',
   },
   {
     id: 'questionarios',
@@ -121,14 +121,14 @@ export const DHO_SECTOR_CARDS = [
     icon: 'clipboard-check',
     hint: 'Coleta guiada',
     getDescription: () =>
-      'Acesse formulários e questionários usados para recolher informações, apoiar avaliações e orientar etapas do processo.',
+      'Configure perguntas, opções de resposta e organize os resultados de forma prática.',
   },
   {
     id: 'qualidade',
-    title: 'Qualidade',
+    title: 'Resultados de Avaliações',
     icon: 'badge-check',
     hint: 'Padrão interno',
     getDescription: () =>
-      'Reúna verificações, critérios e registros ligados à qualidade para apoiar decisões e manter o padrão esperado.',
+      'Acompanhe os resultados dos colaboradores para decidir os próximos passos.',
   },
 ];

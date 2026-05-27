@@ -11,6 +11,7 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     clearSelectedModule,
     toggleModuleSort,
     setModuleView,
+    setModuleToolFilter,
     userAdminModuleHandlers,
     evaluationModuleHandlers,
     feedbackModuleHandlers,
@@ -70,6 +71,14 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     if (viewButton) {
       event.preventDefault();
       setModuleView(rootElement, sector, viewButton.dataset.moduleView || 'grid');
+      return;
+    }
+
+    const toolFilterButton = event.target.closest('[data-module-tool-filter]');
+
+    if (toolFilterButton) {
+      event.preventDefault();
+      setModuleToolFilter(rootElement, sector, toolFilterButton.dataset.moduleToolFilter || '');
       return;
     }
 
@@ -324,7 +333,7 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     }
 
     // ── Expand (after action buttons) ─────────────────────────────────
-    if (tiExpandBtn) {
+    if (tiExpandBtn && !event.target.closest('[data-ti-no-view]')) {
       event.preventDefault();
       tiRequestsModuleHandlers?.expandTicket(rootElement, sector, tiExpandBtn.dataset.tiExpand || '');
       return;

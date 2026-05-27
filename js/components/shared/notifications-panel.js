@@ -1,5 +1,5 @@
 import { refreshLucideIcons } from '../../services/icons.service.js';
-import { sanitizeText } from '../../utils/sanitize.js';
+import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
 import { animateOut } from '../../utils/motion.js';
 import { getNotifications, markNotificationRead, markAllRead, fetchNotifications } from '../../services/notifications.service.js';
 
@@ -147,7 +147,7 @@ function _buildListMarkup(notifications) {
     const time = _formatTime(n.criado_em);
     return `
       <div class="notif-item ${n.lida ? 'is-read' : ''}"
-        data-notif-id="${n.id}"
+        data-notif-id="${sanitizeAttribute(String(n.id))}"
         data-notif-lida="${n.lida}"
         title="${n.lida ? '' : 'Clique para marcar como lida'}"
         tabindex="0"

@@ -139,6 +139,20 @@ export function getModuleSearchEmptyMarkup() {
   `;
 }
 
+export function getModuleToolFilterMarkup(filterOptions, activeFilter) {
+  return `
+    <div class="module-tool-filter-btns" aria-label="Filtrar por ferramenta">
+      ${filterOptions.map(opt => `
+        <button type="button"
+          class="module-tool-filter-btn ${activeFilter === opt ? 'is-active' : ''}"
+          data-module-tool-filter="${sanitizeAttribute(opt)}">
+          #${sanitizeText(opt)}
+        </button>
+      `).join('')}
+    </div>
+  `;
+}
+
 function getSkeletonCardMarkup(index) {
   return `
     <article class="module-item-card is-skeleton" data-skeleton-index="${index}">

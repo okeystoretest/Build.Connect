@@ -14,6 +14,7 @@ import {
   getModuleLoadingMarkup,
   getModuleSearchEmptyMarkup,
   getModuleToolbarMarkup,
+  getModuleToolFilterMarkup,
 } from './module-shell.js';
 import { getVideoModuleMarkup } from './video-module.js';
 import { getFeedbackModuleMarkup } from './feedback-module.js';
@@ -60,6 +61,7 @@ export function getModuleStageMarkup(sector, stageState) {
       getModuleEmptyMarkup,
       getModuleToolbarMarkup,
       getModuleSearchEmptyMarkup,
+      getModuleToolFilterMarkup,
     });
   }
 
@@ -68,6 +70,7 @@ export function getModuleStageMarkup(sector, stageState) {
       getModuleEmptyMarkup,
       getModuleToolbarMarkup,
       getModuleSearchEmptyMarkup,
+      getModuleToolFilterMarkup,
     });
   }
 

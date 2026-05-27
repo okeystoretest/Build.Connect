@@ -4196,3 +4196,38 @@ body.has-video-modal {
   color: var(--muted);
   margin-top: 2px;
 }
+
+/* ── Module Tool Filter Buttons ────────────────────────────────────────── */
+
+.module-tool-filter-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 24px 0;
+  padding: 18px 0 20px;
+  border-top: 1px solid var(--border);
+}
+
+.module-tool-filter-btn {
+  padding: 5px 13px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 180ms var(--ease-soft);
+  white-space: nowrap;
+}
+
+.module-tool-filter-btn:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.module-tool-filter-btn.is-active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--bg);
+}

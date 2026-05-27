@@ -5,8 +5,10 @@ import { requestApi } from './api.service.js';
 let _notifications  = [];
 let _unreadCount    = 0;
 let _pollingTimer   = null;
+let _fetchInFlight  = false;
 
 const POLL_INTERVAL_MS = 90_000; // 90 segundos
+const VISIBILITY_DEBOUNCE_MS = 3_000;
 
 // ── Getters ────────────────────────────────────────────────────────────────
 
@@ -21,6 +23,8 @@ export function getUnreadCount() {
 // ── Fetch & polling ────────────────────────────────────────────────────────
 
 export async function fetchNotifications() {
+  if (_fetchInFlight) return;
+  _fetchInFlight = true;
   try {
     const response = await requestApi('buscar-notificacoes');
     if (response?.success) {
@@ -30,10 +34,18 @@ export async function fetchNotifications() {
     }
   } catch {
     // Silencioso — notificações não devem interromper o app
+  } finally {
+    _fetchInFlight = false;
   }
 }
 
 export function startPolling() {
+  // Limpa polling anterior se existir (guarda contra chamadas duplicadas)
+  if (_pollingTimer) {
+    clearInterval(_pollingTimer);
+    _pollingTimer = null;
+  }
+
   // Busca imediata ao autenticar
   fetchNotifications();
 
@@ -41,6 +53,7 @@ export function startPolling() {
   _pollingTimer = setInterval(fetchNotifications, POLL_INTERVAL_MS);
 
   // Volta a buscar quando o usuário retorna à aba
+  document.removeEventListener('visibilitychange', _onVisibilityChange);
   document.addEventListener('visibilitychange', _onVisibilityChange);
 }
 
@@ -97,6 +110,10 @@ function _syncBadge() {
   }
 }
 
+let _visibilityDebounce = null;
+
 function _onVisibilityChange() {
-  if (document.visibilityState === 'visible') fetchNotifications();
+  if (document.visibilityState !== 'visible') return;
+  clearTimeout(_visibilityDebounce);
+  _visibilityDebounce = setTimeout(fetchNotifications, VISIBILITY_DEBOUNCE_MS);
 }

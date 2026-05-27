@@ -29,7 +29,7 @@
   box-shadow: 0 4px 16px rgba(0,0,0,0.15);
 }
 
-.notif-topbar-btn:has(~ .notif-badge:not([hidden])) {
+.notif-topbar-btn:has(.notif-badge:not([hidden])) {
   color: var(--text);
 }
 

@@ -1,6 +1,8 @@
 import { MODULE_IDS } from '../../../constants/module.constants.js';
 import { listarChamadosTI, atualizarStatusChamadoTI } from '../../../services/ti-requests.service.js';
 import { TI_REQUESTS_UI_DEFAULTS } from './ti-requests.constants.js';
+import { buildKanbanCardDetailHTML } from './ti-requests.view.js';
+import { refreshLucideIcons } from '../../../services/icons.service.js';
 
 let moduleContext = null;
 
@@ -77,15 +79,77 @@ async function reloadTiTickets(rootElement, sector) { return loadTiTickets(rootE
 
 // ── Expand ────────────────────────────────────────────────────────────────
 
+// Ícones por status (necessário para o refresh cirúrgico)
+const KANBAN_COL_ICONS = {
+  'Pendente':     'clock',
+  'Atribuído':    'user-check',
+  'Em andamento': 'loader-circle',
+  'Concluído':    'circle-check',
+};
+
+function _collapseKanbanCardDOM(rootElement, ticketId) {
+  const card = rootElement.querySelector(`[data-ti-expand="${CSS.escape(ticketId)}"]`);
+  if (!card) return;
+  card.classList.remove('is-expanded');
+  card.querySelector('.ti-kc-detail')?.remove();
+  const chevron = card.querySelector('.ti-kc-chevron');
+  if (chevron) {
+    chevron.setAttribute('data-lucide', 'chevron-down');
+    refreshLucideIcons(card.querySelector('.ti-kc-right') || card);
+  }
+}
+
 function expandTiTicket(rootElement, sector, ticketId) {
   const state = getState(sector.id);
   if (state.selectedModuleId !== MODULE_IDS.tiRequest) return;
+
   const currentUi = ui(state);
+  const wasExpanded = currentUi.expandedTicketId === ticketId;
+  const newExpandedId = wasExpanded ? null : ticketId;
+
+  // 1. Atualiza estado sem re-render
   setState(sector.id, {
     ...state,
-    ui: { ...currentUi, expandedTicketId: currentUi.expandedTicketId === ticketId ? null : ticketId, confirmingConclusionId: null },
+    ui: { ...currentUi, expandedTicketId: newExpandedId, confirmingConclusionId: null },
   });
-  render(rootElement, sector);
+
+  // 2. Recolhe o card anteriormente expandido (se for diferente)
+  if (currentUi.expandedTicketId && currentUi.expandedTicketId !== ticketId) {
+    _collapseKanbanCardDOM(rootElement, currentUi.expandedTicketId);
+  }
+
+  // 3. Atua no card clicado
+  const card = rootElement.querySelector(`[data-ti-expand="${CSS.escape(ticketId)}"]`);
+  if (!card) {
+    // Fallback: card não está no DOM (paginado/oculto) — re-render completo
+    render(rootElement, sector);
+    return;
+  }
+
+  if (wasExpanded) {
+    // Recolhe
+    _collapseKanbanCardDOM(rootElement, ticketId);
+  } else {
+    // Expande: adiciona classe, vira chevron, injeta detalhe
+    card.classList.add('is-expanded');
+    const chevron = card.querySelector('.ti-kc-chevron');
+    if (chevron) chevron.setAttribute('data-lucide', 'chevron-up');
+
+    const newUi = ui(getState(sector.id));
+    const allTickets = [...(newUi.tickets || []), ...(newUi.completedTickets || [])];
+    const ticket = allTickets.find(t => t.id === ticketId);
+
+    if (ticket) {
+      const col = { status: ticket.status, icon: KANBAN_COL_ICONS[ticket.status] || 'clock' };
+      const temp = document.createElement('div');
+      temp.innerHTML = buildKanbanCardDetailHTML(ticket, col, newUi);
+      const detailEl = temp.firstElementChild;
+      if (detailEl) card.appendChild(detailEl);
+    }
+
+    // Inicializa ícones APENAS no card expandido — outros não piscam
+    refreshLucideIcons(card);
+  }
 }
 
 function expandCompletedTicket(rootElement, sector, ticketId) {

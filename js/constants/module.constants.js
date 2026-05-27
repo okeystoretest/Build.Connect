@@ -80,3 +80,16 @@ export const SELF_LOADING_MODULE_IDS = new Set([
   MODULE_IDS.tiRequest,
   MODULE_IDS.questionarios,
 ]);
+
+// Tool-based filter options for document and video modules (alphabetical)
+export const TOOL_FILTER_OPTIONS = Object.freeze([
+  'ALPHA',
+  'ATIVIDADES MANUAIS',
+  'DESENVOLVIMENTO',
+  'DOCUMENTOS',
+  'FORMULÁRIO',
+  'PLANILHA',
+  'RUNRUN.IT',
+  'SITE',
+  'TREINAMENTO',
+]);

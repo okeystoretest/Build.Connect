@@ -180,21 +180,60 @@ function renderKanban(tickets, completedTickets, ui, respondent) {
   `;
 }
 
-function renderKanbanCard(ticket, col, ui, respondent) {
+/**
+ * Gera apenas o HTML do detalhe expansível de um card.
+ * Exportado para uso no handler de expand cirúrgico (sem re-render completo).
+ */
+export function buildKanbanCardDetailHTML(ticket, col, ui) {
   const isUpdating = ui.isUpdating && ui.updatingTicketId === ticket.id;
-
   const nextActions = {
     'Pendente':     { label: 'Atribuir para mim', next: 'Atribuído',    icon: 'user-plus' },
     'Atribuído':    { label: 'Iniciar',            next: 'Em andamento', icon: 'play' },
     'Em andamento': { label: 'Concluir',           next: 'Concluído',    icon: 'check-circle' },
     'Concluído':    null,
   };
-
   const action = nextActions[ticket.status];
-  const descPreview = ticket.descricao
-    ? (ticket.descricao.length > 80 ? ticket.descricao.slice(0, 80) + '…' : ticket.descricao)
-    : null;
 
+  return `
+    <div class="ti-kc-detail" data-ti-no-view>
+      ${ticket.descricao ? `<p class="ti-kc-detail-desc">${sanitizeText(ticket.descricao)}</p>` : ''}
+      <div class="ti-kc-detail-grid">
+        ${ticket.atribuidoParaNome ? `
+          <div class="ti-kc-detail-field">
+            <span>Responsável: <strong>${sanitizeText(ticket.atribuidoParaNome)}</strong></span>
+          </div>` : ''}
+        <div class="ti-kc-detail-field">
+          <span>${fmtDate(ticket.timestamp)}</span>
+        </div>
+        ${ticket.duracaoMinutos ? `
+          <div class="ti-kc-detail-field">
+            <span>${fmtDuration(ticket.duracaoMinutos)}</span>
+          </div>` : ''}
+      </div>
+      ${action ? `
+        <div class="ti-kc-detail-action">
+          ${isUpdating
+            ? `<span class="ti-updating"><i data-lucide="loader-circle"></i> Atualizando…</span>`
+            : ui.confirmingConclusionId === ticket.id
+              ? renderInlineConclusionPanel(ticket.id)
+              : ticket.status === 'Em andamento'
+                ? `<button type="button" class="ti-kc-btn is-conclude"
+                    data-ti-start-conclusion="${sanitizeAttribute(ticket.id)}">
+                    <i data-lucide="check-circle"></i>${action.label}
+                  </button>`
+                : `<button type="button" class="ti-kc-btn"
+                    data-ti-status="${sanitizeAttribute(ticket.id)}"
+                    data-ti-next-status="${sanitizeAttribute(action.next)}">
+                    <i data-lucide="${sanitizeAttribute(action.icon)}"></i>${action.label}
+                  </button>`
+          }
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderKanbanCard(ticket, col, ui, respondent) {
   const isExpanded = ui.expandedTicketId === ticket.id;
 
   return `
@@ -203,13 +242,9 @@ function renderKanbanCard(ticket, col, ui, respondent) {
 
       <!-- Linha principal -->
       <div class="ti-kc-row-main">
-
-        <!-- Status badge -->
         <div class="ti-kc-status-badge">
           <i data-lucide="${sanitizeAttribute(col.icon)}"></i>
         </div>
-
-        <!-- Info central -->
         <div class="ti-kc-info">
           <span class="ti-kc-name">${sanitizeText(ticket.solicitanteNome || '—')}</span>
           <span class="ti-kc-meta">
@@ -218,52 +253,12 @@ function renderKanbanCard(ticket, col, ui, respondent) {
           </span>
           <span class="ti-kc-cat-badge">${sanitizeText(ticket.categoria || '—')}</span>
         </div>
-
-        <!-- Chevron -->
         <div class="ti-kc-right">
           <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="ti-kc-chevron"></i>
         </div>
       </div>
 
-      <!-- Detalhe expansível -->
-      ${isExpanded ? `
-        <div class="ti-kc-detail" data-ti-no-view>
-          ${ticket.descricao ? `<p class="ti-kc-detail-desc">${sanitizeText(ticket.descricao)}</p>` : ''}
-          <div class="ti-kc-detail-grid">
-            ${ticket.atribuidoParaNome ? `
-              <div class="ti-kc-detail-field">
-                <span>Responsável: <strong>${sanitizeText(ticket.atribuidoParaNome)}</strong></span>
-              </div>` : ''}
-            <div class="ti-kc-detail-field">
-              <span>${fmtDate(ticket.timestamp)}</span>
-            </div>
-            ${ticket.duracaoMinutos ? `
-              <div class="ti-kc-detail-field">
-                <span>${fmtDuration(ticket.duracaoMinutos)}</span>
-              </div>` : ''}
-          </div>
-
-          ${action ? `
-            <div class="ti-kc-detail-action">
-              ${isUpdating
-                ? `<span class="ti-updating"><i data-lucide="loader-circle"></i> Atualizando…</span>`
-                : ui.confirmingConclusionId === ticket.id
-                  ? renderInlineConclusionPanel(ticket.id)
-                  : ticket.status === 'Em andamento'
-                    ? `<button type="button" class="ti-kc-btn is-conclude"
-                        data-ti-start-conclusion="${sanitizeAttribute(ticket.id)}">
-                        <i data-lucide="check-circle"></i>${action.label}
-                      </button>`
-                    : `<button type="button" class="ti-kc-btn"
-                        data-ti-status="${sanitizeAttribute(ticket.id)}"
-                        data-ti-next-status="${sanitizeAttribute(action.next)}">
-                        <i data-lucide="${sanitizeAttribute(action.icon)}"></i>${action.label}
-                      </button>`
-              }
-            </div>
-          ` : ''}
-        </div>
-      ` : ''}
+      ${isExpanded ? buildKanbanCardDetailHTML(ticket, col, ui) : ''}
     </div>
   `;
 }

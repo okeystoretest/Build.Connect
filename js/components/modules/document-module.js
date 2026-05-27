@@ -1,4 +1,4 @@
-import { MODULE_ITEM_TYPES, MODULE_VIEW_MODE } from '../../constants/module.constants.js';
+import { MODULE_ITEM_TYPES, MODULE_VIEW_MODE, TOOL_FILTER_OPTIONS } from '../../constants/module.constants.js';
 import { formatDateLabel } from '../../utils/date.js';
 import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
 import { openOverlayModal, closeActiveOverlayModal } from '../shared/overlay-modal.js';
@@ -7,12 +7,13 @@ import { registrarAtividade } from '../../services/historico.service.js';
 
 export function getDocumentModuleMarkup(card, moduleData, moduleUi, renderDependencies) {
   const items = Array.isArray(moduleData?.items) ? moduleData.items : [];
-  const { getModuleEmptyMarkup, getModuleToolbarMarkup, getModuleSearchEmptyMarkup } = renderDependencies;
+  const { getModuleEmptyMarkup, getModuleToolbarMarkup, getModuleSearchEmptyMarkup, getModuleToolFilterMarkup } = renderDependencies;
 
   if (!items.length) {
     return getModuleEmptyMarkup(card, moduleData?.emptyMessage || 'Nenhum arquivo foi encontrado para este módulo.');
   }
 
+  const activeFilter = moduleUi?.selectedToolFilter || '';
   const preparedItems = prepareModuleItems(items, moduleUi, MODULE_ITEM_TYPES.document);
 
   return `
@@ -26,6 +27,8 @@ export function getDocumentModuleMarkup(card, moduleData, moduleUi, renderDepend
 
         ${getModuleToolbarMarkup(card.id, moduleUi, items.length, preparedItems.length, 'Busque por nome do arquivo')}
       </div>
+
+      ${getModuleToolFilterMarkup(TOOL_FILTER_OPTIONS, activeFilter)}
 
       <div class="module-items-grid module-items-grid-docs ${moduleUi.view === MODULE_VIEW_MODE.list ? 'is-list-view' : 'is-grid-view'}" data-module-items-container>
         ${preparedItems.length ? preparedItems.map((item) => renderDocumentItemCard(item, card.id)).join('') : getModuleSearchEmptyMarkup()}
