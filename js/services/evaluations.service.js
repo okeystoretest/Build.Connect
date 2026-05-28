@@ -84,6 +84,7 @@ function normalizeRecord(r) {
     totals,
     summary,
     result,
+    matrixResult: result, // alias — compatibilidade com getQualityMatrixRecordMarkup
     source,
     // Mantém campos originais para compatibilidade
     registro_id:     id,

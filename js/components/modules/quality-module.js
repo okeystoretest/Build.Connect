@@ -15,6 +15,7 @@ import {
   formatEvaluationTimestamp,
   getEvaluationScoreKey,
   getFilteredEvaluationUsers,
+  getMatrixDecision,
 } from './evaluations/evaluation.calculations.js';
 import { getMatrixDecisionGraphMarkup } from './evaluations/evaluation.view.js';
 
@@ -56,6 +57,7 @@ export function createQualityModuleHandlers(dependencies) {
 export function getQualityModuleMarkup(card, moduleData, moduleUi) {
   const qualityUi = getQualityUiState(moduleUi);
   const pendingCount = qualityUi.feedbacksPendentes.length;
+  const hasToolSelected = !!qualityUi.selectedQualityToolId;
 
   const tabs = `
     <div class="quality-view-tabs" role="tablist">
@@ -64,12 +66,13 @@ export function getQualityModuleMarkup(card, moduleData, moduleUi) {
         <i data-lucide="clipboard-list"></i>
         <span>Avaliações</span>
       </button>
+      ${!hasToolSelected ? `
       <button type="button" class="quality-tab-btn ${qualityUi.qualityView === 'feedbacks' ? 'is-active' : ''}"
         data-quality-switch-view="feedbacks" role="tab" aria-selected="${qualityUi.qualityView === 'feedbacks'}">
         <i data-lucide="message-circle"></i>
         <span>Feedbacks</span>
         ${pendingCount > 0 ? `<span class="quality-tab-count">${pendingCount}</span>` : ''}
-      </button>
+      </button>` : ''}
     </div>
   `;
 
@@ -263,11 +266,54 @@ function getQualityRecordCardMarkup(record) {
   return getQualityFormRecordMarkup(record);
 }
 
-function getQualityMatrixRecordMarkup(record) {
-  const result = {
-    ...(record.matrixResult || {}),
+// ── Recálculo de matriz para registros antigos (resultado_json vazio) ────
+
+function _recalcMatrixFromScores(scores) {
+  const toolId = EVALUATION_TOOL_IDS.MATRIX;
+
+  const technicalTotal = MATRIX_TECHNICAL_CRITERIA.reduce((sum, c) => {
+    const key = getEvaluationScoreKey(toolId, c.id, 'technical');
+    return sum + Math.min(10, Math.max(0, Number(scores[key] || 0)));
+  }, 0);
+
+  const emotionalTotal = MATRIX_EMOTIONAL_CRITERIA.reduce((sum, c) => {
+    const key = getEvaluationScoreKey(toolId, c.id, 'emotional');
+    return sum + Math.min(10, Math.max(0, Number(scores[key] || 0)));
+  }, 0);
+
+  const technicalAverage = MATRIX_TECHNICAL_CRITERIA.length
+    ? technicalTotal / MATRIX_TECHNICAL_CRITERIA.length : 0;
+  const emotionalAverage = MATRIX_EMOTIONAL_CRITERIA.length
+    ? emotionalTotal / MATRIX_EMOTIONAL_CRITERIA.length : 0;
+
+  const decision = getMatrixDecision(technicalAverage, emotionalAverage);
+
+  return {
+    technicalTotal,
+    technicalAverage,
+    emotionalTotal,
+    emotionalAverage,
+    decisionId:    decision.id,
+    decisionLabel: decision.label,
     isSaved: true,
   };
+}
+
+function getQualityMatrixRecordMarkup(record) {
+  // Tenta usar o resultado salvo; se vazio (registros antigos), recalcula a partir dos scores
+  let result = record.result || record.matrixResult || null;
+
+  const hasData = result && (
+    Number(result.technicalAverage) > 0 ||
+    Number(result.emotionalAverage) > 0 ||
+    result.decisionId !== 'pending'
+  );
+
+  if (!hasData) {
+    result = _recalcMatrixFromScores(record.scores || {});
+  }
+
+  result = { ...(result || {}), isSaved: true };
 
   return `
     <article class="matrix-workspace">

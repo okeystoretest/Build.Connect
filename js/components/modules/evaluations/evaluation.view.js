@@ -374,7 +374,21 @@ function getEvaluationSaveFeedbackMarkup(evaluationUi) {
     return '';
   }
 
-  return `<span class="evaluation-result-caption">${sanitizeText(evaluationUi.evaluationSaveMessage)}</span>`;
+  const status = evaluationUi.evaluationSaveStatus || '';
+  const cls = status === 'success' ? 'is-success'
+             : status === 'error'   ? 'is-error'
+             : '';
+
+  const icon = status === 'success' ? '<i data-lucide="circle-check"></i>'
+              : status === 'error'   ? '<i data-lucide="circle-alert"></i>'
+              : '';
+
+  return `
+    <span class="evaluation-save-feedback ${cls}" role="status" aria-live="polite">
+      ${icon}
+      ${sanitizeText(evaluationUi.evaluationSaveMessage)}
+    </span>
+  `;
 }
 
 function getMatrixCriterionRowMarkup(toolId, criterion, categoryId, index, scores) {
