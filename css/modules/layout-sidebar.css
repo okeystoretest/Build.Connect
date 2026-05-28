@@ -111,7 +111,8 @@
   will-change: transform;
 }
 
-.sidebar-toggle i {
+.sidebar-toggle i,
+.sidebar-toggle svg {
   transition: transform 220ms var(--ease-premium), opacity 160ms var(--ease-soft);
 }
 
@@ -209,7 +210,9 @@
 
 .nav-icon i,
 .sidebar-toggle i,
+.sidebar-toggle svg,
 .footer-icon-button i,
+.footer-icon-button svg,
 .login-password-toggle i {
   transition: transform var(--duration-fast) var(--ease-premium);
 }
@@ -218,12 +221,20 @@
 .nav-trigger:hover .nav-icon i,
 .submenu-item:hover .nav-icon i,
 .sidebar-toggle:hover i,
-.footer-icon-button:hover i {
+.sidebar-toggle:hover svg,
+.footer-icon-button:hover i,
+.footer-icon-button:hover svg {
   transform: translate3d(0, -1px, 0);
 }
 
-#sidebar-toggle[data-collapsed='true'] i {
+#sidebar-toggle[data-collapsed='true'] i,
+#sidebar-toggle[data-collapsed='true'] svg {
   transform: rotate(180deg);
+}
+
+#sidebar-toggle[data-collapsed='true']:hover i,
+#sidebar-toggle[data-collapsed='true']:hover svg {
+  transform: rotate(180deg) translate3d(0, 0, 0);
 }
 
 .nav-text {

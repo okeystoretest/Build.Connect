@@ -1909,7 +1909,7 @@ body.has-video-modal {
   animation: bc-fade-out 180ms var(--ease-soft) both;
 }
 
-/* ── Modal dialogs (video, TI, feedback) ──────────────────────────────────── */
+/* ── Modal dialogs (video, TI, feedback, ticket-detail) ───────────────────── */
 .video-modal,
 .ti-modal,
 .anon-fb-dialog {
@@ -1918,7 +1918,8 @@ body.has-video-modal {
 
 .video-modal-backdrop.is-closing .video-modal,
 .video-modal-backdrop.is-closing .ti-modal,
-.video-modal-backdrop.is-closing .anon-fb-dialog {
+.video-modal-backdrop.is-closing .anon-fb-dialog,
+.video-modal-backdrop.is-closing .ticket-detail-modal {
   animation: bc-dialog-exit 180ms var(--ease-soft) both;
 }
 

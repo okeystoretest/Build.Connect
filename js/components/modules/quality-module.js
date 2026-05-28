@@ -144,8 +144,6 @@ function getQualitySearchMarkup(card, moduleData, qualityUi, selectedTool, tabs 
         </div>
       </div>
 
-      ${tabs}
-
       <div class="evaluation-picker-block">
         <span class="evaluation-meta-label">Buscar colaborador</span>
         <div class="evaluation-picker" data-quality-picker>
@@ -211,7 +209,7 @@ function getQualityRecordsMarkup(qualityUi, selectedTool, selectedUser) {
         <span class="empty-state-icon" aria-hidden="true"><i data-lucide="loader-circle"></i></span>
         <div>
           <h3 class="card-title">Carregando respostas</h3>
-          <p class="card-description">Buscando registros salvos para ${sanitizeText(selectedUser.nome || 'o colaborador')}.</p>
+          <p class="card-description">Buscando registros de ${sanitizeText(selectedUser.nome || 'o colaborador')}…</p>
         </div>
       </div>
     `;
@@ -234,25 +232,24 @@ function getQualityRecordsMarkup(qualityUi, selectedTool, selectedUser) {
       <div class="empty-state is-compact">
         <span class="empty-state-icon" aria-hidden="true"><i data-lucide="badge-check"></i></span>
         <div>
-          <h3 class="card-title">Nenhuma resposta encontrada</h3>
-          <p class="card-description">Não há registros salvos para ${sanitizeText(selectedTool.title)} deste colaborador.</p>
+          <h3 class="card-title">Nenhum registro encontrado</h3>
+          <p class="card-description">${sanitizeText(selectedTool.title)} não tem registros para ${sanitizeText(selectedUser.nome || 'este colaborador')}.</p>
         </div>
       </div>
     `;
   }
 
+  const count = qualityUi.qualityRecords.length;
   return `
-    <section class="evaluation-form-section" aria-label="Respostas encontradas">
-      <div class="module-shell-header module-shell-header--stacked">
-        <div>
-          <p class="module-eyebrow">${sanitizeText(qualityUi.qualityRecords.length)} registro(s) encontrado(s)</p>
-          <h3 class="module-title">Respostas salvas</h3>
-          <p class="module-description">Resultados filtrados por formulário e colaborador.</p>
-        </div>
-      </div>
-
-      <div class="evaluation-tools-grid">
-        ${qualityUi.qualityRecords.map((record) => getQualityRecordCardMarkup(record)).join('')}
+    <section class="qr-results" aria-label="Registros encontrados">
+      <header class="qr-results-header">
+        <span class="qr-results-badge">
+          <i data-lucide="layers"></i>
+          ${count} registro${count !== 1 ? 's' : ''}
+        </span>
+      </header>
+      <div class="qr-records-list">
+        ${qualityUi.qualityRecords.map((record, i) => `<div class="qr-record-wrap" style="animation-delay:${i * 60}ms">${getQualityRecordCardMarkup(record)}</div>`).join('')}
       </div>
     </section>
   `;
@@ -300,7 +297,6 @@ function _recalcMatrixFromScores(scores) {
 }
 
 function getQualityMatrixRecordMarkup(record) {
-  // Tenta usar o resultado salvo; se vazio (registros antigos), recalcula a partir dos scores
   let result = record.result || record.matrixResult || null;
 
   const hasData = result && (
@@ -315,101 +311,139 @@ function getQualityMatrixRecordMarkup(record) {
 
   result = { ...(result || {}), isSaved: true };
 
+  const dateStr    = formatEvaluationTimestamp(record.createdAt || record.savedAt);
+  const decisionId = result.decisionId || 'pending';
+
   return `
-    <article class="matrix-workspace">
-      <aside class="matrix-result-panel" aria-label="Resumo da matriz de ${sanitizeText(record.evaluatee?.nome || '')}">
-        <div class="matrix-result-summary">
-          <span class="evaluation-result-label">${sanitizeText(record.toolTitle || 'Matriz de Decisão')}</span>
-          <strong class="matrix-decision-title">${sanitizeText(result.decisionLabel || 'Sem decisão')}</strong>
-          <span class="evaluation-result-caption">${sanitizeText(record.evaluatee?.nome || 'Colaborador não identificado')} · ${sanitizeText(record.sectorName || 'Setor não identificado')}</span>
-          <span class="evaluation-result-caption">Salvo em ${formatEvaluationTimestamp(record.createdAt || record.savedAt)}.</span>
+    <article class="qr-matrix-card" aria-label="Matriz de ${sanitizeText(record.evaluatee?.nome || 'colaborador')}">
+
+      <header class="qr-matrix-card-header">
+        <div class="qr-form-card-tool">
+          <span class="qr-form-card-icon"><i data-lucide="chart-column"></i></span>
+          <span class="qr-form-card-toolname">${sanitizeText(record.toolTitle || 'Matriz de Decisão')}</span>
+        </div>
+        <time class="qr-form-card-date">${dateStr}</time>
+      </header>
+
+      <div class="qr-matrix-body">
+
+        <div class="qr-matrix-left">
+
+          <div class="qr-matrix-decision" data-decision="${sanitizeAttribute(decisionId)}">
+            <span class="qr-matrix-decision-label">Decisão</span>
+            <strong class="qr-matrix-decision-value">${sanitizeText(result.decisionLabel || '—')}</strong>
+          </div>
+
+          <div class="qr-matrix-scores">
+            <div class="qr-matrix-score-item">
+              <span class="qr-matrix-score-label">Técnico</span>
+              <strong class="qr-matrix-score-value">${formatEvaluationNumber(result.technicalAverage)}</strong>
+              <small class="qr-matrix-score-total">total ${formatEvaluationNumber(result.technicalTotal)}</small>
+            </div>
+            <div class="qr-matrix-score-item">
+              <span class="qr-matrix-score-label">Emocional</span>
+              <strong class="qr-matrix-score-value">${formatEvaluationNumber(result.emotionalAverage)}</strong>
+              <small class="qr-matrix-score-total">total ${formatEvaluationNumber(result.emotionalTotal)}</small>
+            </div>
+          </div>
+
+          <div class="qr-matrix-people">
+            <div class="qr-matrix-person">
+              <span class="qr-matrix-person-role"><i data-lucide="user"></i> Colaborador</span>
+              <strong class="qr-matrix-person-name">${sanitizeText(record.evaluatee?.nome || '—')}</strong>
+            </div>
+            <div class="qr-matrix-person">
+              <span class="qr-matrix-person-role"><i data-lucide="user-check"></i> Respondente</span>
+              <strong class="qr-matrix-person-name">${sanitizeText(record.respondent?.nome || '—')}</strong>
+            </div>
+          </div>
+
         </div>
 
-        <div class="matrix-metrics-grid">
-          <article class="matrix-metric-card">
-            <span>Técnico</span>
-            <strong>${formatEvaluationNumber(result.technicalAverage)}</strong>
-            <small>Total ${formatEvaluationNumber(result.technicalTotal)}</small>
-          </article>
-          <article class="matrix-metric-card">
-            <span>Emocional</span>
-            <strong>${formatEvaluationNumber(result.emotionalAverage)}</strong>
-            <small>Total ${formatEvaluationNumber(result.emotionalTotal)}</small>
-          </article>
+        <div class="qr-matrix-graph">
+          ${getMatrixDecisionGraphMarkup(result)}
         </div>
-      </aside>
 
-      <div class="matrix-chart-card">
-        ${getMatrixDecisionGraphMarkup(result)}
       </div>
     </article>
   `;
 }
 
 function getQualityFormRecordMarkup(record) {
+  const isPreEffective = record.toolId === EVALUATION_TOOL_IDS.PRE_EFFECTIVE;
+  const isBehavioral   = record.toolId === EVALUATION_TOOL_IDS.BEHAVIORAL;
+  const toolIcon       = isPreEffective ? 'clipboard-check' : isBehavioral ? 'brain-circuit' : 'file-text';
+  const dateStr        = formatEvaluationTimestamp(record.createdAt || record.savedAt);
+
   return `
-    <article class="evaluation-tool-card" aria-label="Registro de ${sanitizeText(record.toolTitle || 'Avaliação')}">
-      <span class="card-icon evaluation-tool-icon" aria-hidden="true">
-        <i data-lucide="clipboard-check"></i>
-      </span>
-      <span class="evaluation-tool-copy">
-        <span class="evaluation-tool-hint">${sanitizeText(record.sectorName || 'Setor não identificado')}</span>
-        <strong class="evaluation-tool-title">${sanitizeText(record.toolTitle || 'Avaliação')}</strong>
-        <span class="evaluation-tool-description">Colaborador: ${sanitizeText(record.evaluatee?.nome || 'Não identificado')}</span>
-        <span class="evaluation-tool-description">Respondente: ${sanitizeText(record.respondent?.nome || 'Não identificado')}</span>
-        <span class="evaluation-tool-description">Salvo em ${formatEvaluationTimestamp(record.createdAt || record.savedAt)}</span>
-        ${getQualityRecordSummaryMarkup(record)}
-        ${record.notes ? `<span class="evaluation-tool-description"><strong>Observações:</strong> ${sanitizeText(record.notes)}</span>` : ''}
-      </span>
+    <article class="qr-form-card" aria-label="Registro de ${sanitizeText(record.toolTitle || 'Avaliação')}">
+
+      <header class="qr-form-card-header">
+        <div class="qr-form-card-tool">
+          <span class="qr-form-card-icon"><i data-lucide="${toolIcon}"></i></span>
+          <span class="qr-form-card-toolname">${sanitizeText(record.toolTitle || 'Avaliação')}</span>
+        </div>
+        <time class="qr-form-card-date">${dateStr}</time>
+      </header>
+
+      <div class="qr-form-card-meta">
+        <div class="qr-meta-item">
+          <span class="qr-meta-label"><i data-lucide="user"></i> Colaborador</span>
+          <span class="qr-meta-value">${sanitizeText(record.evaluatee?.nome || '—')}</span>
+        </div>
+        <div class="qr-meta-item">
+          <span class="qr-meta-label"><i data-lucide="user-check"></i> Respondente</span>
+          <span class="qr-meta-value">${sanitizeText(record.respondent?.nome || '—')}</span>
+        </div>
+        <div class="qr-meta-item">
+          <span class="qr-meta-label"><i data-lucide="building-2"></i> Setor</span>
+          <span class="qr-meta-value">${sanitizeText(record.sectorName || '—')}</span>
+        </div>
+      </div>
+
+      ${_getQualityFormMetricsMarkup(record)}
+
+      ${record.notes ? `
+        <div class="qr-form-card-notes">
+          <span class="qr-meta-label"><i data-lucide="message-square"></i> Observações</span>
+          <p class="qr-form-card-notes-text">${sanitizeText(record.notes)}</p>
+        </div>
+      ` : ''}
+
     </article>
   `;
 }
 
-function getQualityRecordSummaryMarkup(record) {
+function _getQualityFormMetricsMarkup(record) {
   if (record.toolId === EVALUATION_TOOL_IDS.PRE_EFFECTIVE) {
     const totals = record.totals || record.summary?.totals || {};
-
     return `
-      <span class="evaluation-tool-description">
-        <strong>Totais:</strong> ${EVALUATION_PERIODS.map((period) => `${period.label}: ${sanitizeText(totals[period.id] || 0)}`).join(' · ')}
-      </span>
-      ${getPreEffectiveScoresMarkup(record)}
+      <div class="qr-metrics-row">
+        ${EVALUATION_PERIODS.map((p) => `
+          <div class="qr-metric-chip">
+            <span class="qr-metric-label">${sanitizeText(p.label)}</span>
+            <strong class="qr-metric-value">${Number(totals[p.id] || 0)}</strong>
+          </div>
+        `).join('')}
+      </div>
     `;
   }
 
   if (record.toolId === EVALUATION_TOOL_IDS.BEHAVIORAL) {
     const counts = record.summary?.counts || {};
-    const distribution = BEHAVIORAL_EVALUATION_OPTIONS.map((option) => `${option.label}: ${counts[option.id] || 0}`).join(' · ');
-
     return `
-      <span class="evaluation-tool-description"><strong>Distribuição:</strong> ${sanitizeText(distribution)}</span>
-      ${getBehavioralScoresMarkup(record)}
+      <div class="qr-metrics-row">
+        ${BEHAVIORAL_EVALUATION_OPTIONS.map((opt) => `
+          <div class="qr-metric-chip">
+            <span class="qr-metric-label" title="${sanitizeAttribute(opt.title)}">${sanitizeText(opt.label)}</span>
+            <strong class="qr-metric-value">${Number(counts[opt.id] || 0)}</strong>
+          </div>
+        `).join('')}
+      </div>
     `;
   }
 
   return '';
-}
-
-function getPreEffectiveScoresMarkup(record) {
-  const scores = record.scores || {};
-  const filledCount = Object.keys(scores).length;
-
-  if (!filledCount) {
-    return '';
-  }
-
-  return `<span class="evaluation-tool-description"><strong>Notas preenchidas:</strong> ${sanitizeText(filledCount)} campo(s)</span>`;
-}
-
-function getBehavioralScoresMarkup(record) {
-  const scores = record.scores || {};
-  const filledCount = Object.keys(scores).length;
-
-  if (!filledCount) {
-    return '';
-  }
-
-  return `<span class="evaluation-tool-description"><strong>Critérios preenchidos:</strong> ${sanitizeText(filledCount)} resposta(s)</span>`;
 }
 
 function getQualityUiState(moduleUi) {

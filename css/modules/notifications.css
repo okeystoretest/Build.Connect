@@ -67,6 +67,24 @@
   animation: bc-modal-in 200ms var(--ease-premium, ease-out) both;
 }
 
+.notif-backdrop.is-closing {
+  animation: bc-fade-out 180ms var(--ease-soft) both;
+}
+
+.notif-backdrop.is-closing .notif-panel {
+  animation: bc-dialog-exit 180ms var(--ease-soft) both;
+}
+
+@keyframes notifItemOut {
+  from { opacity: 1; transform: translateX(0);     max-height: 120px; }
+  to   { opacity: 0; transform: translateX(12px);  max-height: 0;     padding: 0; margin: 0; }
+}
+
+.notif-item.is-closing {
+  animation: notifItemOut 200ms var(--ease-soft) both;
+  overflow: hidden;
+}
+
 @media (max-width: 600px) {
   .notif-backdrop {
     align-items: flex-end;

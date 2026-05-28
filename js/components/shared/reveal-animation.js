@@ -39,6 +39,9 @@ export function activateRevealAnimations(rootElement) {
     return;
   }
 
+  // Desconecta observer anterior antes de criar novo (evita acumulação)
+  disconnectRevealObserver();
+
   revealObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {

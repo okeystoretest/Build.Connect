@@ -137,7 +137,7 @@ export function openTicketDetailModal(ticket) {
   document.body.classList.add('has-video-modal');
   activeModal = backdrop;
 
-  if (window.lucide) lucide.createIcons({ el: backdrop });
+  if (window.lucide) lucide.createIcons({ root: backdrop });
 }
 
 export function closeTicketDetailModal() {

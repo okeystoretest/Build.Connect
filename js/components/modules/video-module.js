@@ -253,7 +253,7 @@ function openQuizModal(quiz, context) {
   `;
 
   // Lucide icons
-  if (window.lucide) window.lucide.createIcons({ context: backdrop });
+  if (window.lucide) window.lucide.createIcons({ root: backdrop });
 
   // Close button
   backdrop.querySelector('[data-quiz-modal-close]').addEventListener('click', closeQuizModal);
@@ -286,7 +286,7 @@ function openQuizModal(quiz, context) {
     resultEl.innerHTML = isCorreta
       ? `<i data-lucide="check-circle-2"></i><span>Resposta correta!</span>`
       : `<i data-lucide="x-circle"></i><span>Resposta incorreta. A alternativa correta é <strong>${quiz.gabarito.toUpperCase()}</strong>.</span>`;
-    if (window.lucide) window.lucide.createIcons({ context: resultEl });
+    if (window.lucide) window.lucide.createIcons({ root: resultEl });
 
     // Save answer (best-effort)
     await submitQuizAnswer({
@@ -301,7 +301,7 @@ function openQuizModal(quiz, context) {
 
   document.body.appendChild(backdrop);
   activeQuizModal = backdrop;
-  if (window.lucide) window.lucide.createIcons({ context: backdrop });
+  if (window.lucide) window.lucide.createIcons({ root: backdrop });
 }
 
 function handleEscapeQuiz(e) {

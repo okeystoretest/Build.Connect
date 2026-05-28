@@ -42,7 +42,7 @@ export function showToast(message, { type = 'info', duration = 4000 } = {}) {
   void toast.offsetHeight;
   toast.classList.add('bc-toast-visible');
 
-  if (window.lucide) lucide.createIcons({ el: toast });
+  if (window.lucide) lucide.createIcons({ root: toast });
 
   const timer = setTimeout(() => dismiss(toast), duration);
   toast._timer = timer;
