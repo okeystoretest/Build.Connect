@@ -2,6 +2,7 @@ import { refreshLucideIcons } from '../../services/icons.service.js';
 import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
 import { animateOut } from '../../utils/motion.js';
 import { getNotifications, markNotificationRead, markAllRead, fetchNotifications } from '../../services/notifications.service.js';
+import { getAuthenticatedUser } from '../../services/auth.service.js';
 
 let _activePanel   = null;
 let _escHandler    = null;
@@ -14,12 +15,25 @@ const TIPO_CONFIG = {
   novo_conteudo:     { icon: 'bell-ring',       color: '#10B981', label: 'Novo conteúdo'},
 };
 
+// ── Helpers ───────────────────────────────────────────────────────────────
+
+function _isRetaguardaUser() {
+  const user = getAuthenticatedUser();
+  if (!user?.setor) return false;
+  const setor = user.setor.toLowerCase();
+  return setor === 'all' || setor.split(/,\s*/).some(s => s === 'retaguarda');
+}
+
+function _getUnreadNotifications() {
+  return getNotifications().filter(n => !n.lida);
+}
+
 // ── Abertura ──────────────────────────────────────────────────────────────
 
 export function openNotificationsPanel() {
   closeNotificationsPanel();
 
-  const notifications = getNotifications();
+  const notifications = _getUnreadNotifications();
 
   const panel = document.createElement('div');
   panel.id        = 'notifications-panel-root';
@@ -44,20 +58,44 @@ export function openNotificationsPanel() {
   // Botão fechar
   panel.querySelector('#notif-close-btn')?.addEventListener('click', closeNotificationsPanel);
 
-  // Marcar todas como lidas
+  // Marcar todas como lidas → limpa a lista
   panel.querySelector('[data-notif-mark-all]')?.addEventListener('click', async () => {
     await markAllRead();
     _rerenderList(panel);
   });
 
-  // Clique em notificação individual → marca como lida
+  // Clique em notificação individual
   panel.addEventListener('click', async e => {
     const item = e.target.closest('[data-notif-id]');
     if (!item || item.dataset.notifLida === 'true') return;
-    await markNotificationRead(item.dataset.notifId);
-    item.classList.add('is-read');
-    item.dataset.notifLida = 'true';
-    _refreshUnreadIndicator(panel);
+
+    const notifId = item.dataset.notifId;
+    const notifTipo = item.dataset.notifTipo || '';
+
+    // Marca como lida
+    await markNotificationRead(notifId);
+
+    // Se Retaguarda e tipo chamado_status → navega para Requisições de TI
+    if (notifTipo === 'chamado_status' && _isRetaguardaUser()) {
+      closeNotificationsPanel();
+      document.dispatchEvent(new CustomEvent('bc:navigate', { detail: { itemId: 'retaguarda' } }));
+      return;
+    }
+
+    // Outros usuários → remove da lista com animação
+    animateOut(item, 'is-closing', 200, () => {
+      item.remove();
+      _refreshUnreadIndicator(panel);
+      // Se não sobrou nenhuma, mostra estado vazio
+      const remaining = panel.querySelectorAll('[data-notif-id]');
+      if (!remaining.length) {
+        const list = panel.querySelector('[data-notif-list]');
+        if (list) {
+          list.innerHTML = _buildEmptyMarkup();
+          refreshLucideIcons(list);
+        }
+      }
+    });
   });
 }
 
@@ -79,15 +117,14 @@ export function closeNotificationsPanel() {
 function _rerenderList(panel) {
   const list = panel.querySelector('[data-notif-list]');
   if (!list) return;
-  const notifications = getNotifications();
+  const notifications = _getUnreadNotifications();
   list.innerHTML = _buildListMarkup(notifications);
   refreshLucideIcons(list);
   _refreshUnreadIndicator(panel);
 }
 
 function _refreshUnreadIndicator(panel) {
-  const notifications = getNotifications();
-  const unread   = notifications.filter(n => !n.lida).length;
+  const unread   = _getUnreadNotifications().length;
   const subhead  = panel.querySelector('[data-notif-subhead]');
   const counter  = panel.querySelector('[data-notif-counter]');
   if (subhead) subhead.style.display = unread > 0 ? '' : 'none';
@@ -97,7 +134,7 @@ function _refreshUnreadIndicator(panel) {
 // ── Markup ────────────────────────────────────────────────────────────────
 
 function _buildPanelMarkup(notifications) {
-  const unread = notifications.filter(n => !n.lida).length;
+  const unread = notifications.length;
 
   return `
     <div class="notif-panel">
@@ -132,24 +169,27 @@ function _buildPanelMarkup(notifications) {
   `;
 }
 
+function _buildEmptyMarkup() {
+  return `
+    <div class="notif-empty">
+      <i data-lucide="bell-off"></i>
+      <p>Nenhuma notificação por enquanto.</p>
+    </div>
+  `;
+}
+
 function _buildListMarkup(notifications) {
-  if (!notifications.length) {
-    return `
-      <div class="notif-empty">
-        <i data-lucide="bell-off"></i>
-        <p>Nenhuma notificação por enquanto.</p>
-      </div>
-    `;
-  }
+  if (!notifications.length) return _buildEmptyMarkup();
 
   return notifications.map(n => {
     const cfg  = TIPO_CONFIG[n.tipo] || TIPO_CONFIG.novo_conteudo;
     const time = _formatTime(n.criado_em);
     return `
-      <div class="notif-item ${n.lida ? 'is-read' : ''}"
+      <div class="notif-item"
         data-notif-id="${sanitizeAttribute(String(n.id))}"
+        data-notif-tipo="${sanitizeAttribute(String(n.tipo || ''))}"
         data-notif-lida="${n.lida}"
-        title="${n.lida ? '' : 'Clique para marcar como lida'}"
+        title="Clique para ${n.tipo === 'chamado_status' && _isRetaguardaUser() ? 'abrir requisições' : 'dispensar'}"
         tabindex="0"
         role="button">
         <div class="notif-item-icon" style="color:${cfg.color};background:${cfg.color}18">
@@ -165,7 +205,7 @@ function _buildListMarkup(notifications) {
           <strong class="notif-item-title">${sanitizeText(n.titulo)}</strong>
           <p class="notif-item-msg">${sanitizeText(n.mensagem)}</p>
         </div>
-        ${!n.lida ? `<span class="notif-unread-dot" aria-label="Não lida"></span>` : ''}
+        <span class="notif-unread-dot" aria-label="Não lida"></span>
       </div>
     `;
   }).join('');

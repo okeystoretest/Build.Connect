@@ -7,7 +7,7 @@ let _unreadCount    = 0;
 let _pollingTimer   = null;
 let _fetchInFlight  = false;
 
-const POLL_INTERVAL_MS = 90_000; // 90 segundos
+const POLL_INTERVAL_MS = 15_000; // 15 segundos — tempo real
 const VISIBILITY_DEBOUNCE_MS = 3_000;
 
 // ── Getters ────────────────────────────────────────────────────────────────

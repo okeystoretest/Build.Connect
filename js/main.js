@@ -69,6 +69,12 @@ authController.bootstrap();
 document.getElementById('notifications-button')
   ?.addEventListener('click', () => openNotificationsPanel());
 
+// Navegação disparada por notificações (ex: clicar em chamado TI → Retaguarda)
+document.addEventListener('bc:navigate', (e) => {
+  const itemId = e.detail?.itemId;
+  if (itemId) navigationController.handleNavigation(itemId);
+});
+
 function getAccessibleNavigationItems() {
   return getNavigationItemsForUser(state.authenticatedUser);
 }
