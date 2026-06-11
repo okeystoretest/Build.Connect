@@ -4232,3 +4232,651 @@ body.has-video-modal {
   border-color: var(--primary);
   color: var(--bg);
 }
+/* ═══════════════════════════════════════════════════════════════════════════
+   HISTORICO — Pending Content Card
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.hd-pending-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.hd-pending-card--empty {
+  padding: 14px 16px;
+}
+
+.hd-pending-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+}
+
+.hd-pending-card--empty .hd-pending-card-head {
+  border-bottom: none;
+  background: none;
+  color: var(--muted);
+}
+
+.hd-pending-card-head i {
+  width: 14px;
+  height: 14px;
+  color: #F59E0B;
+  flex-shrink: 0;
+}
+
+.hd-pending-card--empty .hd-pending-card-head i {
+  color: #10B981;
+}
+
+.hd-pending-badge {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 0 6px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #F59E0B;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.hd-pending-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.hd-pending-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  font-size: 0.82rem;
+}
+
+.hd-pending-item:last-child {
+  border-bottom: none;
+}
+
+.hd-pending-item-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.hd-pending-item-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.hd-pending-item-type {
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HISTORICO — Kanban Integration Board
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.hd-kanban {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.hd-kanban-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+}
+
+.hd-kanban-head i {
+  width: 14px;
+  height: 14px;
+  color: var(--primary);
+}
+
+.hd-kanban-columns {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  min-height: 120px;
+}
+
+@media (max-width: 860px) {
+  .hd-kanban-columns {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .hd-kanban-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hd-kanban-col {
+  padding: 14px 12px;
+  border-right: 1px solid var(--border);
+  min-height: 120px;
+  transition: background 240ms var(--ease-premium);
+}
+
+.hd-kanban-col:last-child {
+  border-right: none;
+}
+
+.hd-kanban-col.is-active {
+  background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+}
+
+.hd-kanban-col-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hd-kanban-col.is-active .hd-kanban-col-head {
+  color: var(--text);
+}
+
+.hd-kanban-col-head i {
+  width: 12px;
+  height: 12px;
+}
+
+.hd-kanban-empty-col {
+  min-height: 60px;
+}
+
+.hd-kanban-card {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  border-radius: 10px;
+  background: var(--surface-2);
+  padding: 12px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.hd-kanban-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.hd-kanban-card-header > i {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.hd-kanban-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hd-kanban-card-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hd-kanban-card-setor {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.hd-kanban-card-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hd-kanban-progress-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border) 80%, transparent);
+  overflow: hidden;
+}
+
+.hd-kanban-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 500ms var(--ease-premium);
+}
+
+.hd-kanban-progress-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  min-width: 36px;
+  text-align: right;
+}
+
+.hd-kanban-card-counts {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPACT LIST MODE — Histórico search results
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.historico-user-results {
+  gap: 3px;
+  flex-wrap: nowrap;
+  flex-direction: column;
+}
+
+.historico-user-option {
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+
+.historico-user-option i {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.historico-user-option small {
+  font-size: 0.72rem;
+}
+
+/* ── Histórico: colaborador pill/tag layout ──────────────────────────────── */
+.historico-user-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.historico-user-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 150ms var(--ease-soft), background 150ms var(--ease-soft);
+  white-space: nowrap;
+  max-width: 280px;
+}
+
+.historico-user-pill:hover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.historico-user-pill.is-selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  font-weight: 600;
+}
+
+.historico-pill-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.historico-pill-id {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--muted);
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border) 60%, transparent);
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.historico-user-pill.is-selected .historico-pill-id {
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
+  color: var(--primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FEATURE CARD ALERTS — pulsing badge + attention icon
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.feature-card {
+  position: relative;
+  overflow: visible;
+}
+
+.feature-card-alert-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px 2px 4px;
+  border-radius: 999px;
+  background: #EF4444;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  z-index: 2;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.feature-card-alert-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fff;
+  display: inline-block;
+  animation: pulse-dot 1.4s cubic-bezier(0.4,0,0.6,1) infinite;
+}
+
+.feature-card-alert-count {
+  line-height: 1;
+}
+
+.feature-card-attention {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: #EF4444;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.feature-card-attention i {
+  width: 16px;
+  height: 16px;
+}
+
+.feature-card.has-alert {
+  border-color: color-mix(in srgb, #EF4444 30%, var(--border));
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PROGRESS CARD — attention icon (top-right of ring card)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.hd-ring-card {
+  position: relative;
+}
+
+.hd-progress-alert {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.hd-progress-alert i {
+  width: 16px;
+  height: 16px;
+}
+
+.hd-progress-alert.is-red {
+  color: #EF4444;
+  background: rgba(239,68,68,0.12);
+}
+
+.hd-progress-alert.is-yellow {
+  color: #F59E0B;
+  background: rgba(245,158,11,0.12);
+}
+
+.hd-progress-alert.is-blue {
+  color: #3B82F6;
+  background: rgba(59,130,246,0.12);
+}
+
+.hd-progress-alert--done {
+  color: #10B981;
+  background: rgba(16,185,129,0.12);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PENDING CONTENT CARD — per-item done/pending indicator
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.hd-pending-item.is-done {
+  opacity: 0.65;
+}
+
+.hd-item-done-check {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: #10B981;
+  display: flex;
+  align-items: center;
+}
+
+.hd-item-done-check i {
+  width: 14px;
+  height: 14px;
+}
+
+.hd-item-pending-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #EF4444;
+  flex-shrink: 0;
+  margin-left: auto;
+  animation: pulse-dot 1.4s cubic-bezier(0.4,0,0.6,1) infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PENDING CONTENT CARD — category sections (Documentos / Inst. Escritas / Vídeo)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.hd-pending-categories {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Each category block sits below the global header */
+.hd-pending-category {
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.hd-pending-category:last-child {
+  border-bottom: none;
+}
+
+/* Category title row: icon + label + count pill */
+.hd-pending-cat-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px 6px;
+  background: color-mix(in srgb, var(--surface-2) 40%, transparent);
+}
+
+.hd-pending-cat-header i {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.hd-pending-cat-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+
+.hd-pending-cat-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Items inside a category inherit .hd-pending-list / .hd-pending-item rules */
+.hd-pending-category .hd-pending-list {
+  max-height: 200px;
+}
+
+.hd-pending-category .hd-pending-item {
+  padding-left: 28px; /* indent under category header icon */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   QUALITY MODULE — unread dot per evaluation record
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.qr-record-wrap {
+  position: relative;
+}
+
+.qr-unread-dot {
+  position: absolute;
+  top: 14px;
+  left: -10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #EF4444;
+  animation: pulse-dot 1.4s cubic-bezier(0.4,0,0.6,1) infinite;
+  z-index: 1;
+}
+
+.qr-record-wrap.is-unread {
+  border-left: 3px solid #EF4444;
+  padding-left: 10px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONTENT ITEM — Atenção / Concluído status badge
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.module-item-card {
+  position: relative;
+}
+
+.module-item-status-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.module-item-status-badge i {
+  width: 12px;
+  height: 12px;
+}
+
+.module-item-status-badge.is-pending {
+  color: #F59E0B;
+  background: rgba(245,158,11,0.12);
+  /* Posicionar no canto inferior direito do card de conteúdo */
+  top: auto;
+  bottom: 8px;
+  right: 8px;
+}
+
+.module-item-status-badge.is-complete {
+  color: #10B981;
+  background: rgba(16,185,129,0.12);
+}
+
+.module-item-card.is-done {
+  opacity: 0.7;
+}
+
+.module-item-card.is-done:hover {
+  opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FEATURE CARD — complete state (green checkmark)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.feature-card-alert-badge.is-complete {
+  background: #10B981;
+  padding: 4px;
+  border-radius: 50%;
+}
+
+.feature-card-alert-badge.is-complete i {
+  width: 14px;
+  height: 14px;
+  color: #fff;
+}

@@ -46,6 +46,32 @@
       gap: 20px;
     }
 
+    .dash-month-filter {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .dash-month-filter .filter-label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      font-weight: 600;
+    }
+
+    .dash-month-filter .filter-label i,
+    .dash-month-filter .filter-label svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .dash-month-filter .filter-select {
+      min-width: 160px;
+    }
+
     .dash-clock {
       font-size: 0.82rem;
       color: var(--muted);

@@ -9,20 +9,7 @@
       content="Build.Connect - Hub de documentos e vídeos de integração por setor."
     />
 
-    <!-- Security headers -->
-    <meta http-equiv="Content-Security-Policy" content="
-      default-src 'self';
-      script-src 'self' https://unpkg.com https://www.youtube.com https://s.ytimg.com;
-      style-src 'self';
-      img-src 'self' data: https://*.googleusercontent.com https://*.gstatic.com https://i.ytimg.com;
-      frame-src https://script.google.com https://*.googleusercontent.com https://docs.google.com https://drive.google.com https://www.youtube.com https://www.youtube-nocookie.com;
-      connect-src 'self' https://*.supabase.co https://www.googleapis.com;
-      font-src 'self';
-      object-src 'none';
-      base-uri 'self';
-      form-action 'self' https://script.google.com;
-      upgrade-insecure-requests;
-    " />
+    <!-- Security meta tags (CSP aplicada via HTTP headers no vercel.json) -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
     <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()" />
