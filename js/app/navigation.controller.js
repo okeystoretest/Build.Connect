@@ -2,6 +2,7 @@ import { resetModuleSelectionForSector } from '../components/content.js';
 import { closeVideoModal } from '../components/modules/video-module.js';
 import { getModuleState } from '../state/module-state.js';
 import { ACCESS_KEYS, SECTOR_IDS } from '../constants/sector.constants.js';
+import { prefetchSectorAlerts, syncSectorAlertsFromCache } from '../services/sector-alerts.service.js';
 import {
   findItemById,
   getAccessKeysForUser,
@@ -62,6 +63,8 @@ export function createNavigationController({
       const moduleState = getModuleState(itemId);
       if (moduleState.selectedModuleId) {
         resetModuleSelectionForSector(itemId);
+        // Re-sync cached alerts into state before re-rendering the cards view
+        syncSectorAlertsFromCache(itemId);
         persistAndRender({ shouldRenderContent: true, animateContent: true });
       }
       return;
@@ -91,7 +94,27 @@ export function createNavigationController({
       state.isCommercialExpanded = true;
     }
 
+    // Hydrate state with cached alerts synchronously so the very first render
+    // already has badge data — eliminates the initial flicker on sector selection.
+    if (state.authenticatedUser) {
+      syncSectorAlertsFromCache(itemId);
+    }
+
     persistAndRender({ shouldRenderContent: previousItemId !== itemId, animateContent: true });
+
+    // Busca alertas em background — restaura cache imediatamente, re-renderiza só se dados mudaram
+    if (itemId !== SECTOR_IDS.home && state.authenticatedUser) {
+      const snapshotBefore = JSON.stringify(getModuleState(itemId).cardAlerts || {});
+      prefetchSectorAlerts(itemId, state.authenticatedUser).then(() => {
+        const snapshotAfter = JSON.stringify(getModuleState(itemId).cardAlerts || {});
+        if (snapshotAfter !== snapshotBefore && state.activeItemId === itemId) {
+          const ms = getModuleState(itemId);
+          if (!ms.selectedModuleId) {
+            persistAndRender({ shouldRenderContent: true, animateContent: false });
+          }
+        }
+      }).catch(() => {});
+    }
   }
 
   function handleGroupToggle(groupId) {

@@ -28,6 +28,8 @@ import {
   setModuleState,
 } from '../state/module-state.js';
 import { closeActiveOverlayModal } from './shared/overlay-modal.js';
+import { fetchPendingEvaluationUserIds } from '../services/evaluations.service.js';
+import { requestApi } from '../services/api.service.js';
 import { getWelcomeViewMarkup } from './views/welcome-view.js';
 import { getSectorCardsViewMarkup } from './views/sector-cards-view.js';
 import { getModuleStageMarkup } from './modules/module-stage.js';
@@ -38,6 +40,7 @@ import {
 import {
   createUserAdminModuleHandlers,
 } from './modules/user-admin-module.js';
+import { initUserAdminCreateMode } from './modules/user-admin/user-admin.handlers.js';
 import {
   createEvaluationModuleHandlers,
   EVALUATION_UI_DEFAULTS,
@@ -61,9 +64,7 @@ import {
   activateViewTransition,
   disconnectRevealObserver,
 } from './shared/reveal-animation.js';
-
 export { resetModuleSelectionForSector } from '../state/module-state.js';
-
 const VIEW_EXIT_DURATION_MS = 180;
 const MODULE_CARD_IDS = new Set([...DEFAULT_SECTOR_CARDS, ...getCardsForSector('dho')].map((card) => card.id));
 MODULE_CARD_IDS.add(MODULE_IDS.tiRequest);
@@ -265,22 +266,46 @@ async function handleModuleSelection(rootElement, sector, moduleId, authenticate
         return;
       }
 
+      const allUsers = Array.isArray(usersResponse.users) ? usersResponse.users : [];
+
+      const sectorFilteredUsers = isDhoSector(sector.id)
+        ? allUsers
+        : allUsers.filter((u) => {
+            // Admins and Gestores always visible regardless of their setor field
+            if (u.nivel === 'Admin' || u.nivel === 'Gestor') return true;
+            const s = String(u.setor || '').toLowerCase();
+            return s === 'all' || s.includes(sector.id);
+          });
+
+      const moduleData = {
+        module: { id: moduleId, source: MODULE_SOURCE_LABELS[moduleId] || APP_SOURCE_LABEL },
+        respondent: authenticatedUser || null,
+        evaluationSector: {
+          id: sector.id,
+          label: getSectorBreadcrumb(sector),
+        },
+        users: sectorFilteredUsers,
+      };
+
       setModuleState(sector.id, {
         selectedModuleId: moduleId,
         status: MODULE_STATUS.success,
-        moduleData: {
-          module: { id: moduleId, source: MODULE_SOURCE_LABELS[moduleId] || APP_SOURCE_LABEL },
-          respondent: authenticatedUser || null,
-          evaluationSector: {
-            id: sector.id,
-            label: getSectorBreadcrumb(sector),
-          },
-          users: Array.isArray(usersResponse.users) ? usersResponse.users : [],
-        },
+        moduleData,
         errorMessage: '',
         ui: defaultUi,
       });
+
       renderModuleStage(rootElement, sector);
+
+      if (moduleId === MODULE_IDS.evaluation && sectorFilteredUsers.length) {
+        fetchPendingEvaluationUserIds(sector.id, sectorFilteredUsers.map(u => u.id)).then((ids) => {
+          const cs = getModuleState(sector.id);
+          if (!cs.moduleData) return;
+          setModuleState(sector.id, { ...cs, moduleData: { ...cs.moduleData, pendingUserIds: Array.from(ids) } });
+          renderModuleStage(rootElement, sector);
+        }).catch(() => {});
+      }
+
       return;
     } catch (error) {
       setModuleState(sector.id, {
@@ -307,6 +332,11 @@ async function handleModuleSelection(rootElement, sector, moduleId, authenticate
       ui: { ...MODULE_UI_DEFAULTS },
     });
     renderModuleStage(rootElement, sector);
+
+    if (moduleId === MODULE_IDS.userAdmin) {
+      initUserAdminCreateMode(rootElement, sector);
+    }
+
     return;
   }
 
@@ -328,6 +358,15 @@ async function handleModuleSelection(rootElement, sector, moduleId, authenticate
         errorMessage: '',
         ui: currentState.selectedModuleId === moduleId ? currentState.ui || { ...MODULE_UI_DEFAULTS } : { ...MODULE_UI_DEFAULTS },
       });
+
+      // Fetch consumed refs for per-item "Atenção"/"Concluído" badges (non-blocking)
+      requestApi('buscar-meus-consumos', { sectorId: sector.id }).then((r) => {
+        if (MODULE_REQUEST_TOKENS.get(sector.id) !== requestToken) return;
+        const cs = getModuleState(sector.id);
+        if (!cs.moduleData) return;
+        setModuleState(sector.id, { ...cs, moduleData: { ...cs.moduleData, consumedRefIds: r?.refIds || [] } });
+        renderModuleStage(rootElement, sector);
+      }).catch(() => {});
     } else {
       setModuleState(sector.id, {
         selectedModuleId: moduleId,
@@ -440,7 +479,8 @@ function renderModuleStage(rootElement, sector) {
   const stageState = getModuleState(sector.id);
 
   cards.forEach((cardElement) => {
-    const isSelected = cardElement.dataset.moduleId === stageState.selectedModuleId;
+    const moduleId = cardElement.dataset.moduleId;
+    const isSelected = moduleId === stageState.selectedModuleId;
     cardElement.classList.toggle('is-selected', isSelected);
     cardElement.setAttribute('aria-pressed', String(isSelected));
   });

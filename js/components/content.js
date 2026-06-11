@@ -13,7 +13,6 @@ import {
 import {
   ACTIVE_USERS_MODULE_IDS,
   APP_SOURCE_LABEL,
-  DYNAMIC_EXTERNAL_MODULE_IDS,
   INTERNAL_USER_MODULE_IDS,
   MODULE_IDS,
   MODULE_SORT_ORDER,
@@ -27,7 +26,9 @@ import {
   getModuleState,
   resetModuleSelectionForSector,
   setModuleState,
+  setCardAlert,
 } from '../state/module-state.js';
+import { fetchPendingEvaluationUserIds } from '../services/evaluations.service.js';
 import { closeActiveOverlayModal } from './shared/overlay-modal.js';
 import { getWelcomeViewMarkup } from './views/welcome-view.js';
 import { getSectorCardsViewMarkup } from './views/sector-cards-view.js';
@@ -187,12 +188,6 @@ function getViewMarkup(viewState) {
 }
 
 function isInternalModule(sectorId, moduleId) {
-  // Módulos que carregam conteúdo externo (Drive/YouTube) nunca são internos,
-  // mesmo que pertençam ao setor DHO
-  if (DYNAMIC_EXTERNAL_MODULE_IDS.has(moduleId)) {
-    return false;
-  }
-
   if (isDhoSector(sectorId)) {
     return true;
   }
@@ -225,7 +220,7 @@ async function handleModuleSelection(rootElement, sector, moduleId, authenticate
   });
   renderModuleStage(rootElement, sector);
 
-  // Modules that load their own data via handlers
+  // Modules that load their own data via handlers (e.g. TI Requests)
   if (SELF_LOADING_MODULE_IDS.has(moduleId)) {
     if (moduleId === MODULE_IDS.questionarios) {
       setModuleState(sector.id, {
@@ -239,7 +234,6 @@ async function handleModuleSelection(rootElement, sector, moduleId, authenticate
       return;
     }
 
-    // TI Requests (default SELF_LOADING path)
     setModuleState(sector.id, {
       selectedModuleId: moduleId,
       status: MODULE_STATUS.success,
@@ -274,21 +268,87 @@ async function handleModuleSelection(rootElement, sector, moduleId, authenticate
         return;
       }
 
+      const allUsers = Array.isArray(usersResponse.users) ? usersResponse.users : [];
+
+      const sectorFilteredUsers = isDhoSector(sector.id)
+        ? allUsers
+        : allUsers.filter((u) => {
+            // Admins and Gestores always visible regardless of their setor field
+            if (u.nivel === 'Admin' || u.nivel === 'Gestor') return true;
+            const s = String(u.setor || '').toLowerCase();
+            return s === 'all' || s.split(/,\s*/).includes(sector.id);
+          });
+
+      const moduleData = {
+        module: { id: moduleId, source: MODULE_SOURCE_LABELS[moduleId] || APP_SOURCE_LABEL },
+        respondent: authenticatedUser || null,
+        evaluationSector: {
+          id: sector.id,
+          label: getSectorBreadcrumb(sector),
+        },
+        users: sectorFilteredUsers,
+      };
+
       setModuleState(sector.id, {
         selectedModuleId: moduleId,
         status: MODULE_STATUS.success,
-        moduleData: {
-          module: { id: moduleId, source: MODULE_SOURCE_LABELS[moduleId] || APP_SOURCE_LABEL },
-          respondent: authenticatedUser || null,
-          evaluationSector: {
-            id: sector.id,
-            label: getSectorBreadcrumb(sector),
-          },
-          users: Array.isArray(usersResponse.users) ? usersResponse.users : [],
-        },
+        moduleData,
         errorMessage: '',
         ui: defaultUi,
       });
+
+      // Set evaluation card alert for pending evaluations — async, non-blocking
+      if (moduleId === MODULE_IDS.evaluation && sectorFilteredUsers.length) {
+        const userIds = sectorFilteredUsers.map(u => u.id);
+        fetchPendingEvaluationUserIds(sector.id, userIds).then(({ pendingIds, pendingByTool }) => {
+          // Store pending IDs + pendingByTool in moduleData so the evaluation view can use them
+          const currentState = getModuleState(sector.id);
+          if (currentState.moduleData) {
+            setModuleState(sector.id, {
+              ...currentState,
+              moduleData: {
+                ...currentState.moduleData,
+                pendingUserIds: Array.from(pendingIds),
+                pendingByTool,
+              },
+            });
+          }
+          setCardAlert(sector.id, 'avaliacao', pendingIds.size > 0
+            ? { type: 'pending', count: pendingIds.size }
+            : null);
+          // Patch badges into DOM immediately without a full re-render
+          const cards = rootElement.querySelectorAll('[data-module-card]');
+          const alerts = getModuleState(sector.id).cardAlerts || {};
+          cards.forEach((cardElement) => {
+            const mId = cardElement.dataset.moduleId;
+            const alert = alerts[mId] || null;
+            let badge = cardElement.querySelector('.feature-card-alert-badge');
+            let attn  = cardElement.querySelector('.feature-card-attention');
+            if (alert) {
+              cardElement.classList.add('has-alert');
+              if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'feature-card-alert-badge';
+                cardElement.prepend(badge);
+              }
+              badge.innerHTML = `<span class="feature-card-alert-dot"></span>${alert.count > 0 ? `<span class="feature-card-alert-count">${alert.count}</span>` : ''}`;
+              if (!attn) {
+                attn = document.createElement('span');
+                attn.className = 'feature-card-attention';
+                attn.setAttribute('aria-hidden', 'true');
+                attn.innerHTML = '<i data-lucide="alert-triangle"></i>';
+                cardElement.prepend(attn);
+                refreshLucideIcons(attn);
+              }
+            }
+          });
+          // Re-render module stage so tool-level pending badges become visible
+          if (currentState.selectedModuleId === MODULE_IDS.evaluation) {
+            renderModuleStage(rootElement, sector);
+          }
+        }).catch(() => {});
+      }
+
       renderModuleStage(rootElement, sector);
       return;
     } catch (error) {
@@ -432,15 +492,16 @@ function updateModuleQuery(rootElement, sector, query) {
   }
 }
 
-function setModuleToolFilter(rootElement, sector, tool) {
+function setModuleToolFilter(rootElement, sector, filter) {
   const state = getModuleState(sector.id);
 
   if (!state.selectedModuleId) {
     return;
   }
 
+  // Toggle: clicar no filtro ativo desseleciona
   const currentFilter = state.ui?.selectedToolFilter || '';
-  const nextFilter = currentFilter === tool ? '' : tool;
+  const nextFilter = currentFilter === filter ? '' : filter;
 
   setModuleState(sector.id, {
     ...state,
@@ -461,7 +522,7 @@ function clearSelectedModule(rootElement, sector, authenticatedUser = null) {
     selectedItem: sector,
     isWelcome: false,
     shouldRenderCards: true,
-    authenticatedUser: null,
+    authenticatedUser,
   });
 }
 
@@ -469,11 +530,41 @@ function renderModuleStage(rootElement, sector) {
   const cards = rootElement.querySelectorAll('[data-module-card]');
   const stageElement = rootElement.querySelector('[data-module-stage]');
   const stageState = getModuleState(sector.id);
+  const cardAlerts = stageState.cardAlerts || {};
 
   cards.forEach((cardElement) => {
-    const isSelected = cardElement.dataset.moduleId === stageState.selectedModuleId;
+    const moduleId = cardElement.dataset.moduleId;
+    const isSelected = moduleId === stageState.selectedModuleId;
     cardElement.classList.toggle('is-selected', isSelected);
     cardElement.setAttribute('aria-pressed', String(isSelected));
+
+    // Sync card alert badge directly in the DOM without a full re-render
+    const alert = cardAlerts[moduleId] || null;
+    let badge = cardElement.querySelector('.feature-card-alert-badge');
+    let attn  = cardElement.querySelector('.feature-card-attention');
+
+    if (alert) {
+      cardElement.classList.add('has-alert');
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'feature-card-alert-badge';
+        cardElement.prepend(badge);
+      }
+      badge.innerHTML = `<span class="feature-card-alert-dot"></span>${alert.count > 0 ? `<span class="feature-card-alert-count">${alert.count}</span>` : ''}`;
+      badge.setAttribute('aria-label', `${alert.count} pendência${alert.count !== 1 ? 's' : ''}`);
+      if (!attn) {
+        attn = document.createElement('span');
+        attn.className = 'feature-card-attention';
+        attn.setAttribute('aria-hidden', 'true');
+        attn.innerHTML = '<i data-lucide="alert-triangle"></i>';
+        cardElement.prepend(attn);
+        refreshLucideIcons(attn);
+      }
+    } else {
+      cardElement.classList.remove('has-alert');
+      badge?.remove();
+      attn?.remove();
+    }
   });
 
   if (!stageElement) {
@@ -481,25 +572,18 @@ function renderModuleStage(rootElement, sector) {
       selectedItem: sector,
       isWelcome: false,
       shouldRenderCards: true,
-      authenticatedUser: null,
+      authenticatedUser: stageState.moduleData?.respondent || null,
     });
     return;
   }
 
-  const alreadyVisible = stageElement.classList.contains('is-module-stage-visible');
-
   stageElement.innerHTML = getModuleStageMarkup(sector, stageState);
-
-  if (!alreadyVisible) {
-    stageElement.classList.remove('is-module-stage-visible');
-    stageElement.classList.add('is-visible');
-  }
+  stageElement.classList.remove('is-module-stage-visible');
+  stageElement.classList.add('is-visible');
 
   refreshLucideIcons(stageElement);
 
-  if (!alreadyVisible) {
-    requestAnimationFrame(() => {
-      stageElement.classList.add('is-module-stage-visible');
-    });
-  }
+  requestAnimationFrame(() => {
+    stageElement.classList.add('is-module-stage-visible');
+  });
 }

@@ -31,9 +31,32 @@ export function resetModuleSelectionForSector(sectorId) {
     return;
   }
 
-  MODULE_STATE_BY_SECTOR.set(sectorId, createDefaultModuleState());
+  // Preserve cardAlerts so badges remain visible after navigating back to the cards view
+  const current = getModuleState(sectorId);
+  MODULE_STATE_BY_SECTOR.set(sectorId, {
+    ...createDefaultModuleState(),
+    cardAlerts: current.cardAlerts || {},
+  });
 }
 
 export function getModuleStateEntries() {
   return Array.from(MODULE_STATE_BY_SECTOR.entries());
+}
+
+// ── Card Alerts ────────────────────────────────────────────────────────────
+// cardAlerts: { [cardId]: { type: 'pending' | 'unread', count: number } | null }
+
+export function setCardAlert(sectorId, cardId, alert) {
+  const current = getModuleState(sectorId);
+  const cardAlerts = { ...(current.cardAlerts || {}) };
+  if (alert) {
+    cardAlerts[cardId] = alert;
+  } else {
+    delete cardAlerts[cardId];
+  }
+  MODULE_STATE_BY_SECTOR.set(sectorId, { ...current, cardAlerts });
+}
+
+export function clearCardAlert(sectorId, cardId) {
+  setCardAlert(sectorId, cardId, null);
 }

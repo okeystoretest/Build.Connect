@@ -3,6 +3,8 @@
  * Uso: showToast('Mensagem', { type: 'error' | 'warning' | 'success' | 'info' })
  */
 
+import { refreshLucideIcons } from '../services/icons.service.js';
+
 let container = null;
 
 function getContainer() {
@@ -42,7 +44,7 @@ export function showToast(message, { type = 'info', duration = 4000 } = {}) {
   void toast.offsetHeight;
   toast.classList.add('bc-toast-visible');
 
-  if (window.lucide) lucide.createIcons({ root: toast });
+  refreshLucideIcons(toast);
 
   const timer = setTimeout(() => dismiss(toast), duration);
   toast._timer = timer;

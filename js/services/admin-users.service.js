@@ -16,6 +16,10 @@ export function resetManagedUserPassword(id) {
   return requestAdminApi('reset-user-password', { id });
 }
 
+export function fetchNextUserId() {
+  return requestAdminApi('generate-next-user-id', {});
+}
+
 // Mantido por compatibilidade — não é mais necessário com Supabase
 export function diagnoseManagedUsersStorage() {
   return Promise.resolve({ success: true, code: 'SUPABASE_OK', message: 'Usando Supabase PostgreSQL.' });
@@ -52,6 +56,7 @@ async function requestAdminApi(action, payload = {}) {
       users: Array.isArray(response.users) ? response.users : [],
       user: response.user || null,
       generatedPassword: String(response.generatedPassword || ''),
+      nextId: String(response.nextId || ''),
     };
   }
 
@@ -62,6 +67,7 @@ async function requestAdminApi(action, payload = {}) {
     users: [],
     user: null,
     generatedPassword: '',
+    nextId: '',
   };
 }
 

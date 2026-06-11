@@ -1,6 +1,8 @@
 import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
-import { searchEvaluationRecords } from '../../services/evaluations.service.js';
+import { searchEvaluationRecords, fetchMultidirConfig, saveMultidirConfig, markEvaluationRecordRead } from '../../services/evaluations.service.js';
 import { listarFeedbacksParaUsuario, marcarFeedbackLido } from '../../services/feedbacks-reader.service.js';
+import { setCardAlert, clearCardAlert } from '../../state/module-state.js';
+import { invalidateSectorAlertsCache } from '../../services/sector-alerts.service.js';
 import {
   BEHAVIORAL_EVALUATION_OPTIONS,
   EVALUATION_CRITERIA,
@@ -9,6 +11,10 @@ import {
   EVALUATION_TOOLS,
   MATRIX_EMOTIONAL_CRITERIA,
   MATRIX_TECHNICAL_CRITERIA,
+  WORK_EFFICACY_CRITERIA,
+  IE_PERSONAL_CRITERIA,
+  IE_SOCIAL_CRITERIA,
+  MULTIDIR_RULES,
 } from './evaluations/evaluation.constants.js';
 import {
   formatEvaluationNumber,
@@ -34,6 +40,9 @@ export const QUALITY_UI_DEFAULTS = Object.freeze({
   feedbacksLidos: [],
   feedbacksErrorMessage: '',
   markingReadId: null,
+  // Config limite respondentes multidir
+  multidirConfig: {},           // { [toolId]: { maxRespondentes, status } }
+  multidirConfigSaveStatus: '', // 'saving' | 'success' | 'error'
 });
 
 let moduleContext = null;
@@ -51,6 +60,8 @@ export function createQualityModuleHandlers(dependencies) {
     switchView: switchQualityView,
     loadFeedbacks: loadQualityFeedbacks,
     markFeedbackRead: markQualityFeedbackRead,
+    loadMultidirConfig:   loadMultidirConfig,
+    saveMultidirConfig:   saveMultidirConfigHandler,
   };
 }
 
@@ -83,13 +94,62 @@ export function getQualityModuleMarkup(card, moduleData, moduleUi) {
   const selectedTool = EVALUATION_TOOLS.find((tool) => tool.id === qualityUi.selectedQualityToolId) || null;
 
   if (!selectedTool) {
-    return getQualityToolsCatalogMarkup(card, tabs);
+    return getQualityToolsCatalogMarkup(card, tabs, qualityUi);
   }
 
   return getQualitySearchMarkup(card, moduleData, qualityUi, selectedTool, tabs);
 }
 
-function getQualityToolsCatalogMarkup(card, tabs = '') {
+function getQualityToolsCatalogMarkup(card, tabs = '', qualityUi = {}) {
+  const multidirTools = EVALUATION_TOOLS.filter((t) => t.isMultidir);
+  const cfg = qualityUi.multidirConfig || {};
+  const saveStatus = qualityUi.multidirConfigSaveStatus || '';
+
+  const configPanel = multidirTools.length ? `
+    <section class="multidir-config-panel" aria-label="Configurações das avaliações multidirecionais">
+      <header class="multidir-config-panel-head">
+        <i data-lucide="settings-2"></i>
+        <span>Configurar limite de respondentes</span>
+      </header>
+      <div class="multidir-config-grid">
+        ${multidirTools.map((tool) => {
+          const current = cfg[tool.id]?.maxRespondentes ?? 5;
+          return `
+            <div class="multidir-config-row">
+              <span class="multidir-config-label">
+                <i data-lucide="${sanitizeAttribute(tool.icon)}"></i>
+                ${sanitizeText(tool.hint)}
+              </span>
+              <div class="multidir-config-input-row">
+                <label class="multidir-config-input-label" for="mdc-${sanitizeAttribute(tool.id)}">Máximo de respondentes:</label>
+                <input
+                  id="mdc-${sanitizeAttribute(tool.id)}"
+                  type="number"
+                  min="1"
+                  max="20"
+                  value="${sanitizeAttribute(String(current))}"
+                  class="multidir-config-input"
+                  data-multidir-config-tool="${sanitizeAttribute(tool.id)}"
+                  data-multidir-config-input
+                />
+                <button
+                  type="button"
+                  class="multidir-config-save-btn ${saveStatus === 'saving' ? 'is-saving' : ''}"
+                  data-multidir-config-save="${sanitizeAttribute(tool.id)}"
+                  ${saveStatus === 'saving' ? 'disabled' : ''}
+                >
+                  <i data-lucide="${saveStatus === 'saving' ? 'loader-circle' : 'check'}"></i>
+                  ${saveStatus === 'saving' ? 'Salvando...' : 'Salvar'}
+                </button>
+              </div>
+              ${cfg[tool.id]?.feedback ? `<span class="multidir-config-feedback multidir-config-feedback--${cfg[tool.id].feedbackType || 'info'}">${sanitizeText(cfg[tool.id].feedback)}</span>` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </section>
+  ` : '';
+
   return `
     <div class="module-shell evaluation-shell" data-module-shell>
       <div class="module-shell-header module-shell-header--stacked">
@@ -121,6 +181,8 @@ function getQualityToolsCatalogMarkup(card, tabs = '') {
           </button>
         `).join('')}
       </div>
+
+      ${configPanel}
     </div>
   `;
 }
@@ -249,7 +311,7 @@ function getQualityRecordsMarkup(qualityUi, selectedTool, selectedUser) {
         </span>
       </header>
       <div class="qr-records-list">
-        ${qualityUi.qualityRecords.map((record, i) => `<div class="qr-record-wrap" style="animation-delay:${i * 60}ms">${getQualityRecordCardMarkup(record)}</div>`).join('')}
+        ${qualityUi.qualityRecords.map((record, i) => `<div class="qr-record-wrap${!record.lido ? ' is-unread' : ''}" style="animation-delay:${i * 60}ms">${!record.lido ? '<span class="qr-unread-dot" aria-label="Não lida"></span>' : ''}${getQualityRecordCardMarkup(record)}</div>`).join('')}
       </div>
     </section>
   `;
@@ -258,6 +320,14 @@ function getQualityRecordsMarkup(qualityUi, selectedTool, selectedUser) {
 function getQualityRecordCardMarkup(record) {
   if (record.toolId === EVALUATION_TOOL_IDS.MATRIX) {
     return getQualityMatrixRecordMarkup(record);
+  }
+
+  if (record.toolId === EVALUATION_TOOL_IDS.WORK_EFFICACY) {
+    return getQualityEfficacyRecordMarkup(record);
+  }
+
+  if (record.toolId === EVALUATION_TOOL_IDS.EMOTIONAL_INTELLIGENCE) {
+    return getQualityIERecordMarkup(record);
   }
 
   return getQualityFormRecordMarkup(record);
@@ -453,6 +523,7 @@ function getQualityUiState(moduleUi) {
     qualityRecords:     Array.isArray(moduleUi?.qualityRecords)     ? moduleUi.qualityRecords     : [],
     feedbacksPendentes: Array.isArray(moduleUi?.feedbacksPendentes) ? moduleUi.feedbacksPendentes : [],
     feedbacksLidos:     Array.isArray(moduleUi?.feedbacksLidos)     ? moduleUi.feedbacksLidos     : [],
+    multidirConfig:     (moduleUi?.multidirConfig && typeof moduleUi.multidirConfig === 'object') ? moduleUi.multidirConfig : {},
   };
 }
 
@@ -616,6 +687,28 @@ async function selectQualityUser(rootElement, sector, userId) {
         qualityRecords: response.success ? response.records : [],
       },
     });
+
+    // Update the "qualidade" card alert based on remaining unread records
+    if (response.success) {
+      const unreadCount = (response.records || []).filter(r => !r.lido).length;
+      setCardAlert(sector.id, 'qualidade', unreadCount > 0
+        ? { type: 'unread', count: unreadCount }
+        : null);
+
+      // Mark all unread records as read (non-blocking — best effort)
+      const unreadIds = (response.records || [])
+        .filter(r => !r.lido && r.id)
+        .map(r => r.id);
+      if (unreadIds.length) {
+        // Fire-and-forget: don't await, don't surface errors to user
+        Promise.allSettled(unreadIds.map(id => markEvaluationRecordRead(id)))
+          .then(() => {
+            clearCardAlert(sector.id, 'qualidade');
+            invalidateSectorAlertsCache(sector.id);
+          })
+          .catch(() => {});
+      }
+    }
   } catch (error) {
     const latestState = getModuleState(sector.id);
     const latestUi = getQualityUiState(latestState.ui);
@@ -803,4 +896,224 @@ async function markQualityFeedbackRead(rootElement, sector, recordId) {
   const nextState = getModuleState(sector.id);
   setModuleState(sector.id, { ...nextState, ui: { ...getQualityUiState(nextState.ui), markingReadId: null } });
   await loadQualityFeedbacks(rootElement, sector);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// QUADRO-RESUMO MULTIDIRECIONAL — Exibido apenas na tela de Resultados DHO
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Helper: extrai score de um item de um registro ───────────────────────
+
+function _getScore(scores, toolId, criterionId, subId) {
+  const key = `${toolId}:${criterionId}:${subId}`;
+  return Number(scores?.[key] || 0);
+}
+
+// ── Helper: calcula média de um array de valores ─────────────────────────
+
+function _avg(values) {
+  const nonZero = values.filter((v) => v > 0);
+  if (!nonZero.length) return null;
+  return nonZero.reduce((a, b) => a + b, 0) / nonZero.length;
+}
+
+// ── F_10 — Quadro-Resumo de Eficácia no Trabalho ─────────────────────────
+
+function getQualityEfficacyRecordMarkup(record) {
+  // Na lista de resultados cada "record" é de um respondente —
+  // este markup mostra o card individual + totais por critério
+  const toolId  = record.toolId;
+  const scores  = record.scores || {};
+  const dateStr = formatEvaluationTimestamp(record.createdAt || record.savedAt);
+
+  return `
+    <article class="qr-multidir-card" aria-label="Eficácia — ${sanitizeText(record.respondent?.nome || 'Respondente')}">
+      <header class="qr-form-card-header">
+        <div class="qr-form-card-tool">
+          <span class="qr-form-card-icon"><i data-lucide="target"></i></span>
+          <span class="qr-form-card-toolname">Eficácia no Trabalho · ${sanitizeText(record.respondent?.nome || 'Anônimo')}</span>
+        </div>
+        <time class="qr-form-card-date">${dateStr}</time>
+      </header>
+      <div class="qr-multidir-table-wrap">
+        <table class="qr-multidir-table">
+          <thead>
+            <tr>
+              <th>Competência</th>
+              <th class="qr-col-num">A</th>
+              <th class="qr-col-num">B</th>
+              <th class="qr-col-total">A+B</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${WORK_EFFICACY_CRITERIA.map((c) => {
+              const a = _getScore(scores, toolId, c.id, 'a');
+              const b = _getScore(scores, toolId, c.id, 'b');
+              const tot = a && b ? a + b : '—';
+              return `
+                <tr>
+                  <td><span class="qr-et-badge">${sanitizeText(c.label)}</span> ${sanitizeText(c.title)}</td>
+                  <td class="qr-col-num">${a || '—'}</td>
+                  <td class="qr-col-num">${b || '—'}</td>
+                  <td class="qr-col-total">${tot}</td>
+                </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </article>
+  `;
+}
+
+// ── F_11 — Quadro-Resumo de Inteligência Emocional ───────────────────────
+
+function getQualityIERecordMarkup(record) {
+  const toolId  = record.toolId;
+  const scores  = record.scores || {};
+  const dateStr = formatEvaluationTimestamp(record.createdAt || record.savedAt);
+
+  const totalPessoal = IE_PERSONAL_CRITERIA.reduce((s, c) => s + _getScore(scores, toolId, c.id, 'score'), 0);
+  const totalSocial  = IE_SOCIAL_CRITERIA.reduce((s, c) =>   s + _getScore(scores, toolId, c.id, 'score'), 0);
+  const totalGeral   = totalPessoal + totalSocial;
+
+  return `
+    <article class="qr-multidir-card" aria-label="IE — ${sanitizeText(record.respondent?.nome || 'Respondente')}">
+      <header class="qr-form-card-header">
+        <div class="qr-form-card-tool">
+          <span class="qr-form-card-icon"><i data-lucide="heart-handshake"></i></span>
+          <span class="qr-form-card-toolname">Inteligência Emocional · ${sanitizeText(record.respondent?.nome || 'Anônimo')}</span>
+        </div>
+        <time class="qr-form-card-date">${dateStr}</time>
+      </header>
+
+      <div class="qr-multidir-ie-grid">
+
+        <div class="qr-multidir-ie-section">
+          <span class="qr-multidir-ie-section-label"><i data-lucide="user-round"></i> Pessoais</span>
+          ${IE_PERSONAL_CRITERIA.map((c) => {
+            const v = _getScore(scores, toolId, c.id, 'score');
+            return `
+              <div class="qr-multidir-ie-row">
+                <span class="qr-multidir-ie-num">${sanitizeText(c.label)}</span>
+                <span class="qr-multidir-ie-name">${sanitizeText(c.title)}</span>
+                <span class="qr-multidir-ie-score ${v ? 'has-score' : ''}">${v || '—'}</span>
+              </div>`;
+          }).join('')}
+          <div class="qr-multidir-ie-subtotal">Total pessoal: <strong>${totalPessoal}</strong> / ${IE_PERSONAL_CRITERIA.length * 5}</div>
+        </div>
+
+        <div class="qr-multidir-ie-section">
+          <span class="qr-multidir-ie-section-label"><i data-lucide="users-round"></i> Sociais</span>
+          ${IE_SOCIAL_CRITERIA.map((c) => {
+            const v = _getScore(scores, toolId, c.id, 'score');
+            return `
+              <div class="qr-multidir-ie-row">
+                <span class="qr-multidir-ie-num">${sanitizeText(c.label)}</span>
+                <span class="qr-multidir-ie-name">${sanitizeText(c.title)}</span>
+                <span class="qr-multidir-ie-score ${v ? 'has-score' : ''}">${v || '—'}</span>
+              </div>`;
+          }).join('')}
+          <div class="qr-multidir-ie-subtotal">Total social: <strong>${totalSocial}</strong> / ${IE_SOCIAL_CRITERIA.length * 5}</div>
+        </div>
+
+      </div>
+
+      <div class="qr-multidir-ie-total">
+        <span>Total Geral</span>
+        <strong>${totalGeral}</strong>
+        <span class="qr-multidir-ie-total-max">/ ${(IE_PERSONAL_CRITERIA.length + IE_SOCIAL_CRITERIA.length) * 5}</span>
+      </div>
+    </article>
+  `;
+}
+
+// ── Configuração de limite de respondentes multidir ───────────────────────
+
+export async function loadMultidirConfig(rootElement, sector) {
+  const state = getModuleState(sector.id);
+  const currentUi = getQualityUiState(state.ui);
+
+  setModuleState(sector.id, {
+    ...state,
+    ui: { ...currentUi, multidirConfig: { ...currentUi.multidirConfig, _loading: true } },
+  });
+
+  try {
+    const configs = await fetchMultidirConfig();
+    const latestState = getModuleState(sector.id);
+    const latestUi    = getQualityUiState(latestState.ui);
+
+    // Mescla configs recebidas com o estado atual
+    const newConfig = { ...latestUi.multidirConfig };
+    delete newConfig._loading;
+    for (const [toolId, cfg] of Object.entries(configs)) {
+      newConfig[toolId] = { ...newConfig[toolId], maxRespondentes: cfg.maxRespondentes };
+    }
+
+    setModuleState(sector.id, {
+      ...latestState,
+      ui: { ...latestUi, multidirConfig: newConfig },
+    });
+  } catch {
+    const latestState = getModuleState(sector.id);
+    const latestUi    = getQualityUiState(latestState.ui);
+    const newConfig = { ...latestUi.multidirConfig };
+    delete newConfig._loading;
+    setModuleState(sector.id, { ...latestState, ui: { ...latestUi, multidirConfig: newConfig } });
+  }
+
+  renderModuleStage(rootElement, sector);
+}
+
+async function saveMultidirConfigHandler(rootElement, sector, toolId, maxRespondentes) {
+  const state = getModuleState(sector.id);
+  const currentUi = getQualityUiState(state.ui);
+
+  setModuleState(sector.id, {
+    ...state,
+    ui: { ...currentUi, multidirConfigSaveStatus: 'saving' },
+  });
+  renderModuleStage(rootElement, sector);
+
+  const response = await saveMultidirConfig({ toolId, maxRespondentes });
+
+  const latestState = getModuleState(sector.id);
+  const latestUi    = getQualityUiState(latestState.ui);
+  const success = response?.success;
+
+  setModuleState(sector.id, {
+    ...latestState,
+    ui: {
+      ...latestUi,
+      multidirConfigSaveStatus: success ? 'success' : 'error',
+      multidirConfig: {
+        ...latestUi.multidirConfig,
+        [toolId]: {
+          maxRespondentes: success ? maxRespondentes : (latestUi.multidirConfig[toolId]?.maxRespondentes ?? 5),
+          feedback: success ? `Limite atualizado para ${maxRespondentes} respondente(s).` : (response?.message || 'Erro ao salvar.'),
+          feedbackType: success ? 'success' : 'error',
+        },
+      },
+    },
+  });
+
+  renderModuleStage(rootElement, sector);
+
+  // Limpa o feedback após 4s
+  setTimeout(() => {
+    const s = getModuleState(sector.id);
+    const u = getQualityUiState(s.ui);
+    const toolCfg = u.multidirConfig[toolId];
+    if (toolCfg?.feedback) {
+      setModuleState(sector.id, {
+        ...s,
+        ui: {
+          ...u,
+          multidirConfigSaveStatus: '',
+          multidirConfig: { ...u.multidirConfig, [toolId]: { ...toolCfg, feedback: '', feedbackType: '' } },
+        },
+      });
+      renderModuleStage(rootElement, sector);
+    }
+  }, 4000);
 }

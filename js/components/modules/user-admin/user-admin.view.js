@@ -13,8 +13,13 @@ export function getUserManagementModuleMarkup(card, moduleData, moduleUi) {
     ? `Atualize os dados de ${sanitizeText(adminUi.originalId)} mantendo o acesso sincronizado.`
     : 'Preencha os dados essenciais para criar um novo acesso.';
 
+  const successModal = adminUi.successModal
+    ? renderUserAdminSuccessModal(adminUi.successModal)
+    : '';
+
   return `
     <div class="module-shell user-admin-shell" data-module-shell>
+      ${successModal}
       <div class="module-shell-header user-admin-hero">
         <div class="user-admin-hero-copy">
           <p class="module-eyebrow">DHO · Gestão de acessos</p>
@@ -41,10 +46,7 @@ export function getUserManagementModuleMarkup(card, moduleData, moduleUi) {
           </div>
 
           <div class="user-admin-form-grid">
-            <label class="form-field user-admin-field">
-              <span class="form-label">ID do colaborador</span>
-              <input class="user-admin-input" type="text" value="${sanitizeAttribute(adminUi.form.id)}" data-user-admin-field="id" autocomplete="off" placeholder="Ex.: 1024" aria-label="ID do colaborador" />
-            </label>
+            ${isEditMode ? renderEditIdField(adminUi) : renderAutoIdField(adminUi)}
 
             <label class="form-field user-admin-field">
               <span class="form-label">Nome completo</span>
@@ -53,7 +55,12 @@ export function getUserManagementModuleMarkup(card, moduleData, moduleUi) {
 
             <label class="form-field user-admin-field">
               <span class="form-label">${isEditMode ? 'Nova senha (deixe em branco para manter)' : 'Senha'}</span>
-              <input class="user-admin-input" type="password" data-user-admin-field="senha" autocomplete="new-password" placeholder="${isEditMode ? 'Nova senha (opcional)' : 'Defina a senha de acesso'}" aria-label="Senha do colaborador" />
+              <span class="user-admin-password-wrap">
+                <input class="user-admin-input" type="password" data-user-admin-field="senha" autocomplete="new-password" placeholder="${isEditMode ? 'Nova senha (opcional)' : 'Defina a senha de acesso'}" aria-label="Senha do colaborador" />
+                <button type="button" class="user-admin-pw-toggle" data-pw-toggle aria-label="Alternar visibilidade da senha" tabindex="-1">
+                  <i data-lucide="eye-off"></i>
+                </button>
+              </span>
             </label>
           </div>
 
@@ -126,6 +133,74 @@ export function getUserManagementModuleMarkup(card, moduleData, moduleUi) {
     </div>
   `;
 }
+
+// ── ID field helpers ──────────────────────────────────────────────────────
+
+function renderAutoIdField(adminUi) {
+  const idDisplay = adminUi.nextIdLoading
+    ? 'Carregando...'
+    : adminUi.nextId || 'Gerado automaticamente';
+
+  return `
+    <div class="form-field user-admin-field user-admin-auto-id-field">
+      <span class="form-label">ID do colaborador</span>
+      <div class="user-admin-auto-id-display" aria-label="ID gerado automaticamente">
+        <i data-lucide="hash"></i>
+        <span>${sanitizeText(idDisplay)}</span>
+        <span class="user-admin-auto-id-badge">Auto</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderEditIdField(adminUi) {
+  return `
+    <label class="form-field user-admin-field">
+      <span class="form-label">ID do colaborador</span>
+      <input class="user-admin-input" type="text" value="${sanitizeAttribute(adminUi.form.id)}" data-user-admin-field="id" autocomplete="off" placeholder="Ex.: 1024" aria-label="ID do colaborador" />
+    </label>
+  `;
+}
+
+// ── Success modal ─────────────────────────────────────────────────────────
+
+function renderUserAdminSuccessModal(modal) {
+  return `
+    <div class="user-admin-success-overlay" data-user-admin-success-backdrop>
+      <div class="user-admin-success-modal" role="dialog" aria-modal="true" aria-label="Cadastro realizado com sucesso">
+        <div class="user-admin-success-icon-wrap">
+          <i data-lucide="circle-check-big"></i>
+        </div>
+        <h3 class="user-admin-success-title">Cadastro realizado</h3>
+        <p class="user-admin-success-subtitle">O colaborador foi cadastrado com sucesso. Anote ou copie as credenciais abaixo.</p>
+
+        <div class="user-admin-success-data">
+          <div class="user-admin-success-row">
+            <span class="user-admin-success-label">ID do Colaborador</span>
+            <strong class="user-admin-success-value">${sanitizeText(modal.id)}</strong>
+          </div>
+          <div class="user-admin-success-row">
+            <span class="user-admin-success-label">Senha</span>
+            <strong class="user-admin-success-value">${sanitizeText(modal.senha)}</strong>
+          </div>
+        </div>
+
+        <div class="user-admin-success-actions">
+          <button type="button" class="module-action-button" data-user-admin-copy-info>
+            <i data-lucide="copy"></i>
+            <span>Copiar Informações</span>
+          </button>
+          <button type="button" class="module-link-button is-secondary" data-user-admin-close-success>
+            <i data-lucide="x"></i>
+            <span>Fechar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── Existing helpers ──────────────────────────────────────────────────────
 
 function renderUserAdminNivelOption(option, selectedNivel) {
   const selected = option.id === selectedNivel ? 'selected' : '';
@@ -225,4 +300,3 @@ function renderUserAdminResultItem(user) {
     </article>
   `;
 }
-

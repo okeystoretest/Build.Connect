@@ -24,5 +24,5 @@ export function showLoginShell({ authRoot, appShell, contentRoot }) {
   appShell.hidden = true;
   appShell.classList.remove('is-entering');
   authRoot.hidden = false;
-  contentRoot.innerHTML = '';
+  if (contentRoot) contentRoot.innerHTML = '';
 }

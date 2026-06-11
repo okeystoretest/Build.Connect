@@ -9,6 +9,56 @@ const API_URL = 'https://mrdrfcclfbncwqyehknx.supabase.co/functions/v1/bc-api';
   let refreshTimer = null;
   let barTimer = null;
 
+  // ── Month filter state ─────────────────────────────────────────────────
+  let _selectedMonth = buildCurrentMonthKey();
+  let _allTickets = [];
+
+  function buildCurrentMonthKey() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  function buildMonthOptions(tickets) {
+    const months = new Map();
+    const now = new Date();
+    // Always include current month
+    const currentKey = buildCurrentMonthKey();
+    months.set(currentKey, formatMonthLabel(now.getFullYear(), now.getMonth()));
+
+    for (const t of tickets) {
+      if (!t.timestamp) continue;
+      const d = new Date(t.timestamp);
+      if (isNaN(d.getTime())) continue;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!months.has(key)) {
+        months.set(key, formatMonthLabel(d.getFullYear(), d.getMonth()));
+      }
+    }
+
+    // Sort descending (newest first)
+    return [...months.entries()]
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([key, label]) => ({ key, label }));
+  }
+
+  function formatMonthLabel(year, monthIndex) {
+    const names = [
+      'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+      'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro',
+    ];
+    return `${names[monthIndex]} ${year}`;
+  }
+
+  function filterByMonth(tickets, monthKey) {
+    if (!monthKey || monthKey === 'tudo') return tickets;
+    const [y, m] = monthKey.split('-').map(Number);
+    return tickets.filter(t => {
+      if (!t.timestamp) return false;
+      const d = new Date(t.timestamp);
+      return d.getFullYear() === y && d.getMonth() + 1 === m;
+    });
+  }
+
   // ── Clock ──────────────────────────────────────────────────────────────
   function updateClock() {
     const el = document.getElementById('clock-value');
@@ -78,33 +128,24 @@ const API_URL = 'https://mrdrfcclfbncwqyehknx.supabase.co/functions/v1/bc-api';
     </table>`;
   }
 
-  let _allTickets = [];
-
   function applyFilters() {
-    const nowD = new Date();
-    const startMonth = new Date(nowD.getFullYear(), nowD.getMonth(), 1);
-    const periodFilter = document.getElementById('period-select')?.value || 'mes';
     const statusFilter = document.getElementById('status-select')?.value || 'Pendente';
+    const monthFiltered = filterByMonth(_allTickets, _selectedMonth);
 
-    const periodStart = {
-      semana: new Date(nowD.getFullYear(), nowD.getMonth(), nowD.getDate() - 7),
-      mes: startMonth,
-      tudo: null,
-    }[periodFilter] ?? null;
-
-    const periodFiltered = periodStart
-      ? _allTickets.filter(t => t.timestamp && new Date(t.timestamp) >= periodStart)
-      : _allTickets;
-
-    const filtered = statusFilter === 'all'    ? periodFiltered
-      : statusFilter === 'active' ? periodFiltered.filter(t => t.status !== 'Concluído')
-      : statusFilter === 'done'   ? periodFiltered.filter(t => t.status === 'Concluído')
-      : periodFiltered.filter(t => t.status === statusFilter);
+    const filtered = statusFilter === 'all'    ? monthFiltered
+      : statusFilter === 'active' ? monthFiltered.filter(t => t.status !== 'Concluído')
+      : statusFilter === 'done'   ? monthFiltered.filter(t => t.status === 'Concluído')
+      : monthFiltered.filter(t => t.status === statusFilter);
 
     const wrap = document.getElementById('table-wrap');
     const count = document.getElementById('table-count');
     if (wrap) wrap.innerHTML = renderTable(filtered);
     if (count) count.textContent = filtered.length + ' registros';
+  }
+
+  function onMonthChange(value) {
+    _selectedMonth = value;
+    renderDashboard({ tickets: [], completedTickets: [], _useCache: true });
   }
 
   // ── Fetch data ─────────────────────────────────────────────────────────
@@ -169,7 +210,7 @@ const API_URL = 'https://mrdrfcclfbncwqyehknx.supabase.co/functions/v1/bc-api';
 
   function countBy(arr, key) {
     const map = {};
-    (arr || []).forEach(t => { const k = t[key] || 'Não informado'; map[k] = (map[k] || 0) + 1; });
+    (arr || []).forEach(t => { const k = (typeof key === 'function' ? key(t) : t[key]) || 'Não informado'; map[k] = (map[k] || 0) + 1; });
     return Object.entries(map).map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count);
   }
 
@@ -210,14 +251,14 @@ const API_URL = 'https://mrdrfcclfbncwqyehknx.supabase.co/functions/v1/bc-api';
 
   // ── Render ─────────────────────────────────────────────────────────────
   function renderDashboard(data) {
-    const tickets  = data.tickets          || [];
-    const completed = data.completedTickets || [];
-    const all      = [...tickets, ...completed];
+    // Use cached _allTickets for re-renders triggered by month change
+    const all = filterByMonth(_allTickets, _selectedMonth);
 
     const pending    = all.filter(t => t.status === 'Pendente');
     const assigned   = all.filter(t => t.status === 'Atribuído');
     const inProgress = all.filter(t => t.status === 'Em andamento');
     const done       = all.filter(t => t.status === 'Concluído');
+    const total      = all.length || 1;
 
     const doneWithTime = done.filter(t => t.duracaoMinutos > 0);
     const avgMins = doneWithTime.length
@@ -226,30 +267,22 @@ const API_URL = 'https://mrdrfcclfbncwqyehknx.supabase.co/functions/v1/bc-api';
     const avgLabel = avgMins !== null ? fmtDuration(avgMins) : '—';
     const conclusionRate = all.length > 0 ? Math.round((done.length / all.length) * 100) : 0;
 
-    // Total do mês
-    const nowD = new Date();
-    const startMonth = new Date(nowD.getFullYear(), nowD.getMonth(), 1);
-    const monthCount = all.filter(t => t.timestamp && new Date(t.timestamp) >= startMonth).length;
+    // Month selector options
+    const monthOptions = buildMonthOptions(_allTickets);
+    const monthSelectHtml = monthOptions.map(opt =>
+      `<option value="${esc(opt.key)}" ${opt.key === _selectedMonth ? 'selected' : ''}>${esc(opt.label)}</option>`
+    ).join('') + '<option value="tudo"' + (_selectedMonth === 'tudo' ? ' selected' : '') + '>Todos os meses</option>';
 
     // Categoria por unidade
     const catByUnit = countBy(all, t => `${t.unidade||'N/I'} · ${t.categoria||'N/I'}`);
 
-    // Filtros
-    let periodFilter = document.getElementById('period-select')?.value || 'mes';
+    // Status filter (table)
     let statusFilter = document.getElementById('status-select')?.value || 'Pendente';
 
-    const periodStart = {
-      semana: new Date(nowD.getFullYear(), nowD.getMonth(), nowD.getDate() - 7),
-      mes:    startMonth,
-      tudo:   null,
-    }[periodFilter] ?? null;
-
-    const periodFiltered = periodStart ? all.filter(t => t.timestamp && new Date(t.timestamp) >= periodStart) : all;
-    const filtered = statusFilter === 'all'    ? periodFiltered
-      : statusFilter === 'active' ? periodFiltered.filter(t => t.status !== 'Concluído')
-      : statusFilter === 'done'   ? periodFiltered.filter(t => t.status === 'Concluído')
-      : periodFiltered.filter(t => t.status === statusFilter);
-    const total = all.length || 1;
+    const tableFiltered = statusFilter === 'all'    ? all
+      : statusFilter === 'active' ? all.filter(t => t.status !== 'Concluído')
+      : statusFilter === 'done'   ? all.filter(t => t.status === 'Concluído')
+      : all.filter(t => t.status === statusFilter);
 
     const segments = [
       { label:'Pendente',     count:pending.length,    color:'F59E0B' },
@@ -270,6 +303,12 @@ const API_URL = 'https://mrdrfcclfbncwqyehknx.supabase.co/functions/v1/bc-api';
           </div>
         </div>
         <div class="dash-status">
+          <div class="dash-month-filter">
+            <label class="filter-label" for="month-select"><i data-lucide="calendar-range"></i> Mês:</label>
+            <select id="month-select" class="filter-select" onchange="onMonthChange(this.value)">
+              ${monthSelectHtml}
+            </select>
+          </div>
           <div class="dash-clock">
             <strong id="clock-value">--:--:--</strong>
             <span>Horário atual</span>
@@ -287,7 +326,7 @@ const API_URL = 'https://mrdrfcclfbncwqyehknx.supabase.co/functions/v1/bc-api';
           <div class="kpi-icon"><i data-lucide="inbox"></i></div>
           <div class="kpi-body">
             <span class="kpi-value">${all.length}</span>
-            <span class="kpi-label">Total de chamados</span>
+            <span class="kpi-label">Total no período</span>
           </div>
         </div>
         <div class="kpi-card kpi-pending">
@@ -336,7 +375,7 @@ const API_URL = 'https://mrdrfcclfbncwqyehknx.supabase.co/functions/v1/bc-api';
         </div>
         <div class="metric-card">
           <i data-lucide="calendar"></i>
-          <div><span class="metric-value">${monthCount}</span><span class="metric-label">Total de chamados do mês</span></div>
+          <div><span class="metric-value">${all.length}</span><span class="metric-label">Chamados no período</span></div>
         </div>
         <div class="metric-card">
           <i data-lucide="users"></i>
@@ -377,16 +416,8 @@ const API_URL = 'https://mrdrfcclfbncwqyehknx.supabase.co/functions/v1/bc-api';
       <!-- Table -->
       <div class="table-section">
         <div class="table-head">
-          <div class="table-title"><i data-lucide="table-2"></i><span>Todos os Chamados</span></div>
+          <div class="table-title"><i data-lucide="table-2"></i><span>Chamados do Período</span></div>
           <div class="table-filters">
-            <div class="filter-group">
-              <label class="filter-label">Período:</label>
-              <select id="period-select" class="filter-select" onchange="applyFilters()">
-                <option value="semana">Última semana</option>
-                <option value="mes" selected>Este mês</option>
-                <option value="tudo">Todos os períodos</option>
-              </select>
-            </div>
             <div class="filter-group">
               <label class="filter-label">Status:</label>
               <select id="status-select" class="filter-select" onchange="applyFilters()">
@@ -398,11 +429,11 @@ const API_URL = 'https://mrdrfcclfbncwqyehknx.supabase.co/functions/v1/bc-api';
                 <option value="all">Todos</option>
               </select>
             </div>
-            <span class="table-count" id="table-count">${filtered.length} registros</span>
+            <span class="table-count" id="table-count">${tableFiltered.length} registros</span>
           </div>
         </div>
         <div class="table-wrap" id="table-wrap">
-          ${renderTable(filtered)}
+          ${renderTable(tableFiltered)}
         </div>
       </div>
     `;

@@ -9,6 +9,9 @@ import {
   EVALUATION_UI_DEFAULTS,
   MATRIX_EMOTIONAL_CRITERIA,
   MATRIX_TECHNICAL_CRITERIA,
+  WORK_EFFICACY_CRITERIA,
+  IE_PERSONAL_CRITERIA,
+  IE_SOCIAL_CRITERIA,
 } from './evaluation.constants.js';
 
 export function getEvaluationUiState(moduleUi) {
@@ -247,12 +250,17 @@ export function getMatrixDecisionColor(decisionId) {
 
 export function buildEvaluationRecordPayload(moduleData, evaluationUi, selectedToolId, selectedUser) {
   const selectedTool = EVALUATION_TOOLS.find((tool) => tool.id === selectedToolId) || null;
-  const fields = getEvaluationToolFields(evaluationUi, selectedToolId);
   const scores = getEvaluationToolScores(evaluationUi.evaluationScores, selectedToolId);
   const notes = getEvaluationToolNotes(evaluationUi, selectedToolId);
   const matrixResult = selectedToolId === EVALUATION_TOOL_IDS.MATRIX
     ? buildMatrixComputedResult(moduleData, evaluationUi, selectedUser)
     : null;
+
+  // Respondent: always from authenticated session — never from UI fields
+  const respondent = normalizeEvaluationPerson(moduleData?.respondent || null);
+
+  // Timestamp: always auto-generated at submit — never from user input
+  const now = new Date().toISOString();
 
   return {
     toolId: selectedToolId,
@@ -260,16 +268,15 @@ export function buildEvaluationRecordPayload(moduleData, evaluationUi, selectedT
     type: selectedToolId === EVALUATION_TOOL_IDS.MATRIX ? 'matrix' : 'form',
     sectorId: moduleData?.evaluationSector?.id || '',
     sectorName: moduleData?.evaluationSector?.label || '',
-    respondent: normalizeEvaluationPerson(moduleData?.respondent || null),
+    respondent,
     evaluatee: normalizeEvaluationPerson(selectedUser || null),
-    evaluationDate: fields.evaluationDate || '',
-    fields,
+    evaluationDate: now,
     notes,
     scores,
     totals: buildEvaluationTotals(evaluationUi, selectedToolId),
     summary: buildEvaluationSummary(evaluationUi, selectedToolId),
     matrixResult,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
   };
 }
 
@@ -300,6 +307,30 @@ function buildEvaluationTotals(evaluationUi, selectedToolId) {
       emotionalTotal: result.emotionalTotal || 0,
       emotionalAverage: result.emotionalAverage || 0,
     };
+  }
+
+  if (selectedToolId === EVALUATION_TOOL_IDS.WORK_EFFICACY) {
+    const totals = {};
+    let grandTotal = 0;
+    for (const c of WORK_EFFICACY_CRITERIA) {
+      const a = Number(evaluationUi.evaluationScores[getEvaluationScoreKey(selectedToolId, c.id, 'a')] || 0);
+      const b = Number(evaluationUi.evaluationScores[getEvaluationScoreKey(selectedToolId, c.id, 'b')] || 0);
+      totals[c.id] = { a, b, total: a + b };
+      grandTotal += a + b;
+    }
+    return { byCriterion: totals, grandTotal };
+  }
+
+  if (selectedToolId === EVALUATION_TOOL_IDS.EMOTIONAL_INTELLIGENCE) {
+    let totalPessoal = 0;
+    let totalSocial  = 0;
+    for (const c of IE_PERSONAL_CRITERIA) {
+      totalPessoal += Number(evaluationUi.evaluationScores[getEvaluationScoreKey(selectedToolId, c.id, 'score')] || 0);
+    }
+    for (const c of IE_SOCIAL_CRITERIA) {
+      totalSocial += Number(evaluationUi.evaluationScores[getEvaluationScoreKey(selectedToolId, c.id, 'score')] || 0);
+    }
+    return { totalPessoal, totalSocial, totalGeral: totalPessoal + totalSocial };
   }
 
   return {};

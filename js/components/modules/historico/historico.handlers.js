@@ -209,21 +209,24 @@ export function createHistoricoModuleHandlers({ getModuleState, setModuleState, 
     const state = getModuleState(sector.id);
     const ui = getUi(state);
 
-    // Se já tem todos os usuários em cache, filtra direto
+    // Load all users if not cached
     let allUsers = ui.allUsers;
     if (!allUsers.length) {
       const response = await loadActiveUsers();
       allUsers = response.users || [];
     }
 
-    const filtered = filterUsersBySector(allUsers, sectorId);
+    // 'all' — ignore any sector division, render every registered user
+    const filtered = (sectorId === 'all' || sectorId === 'todos' || !sectorId)
+      ? allUsers
+      : filterUsersBySector(allUsers, sectorId);
 
     patchUi(sector, {
       selectedSectorId: sectorId,
       searchResults: filtered,
       query: '',
       allUsers,
-      // Limpa usuário selecionado ao trocar de setor
+      // Reset selected user when switching sector filter
       selectedUserId: '',
       selectedUserNome: '',
       historico: [],

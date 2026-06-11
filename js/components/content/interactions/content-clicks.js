@@ -169,6 +169,48 @@ export function createClickHandler(rootElement, viewState, dependencies) {
       return;
     }
 
+    const pwToggleButton = event.target.closest('[data-pw-toggle]');
+
+    if (pwToggleButton) {
+      event.preventDefault();
+      const wrap = pwToggleButton.closest('.user-admin-password-wrap');
+      const input = wrap?.querySelector('input[data-user-admin-field="senha"]');
+      if (!input) return;
+      const isHidden = input.type === 'password';
+      input.type = isHidden ? 'text' : 'password';
+      const icon = pwToggleButton.querySelector('i[data-lucide]') || pwToggleButton.querySelector('svg');
+      if (icon) {
+        icon.setAttribute('data-lucide', isHidden ? 'eye' : 'eye-off');
+        if (typeof lucide !== 'undefined') lucide.createIcons({ nodes: [icon.parentElement] });
+      }
+      pwToggleButton.setAttribute('aria-label', isHidden ? 'Ocultar senha' : 'Alternar visibilidade da senha');
+      return;
+    }
+
+    const successCloseButton = event.target.closest('[data-user-admin-close-success]');
+
+    if (successCloseButton) {
+      event.preventDefault();
+      userAdminModuleHandlers.closeSuccessModal(rootElement, sector);
+      return;
+    }
+
+    const successCopyButton = event.target.closest('[data-user-admin-copy-info]');
+
+    if (successCopyButton) {
+      event.preventDefault();
+      userAdminModuleHandlers.copyRegistrationInfo(rootElement, sector);
+      return;
+    }
+
+    const successBackdrop = event.target.closest('[data-user-admin-success-backdrop]');
+
+    if (successBackdrop && !event.target.closest('.user-admin-success-modal')) {
+      event.preventDefault();
+      userAdminModuleHandlers.closeSuccessModal(rootElement, sector);
+      return;
+    }
+
     const evaluationToolButton = event.target.closest('[data-evaluation-tool]');
 
     if (evaluationToolButton) {
@@ -197,7 +239,17 @@ export function createClickHandler(rootElement, viewState, dependencies) {
 
     if (evaluateeOption) {
       event.preventDefault();
-      evaluationModuleHandlers.selectUser(rootElement, sector, evaluateeOption.dataset.userId || '');
+      const userId = evaluateeOption.dataset.userId || '';
+      // data-evaluation-pending-user identifica uma pill com avaliações em falta.
+      // Nesses casos inicia-se o fluxo contínuo de preenchimento (startPendingFlow),
+      // que seleciona o utilizador E a primeira ferramenta pendente automaticamente,
+      // avançando para cada ferramenta seguinte após cada gravação bem-sucedida.
+      // Para utilizadores sem pendências o comportamento selectUser mantém-se.
+      if (evaluateeOption.dataset.evaluationPendingUser) {
+        evaluationModuleHandlers.startPendingFlow(rootElement, sector, userId);
+      } else {
+        evaluationModuleHandlers.selectUser(rootElement, sector, userId);
+      }
       return;
     }
 
@@ -255,6 +307,28 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     if (qualityEvaluateeOption) {
       event.preventDefault();
       qualityModuleHandlers.selectUser(rootElement, sector, qualityEvaluateeOption.dataset.userId || '');
+      return;
+    }
+
+    const multidirConfigSave = event.target.closest('[data-multidir-config-save]');
+    if (multidirConfigSave) {
+      const toolId  = multidirConfigSave.dataset.multidirConfigSave || '';
+      const inputEl = rootElement.querySelector(`[data-multidir-config-tool="${toolId}"]`);
+      const value   = inputEl ? Math.max(1, Math.min(20, parseInt(inputEl.value, 10) || 5)) : 5;
+      qualityModuleHandlers.saveMultidirConfig?.(rootElement, sector, toolId, value);
+      return;
+    }
+
+    // Botões de pontuação 1–5 das avaliações multidirecionais
+    const multidirScoreBtn = event.target.closest('[data-evaluation-score][data-evaluation-period][data-evaluation-value]');
+    if (multidirScoreBtn) {
+      evaluationModuleHandlers.updateScore(
+        rootElement,
+        sector,
+        multidirScoreBtn.dataset.evaluationScore  || '',
+        multidirScoreBtn.dataset.evaluationPeriod || '',
+        multidirScoreBtn.dataset.evaluationValue  || '',
+      );
       return;
     }
 

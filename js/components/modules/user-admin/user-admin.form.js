@@ -47,8 +47,10 @@ export function normalizeUserAdminSectors(sectors) {
   return [...new Set(normalized)];
 }
 
-export function readUserAdminFormData(rootElement) {
-  const id = rootElement.querySelector('[data-user-admin-field="id"]')?.value || '';
+export function readUserAdminFormData(rootElement, mode) {
+  const id = mode === 'edit'
+    ? (rootElement.querySelector('[data-user-admin-field="id"]')?.value || '')
+    : '';
   const nome = rootElement.querySelector('[data-user-admin-field="nome"]')?.value || '';
   const nivel = rootElement.querySelector('[data-user-admin-field="nivel"]')?.value || '';
   const senha = rootElement.querySelector('[data-user-admin-field="senha"]')?.value || '';
@@ -66,4 +68,3 @@ export function readUserAdminFormData(rootElement) {
 export function readUserAdminSearchQuery(rootElement) {
   return String(rootElement.querySelector('[data-user-admin-search-query]')?.value || '').trim();
 }
-

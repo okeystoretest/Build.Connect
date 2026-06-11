@@ -2,6 +2,7 @@ import { MODULE_IDS, MODULE_STATUS } from '../../../constants/module.constants.j
 import {
   createManagedUser,
   deleteManagedUser,
+  fetchNextUserId,
   searchManagedUsers,
   updateManagedUser,
 } from '../../../services/admin-users.service.js';
@@ -25,6 +26,8 @@ export function createUserAdminModuleHandlers(context) {
     clearForm: clearUserAdminForm,
     saveRecord: saveUserAdminRecord,
     deleteRecord: deleteUserAdminRecord,
+    closeSuccessModal: closeUserAdminSuccessModal,
+    copyRegistrationInfo: copyUserAdminRegistrationInfo,
   };
 }
 
@@ -39,6 +42,45 @@ function setModuleState(sectorId, state) {
 function renderModuleStage(rootElement, sector) {
   return userAdminModuleContext?.renderModuleStage(rootElement, sector);
 }
+
+// ── Auto-ID fetch ─────────────────────────────────────────────────────────
+
+async function loadNextUserId(sectorId) {
+  const state = getModuleState(sectorId);
+  if (!state) return;
+  const currentUi = getUserAdminUiState(state.ui);
+
+  setModuleState(sectorId, {
+    ...state,
+    ui: { ...currentUi, nextIdLoading: true },
+  });
+
+  try {
+    const response = await fetchNextUserId();
+    const nextState = getModuleState(sectorId);
+    const nextUi = getUserAdminUiState(nextState.ui);
+
+    if (nextUi.mode === 'create') {
+      setModuleState(sectorId, {
+        ...nextState,
+        ui: { ...nextUi, nextId: response.success ? response.nextId : '—', nextIdLoading: false },
+      });
+    }
+  } catch {
+    const nextState = getModuleState(sectorId);
+    const nextUi = getUserAdminUiState(nextState.ui);
+    setModuleState(sectorId, {
+      ...nextState,
+      ui: { ...nextUi, nextId: '—', nextIdLoading: false },
+    });
+  }
+}
+
+export function initUserAdminCreateMode(rootElement, sector) {
+  loadNextUserId(sector.id).then(() => renderModuleStage(rootElement, sector));
+}
+
+// ── Handlers ──────────────────────────────────────────────────────────────
 
 async function searchUserAdminRecords(rootElement, sector) {
   const state = getModuleState(sector.id);
@@ -126,6 +168,7 @@ function editUserAdminRecord(rootElement, sector, userId) {
         nivel: selectedUser.nivel || '',
         setores: normalizeUserAdminSectors(selectedUser.setorList || selectedUser.setor),
       },
+      successModal: null,
       passwordResult: null,
       feedbackMessage: `Cadastro de ${selectedUser.nome} carregado para edição.`,
       feedbackType: MODULE_STATUS.success,
@@ -151,6 +194,9 @@ function clearUserAdminForm(rootElement, sector) {
       mode: 'create',
       originalId: '',
       form: { ...USER_ADMIN_UI_DEFAULTS.form },
+      nextId: '',
+      nextIdLoading: false,
+      successModal: null,
       passwordResult: null,
       feedbackMessage: '',
       feedbackType: '',
@@ -158,6 +204,7 @@ function clearUserAdminForm(rootElement, sector) {
   });
 
   renderModuleStage(rootElement, sector);
+  loadNextUserId(sector.id).then(() => renderModuleStage(rootElement, sector));
 }
 
 async function saveUserAdminRecord(rootElement, sector) {
@@ -167,14 +214,23 @@ async function saveUserAdminRecord(rootElement, sector) {
     return;
   }
 
-  const form = readUserAdminFormData(rootElement);
   const currentUi = getUserAdminUiState(state.ui);
   const isEditMode = currentUi.mode === 'edit';
+  const form = readUserAdminFormData(rootElement, currentUi.mode);
 
-  if (!form.id || !form.nome || !form.setores.length) {
+  if (!form.nome || !form.setores.length) {
     setModuleState(sector.id, {
       ...state,
-      ui: { ...currentUi, form, feedbackMessage: 'Informe ID, nome e pelo menos um setor.', feedbackType: MODULE_STATUS.error },
+      ui: { ...currentUi, form, feedbackMessage: 'Informe nome e pelo menos um setor.', feedbackType: MODULE_STATUS.error },
+    });
+    renderModuleStage(rootElement, sector);
+    return;
+  }
+
+  if (isEditMode && !form.id) {
+    setModuleState(sector.id, {
+      ...state,
+      ui: { ...currentUi, form, feedbackMessage: 'ID do colaborador é obrigatório para edição.', feedbackType: MODULE_STATUS.error },
     });
     renderModuleStage(rootElement, sector);
     return;
@@ -188,6 +244,8 @@ async function saveUserAdminRecord(rootElement, sector) {
     renderModuleStage(rootElement, sector);
     return;
   }
+
+  const senhaInformada = form.senha;
 
   setModuleState(sector.id, {
     ...state,
@@ -206,17 +264,33 @@ async function saveUserAdminRecord(rootElement, sector) {
 
     const isCreate = currentUi.mode === 'create';
 
-    setModuleState(sector.id, {
-      ...nextState,
-      ui: {
-        ...nextUi,
-        // Após criar: limpa tudo para próximo cadastro
-        // Após editar: permanece em modo edição com dados atualizados
-        mode: response.success && isCreate ? 'create' : response.success ? 'edit' : currentUi.mode,
-        originalId: response.success && !isCreate ? (response.user?.id || form.id) : '',
-        form: response.success && isCreate
-          ? { ...USER_ADMIN_UI_DEFAULTS.form }
-          : response.success
+    if (response.success && isCreate) {
+      const generatedId = response.user?.id || currentUi.nextId || '—';
+      setModuleState(sector.id, {
+        ...nextState,
+        ui: {
+          ...nextUi,
+          mode: 'create',
+          originalId: '',
+          form: { ...USER_ADMIN_UI_DEFAULTS.form },
+          isSubmitting: false,
+          feedbackMessage: response.message,
+          feedbackType: MODULE_STATUS.success,
+          successModal: { id: generatedId, senha: senhaInformada },
+          nextId: '',
+          nextIdLoading: false,
+        },
+      });
+      renderModuleStage(rootElement, sector);
+      loadNextUserId(sector.id).then(() => renderModuleStage(rootElement, sector));
+    } else {
+      setModuleState(sector.id, {
+        ...nextState,
+        ui: {
+          ...nextUi,
+          mode: response.success ? 'edit' : currentUi.mode,
+          originalId: response.success ? (response.user?.id || form.id) : currentUi.originalId,
+          form: response.success
             ? {
                 id: response.user?.id || form.id,
                 nome: response.user?.nome || form.nome,
@@ -225,11 +299,13 @@ async function saveUserAdminRecord(rootElement, sector) {
                 setores: normalizeUserAdminSectors(response.user?.setorList || form.setores),
               }
             : form,
-        isSubmitting: false,
-        feedbackMessage: response.message,
-        feedbackType: response.success ? MODULE_STATUS.success : MODULE_STATUS.error,
-      },
-    });
+          isSubmitting: false,
+          feedbackMessage: response.message,
+          feedbackType: response.success ? MODULE_STATUS.success : MODULE_STATUS.error,
+        },
+      });
+      renderModuleStage(rootElement, sector);
+    }
   } catch (error) {
     const nextState = getModuleState(sector.id);
     const nextUi = getUserAdminUiState(nextState.ui);
@@ -238,12 +314,53 @@ async function saveUserAdminRecord(rootElement, sector) {
       ...nextState,
       ui: { ...nextUi, form, isSubmitting: false, feedbackMessage: error?.message || 'Não foi possível salvar o cadastro.', feedbackType: MODULE_STATUS.error },
     });
+    renderModuleStage(rootElement, sector);
   }
+}
+
+function closeUserAdminSuccessModal(rootElement, sector) {
+  const state = getModuleState(sector.id);
+  if (!state) return;
+  const currentUi = getUserAdminUiState(state.ui);
+
+  setModuleState(sector.id, {
+    ...state,
+    ui: { ...currentUi, successModal: null },
+  });
 
   renderModuleStage(rootElement, sector);
 }
 
+async function copyUserAdminRegistrationInfo(rootElement, sector) {
+  const state = getModuleState(sector.id);
+  if (!state) return;
+  const currentUi = getUserAdminUiState(state.ui);
+  const modal = currentUi.successModal;
+  if (!modal) return;
 
+  const text = `ID: ${modal.id}\nSenha: ${modal.senha}`;
+
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = rootElement.querySelector('[data-user-admin-copy-info]');
+    if (btn) {
+      const span = btn.querySelector('span');
+      const original = span?.textContent;
+      if (span) span.textContent = 'Copiado!';
+      setTimeout(() => { if (span) span.textContent = original; }, 2000);
+    }
+  } catch {
+    // Fallback para navegadores sem suporte
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch { /* silencioso */ }
+    ta.remove();
+  }
+}
 
 async function deleteUserAdminRecord(rootElement, sector, userId) {
   if (!userId) return;
@@ -277,6 +394,10 @@ async function deleteUserAdminRecord(rootElement, sector, userId) {
         feedbackType: response.success ? MODULE_STATUS.success : MODULE_STATUS.error,
       },
     });
+
+    if (response.success) {
+      loadNextUserId(sector.id).then(() => renderModuleStage(rootElement, sector));
+    }
   } catch (error) {
     const nextState = getModuleState(sector.id);
     const nextUi = getUserAdminUiState(nextState.ui);

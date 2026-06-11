@@ -8,6 +8,7 @@ import { registrarAtividade } from '../../services/historico.service.js';
 export function getDocumentModuleMarkup(card, moduleData, moduleUi, renderDependencies) {
   const items = Array.isArray(moduleData?.items) ? moduleData.items : [];
   const { getModuleEmptyMarkup, getModuleToolbarMarkup, getModuleSearchEmptyMarkup, getModuleToolFilterMarkup } = renderDependencies;
+  const consumedRefIds = new Set(Array.isArray(moduleData?.consumedRefIds) ? moduleData.consumedRefIds : []);
 
   if (!items.length) {
     return getModuleEmptyMarkup(card, moduleData?.emptyMessage || 'Nenhum arquivo foi encontrado para este módulo.');
@@ -31,7 +32,7 @@ export function getDocumentModuleMarkup(card, moduleData, moduleUi, renderDepend
       ${getModuleToolFilterMarkup(TOOL_FILTER_OPTIONS, activeFilter)}
 
       <div class="module-items-grid module-items-grid-docs ${moduleUi.view === MODULE_VIEW_MODE.list ? 'is-list-view' : 'is-grid-view'}" data-module-items-container>
-        ${preparedItems.length ? preparedItems.map((item) => renderDocumentItemCard(item, card.id)).join('') : getModuleSearchEmptyMarkup()}
+        ${preparedItems.length ? preparedItems.map((item) => renderDocumentItemCard(item, card.id, consumedRefIds)).join('') : getModuleSearchEmptyMarkup()}
       </div>
     </div>
   `;
@@ -63,7 +64,7 @@ export function openDocumentModal(documentItem) {
   });
 }
 
-function renderDocumentItemCard(item, moduloId = 'documentos') {
+function renderDocumentItemCard(item, moduloId = 'documentos', consumedRefIds = new Set()) {
   const extension = sanitizeText(item.extension || 'Arquivo').toUpperCase();
   const modifiedLabel = formatDateLabel(item.modifiedAt);
   const sizeLabel = sanitizeText(item.sizeLabel || '');
@@ -71,8 +72,15 @@ function renderDocumentItemCard(item, moduloId = 'documentos') {
   const previewUrl = resolveDocumentPreviewUrl(item);
   const canPreview = Boolean(previewUrl);
 
+  const refId = previewUrl ? (`doc-${previewUrl}`).slice(0, 128) : null;
+  const isDone = refId && consumedRefIds.has(refId);
+
   return `
-    <article class="module-item-card" data-module-entry>
+    <article class="module-item-card ${isDone ? 'is-done' : ''}" data-module-entry>
+      <span class="module-item-status-badge ${isDone ? 'is-complete' : 'is-pending'}" aria-label="${isDone ? 'Concluído' : 'Atenção'}">
+        <i data-lucide="${isDone ? 'check-circle-2' : 'alert-triangle'}"></i>
+        <span>${isDone ? 'Concluído' : 'Atenção'}</span>
+      </span>
       <div class="module-item-header">
         <span class="card-icon module-item-icon" aria-hidden="true">
           <i data-lucide="file-text"></i>

@@ -350,6 +350,7 @@ export function closeVideoModal() {
 export function getVideoModuleMarkup(card, moduleData, moduleUi, renderDependencies) {
   const items = Array.isArray(moduleData?.items) ? moduleData.items : [];
   const { getModuleEmptyMarkup, getModuleToolbarMarkup, getModuleSearchEmptyMarkup, getModuleToolFilterMarkup } = renderDependencies;
+  const consumedRefIds = new Set(Array.isArray(moduleData?.consumedRefIds) ? moduleData.consumedRefIds : []);
 
   if (!items.length) {
     return getModuleEmptyMarkup(card, moduleData?.emptyMessage || 'Nenhum vídeo foi encontrado para este módulo.');
@@ -370,19 +371,28 @@ export function getVideoModuleMarkup(card, moduleData, moduleUi, renderDependenc
       </div>
       ${getModuleToolFilterMarkup(TOOL_FILTER_OPTIONS, activeFilter)}
       <div class="module-items-grid module-items-grid-video ${moduleUi.view === MODULE_VIEW_MODE.list ? 'is-list-view' : 'is-grid-view'}" data-module-items-container>
-        ${preparedItems.length ? preparedItems.map(renderVideoItemCard).join('') : getModuleSearchEmptyMarkup()}
+        ${preparedItems.length ? preparedItems.map((item) => renderVideoItemCard(item, consumedRefIds)).join('') : getModuleSearchEmptyMarkup()}
       </div>
     </div>
   `;
 }
 
-function renderVideoItemCard(item) {
+function renderVideoItemCard(item, consumedRefIds = new Set()) {
   const thumbnail = sanitizeAttribute(item.thumbnailUrl || '');
   const title = sanitizeText(item.title || 'Vídeo sem título');
   const embedUrl = sanitizeAttribute(item.embedUrl || '');
 
+  const videoIdMatch = String(item.embedUrl || '').match(/youtube\.com\/embed\/([^?&/]+)/);
+  const videoId = videoIdMatch ? videoIdMatch[1] : null;
+  const refId = videoId ? `video-${videoId}` : null;
+  const isDone = refId && consumedRefIds.has(refId);
+
   return `
-    <article class="module-item-card is-video" data-module-entry>
+    <article class="module-item-card is-video ${isDone ? 'is-done' : ''}" data-module-entry>
+      <span class="module-item-status-badge ${isDone ? 'is-complete' : 'is-pending'}" aria-label="${isDone ? 'Concluído' : 'Atenção'}">
+        <i data-lucide="${isDone ? 'check-circle-2' : 'alert-triangle'}"></i>
+        <span>${isDone ? 'Concluído' : 'Atenção'}</span>
+      </span>
       <div class="video-thumb-wrap">
         <img class="video-thumb" src="${thumbnail}" alt="Thumbnail do vídeo ${title}" loading="lazy" />
         <span class="video-duration-badge">${sanitizeText(item.durationLabel || '00:00')}</span>

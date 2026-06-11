@@ -46,7 +46,7 @@ function normalizeRecord(r) {
   const notes      = r.notes        ?? r.observacoes      ?? '';
   const createdAt  = r.createdAt    ?? r.savedAt          ?? r.criado_em       ?? null;
   const evaluationDate = r.evaluationDate ?? r.data_avaliacao ?? null;
-  const id         = r.id           ?? r.registro_id     ?? '';
+  const id         = r.registro_id  ?? r.id            ?? '';
 
   const evaluatee = r.evaluatee ?? {
     id:    r.avaliado_id   ?? '',
@@ -102,4 +102,77 @@ function normalizeRecord(r) {
 // Não é mais necessário — tabela já existe no Supabase
 export async function setupEvaluationStorage() {
   return { success: true, code: 'EVALUATIONS_STORAGE_READY', message: 'Usando Supabase PostgreSQL.' };
+}
+// ── Avaliações Multidirecionais ───────────────────────────────────────────
+
+export async function checkMultidirEligibility({ toolId, evaluateeId }) {
+  const response = await requestApi('verificar-elegibilidade-multidir', { toolId, evaluateeId })
+    .catch(() => ({ success: false, code: 'NETWORK_ERROR', message: 'Falha ao verificar elegibilidade.' }));
+  return response;
+}
+
+export async function saveMultidirEvaluationRecord(payload) {
+  const response = await requestApi('salvar-avaliacao-multidir', { payload })
+    .catch((error) => ({
+      success: false,
+      code:    'NETWORK_ERROR',
+      message: error?.message || 'Falha ao salvar. Verifique a conexão.',
+    }));
+
+  if (response?.success) {
+    return {
+      success: true,
+      code:    response.code,
+      message: response.message || 'Avaliação registrada com sucesso.',
+      record:  response.record ? normalizeRecord(response.record) : null,
+      completed: response.completed || false,
+    };
+  }
+
+  return {
+    success: false,
+    code:    response?.code    || 'SAVE_ERROR',
+    message: response?.message || 'Não foi possível salvar a avaliação.',
+  };
+}
+
+
+// ── Configuração de limite de respondentes ────────────────────────────────
+
+export async function fetchMultidirConfig() {
+  const response = await requestApi('buscar-config-multidir', {})
+    .catch(() => ({ success: false, configs: {} }));
+  return response?.configs || {};
+}
+
+export async function saveMultidirConfig({ toolId, maxRespondentes }) {
+  const response = await requestApi('salvar-config-multidir', { toolId, maxRespondentes })
+    .catch((e) => ({ success: false, message: e?.message || 'Falha ao salvar configuração.' }));
+  return response;
+}
+
+/**
+ * Marks a single evaluation record as read.
+ * Uses the same backend handler as feedback read marking.
+ */
+export async function markEvaluationRecordRead(registroId) {
+  if (!registroId) return;
+  await requestApi('marcar-feedback-lido', { registroId }).catch(() => {});
+}
+
+/**
+ * Fetches which users in a sector have pending evaluations (no record or
+ * record older than 3 months for any non-multidir tool).
+ *
+ * @param {string} sectorId
+ * @param {string[]} userIds
+ * @returns {Promise<{ pendingIds: Set<string>, pendingByTool: Object }>}
+ */
+export async function fetchPendingEvaluationUserIds(sectorId, userIds) {
+  if (!sectorId || !userIds.length) return { pendingIds: new Set(), pendingByTool: {} };
+  const response = await requestApi('buscar-pendencias-avaliacao', { sectorId, userIds })
+    .catch(() => ({ success: false, pendingUserIds: [], pendingByTool: {} }));
+  const ids = Array.isArray(response.pendingUserIds) ? response.pendingUserIds : [];
+  const pendingByTool = response.pendingByTool && typeof response.pendingByTool === 'object' ? response.pendingByTool : {};
+  return { pendingIds: new Set(ids), pendingByTool };
 }

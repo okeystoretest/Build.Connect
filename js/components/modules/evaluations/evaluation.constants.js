@@ -56,9 +56,11 @@ export const MATRIX_EMOTIONAL_CRITERIA = Object.freeze([
   { id: 'colaboracao-time', title: 'Colaboração', description: 'Estimula a colaboração e une esforços para garantir que o time entregue resultados de alto nível.' },
 ]);
 export const EVALUATION_TOOL_IDS = Object.freeze({
-  PRE_EFFECTIVE: 'acompanhamento-funcional-pre-efetivo',
-  BEHAVIORAL: 'analise-desempenho-comportamental',
-  MATRIX: 'matriz-de-decisao',
+  PRE_EFFECTIVE:           'acompanhamento-funcional-pre-efetivo',
+  BEHAVIORAL:              'analise-desempenho-comportamental',
+  MATRIX:                  'matriz-de-decisao',
+  WORK_EFFICACY:           'avaliacao-eficacia-trabalho',
+  EMOTIONAL_INTELLIGENCE:  'avaliacao-inteligencia-emocional',
 });
 export const EVALUATION_TOOLS = Object.freeze([
   {
@@ -67,6 +69,7 @@ export const EVALUATION_TOOLS = Object.freeze([
     icon: 'clipboard-check',
     hint: 'Pré-efetivação',
     description: 'Acompanhe o desenvolvimento funcional do colaborador durante o período pré-efetivo, com marcos de 7, 14 e 21 dias.',
+    isMultidir: false,
   },
   {
     id: EVALUATION_TOOL_IDS.BEHAVIORAL,
@@ -74,6 +77,7 @@ export const EVALUATION_TOOLS = Object.freeze([
     icon: 'brain-circuit',
     hint: 'Comportamental',
     description: 'Avalie critérios comportamentais como disciplina, iniciativa, assiduidade, cooperação, liderança e foco no resultado.',
+    isMultidir: false,
   },
   {
     id: EVALUATION_TOOL_IDS.MATRIX,
@@ -81,6 +85,23 @@ export const EVALUATION_TOOLS = Object.freeze([
     icon: 'chart-column',
     hint: 'Performance',
     description: 'Preencha as competências técnicas e emocionais, calcule as médias e visualize o posicionamento do colaborador na matriz de decisão.',
+    isMultidir: false,
+  },
+  {
+    id: EVALUATION_TOOL_IDS.WORK_EFFICACY,
+    title: 'Avaliação Multidirecional de Eficácia no Trabalho',
+    icon: 'target',
+    hint: 'Eficácia',
+    description: 'Avaliação por pares das 20 competências de eficácia no trabalho. Restrita a colegas do mesmo setor, com limite de 5 respostas por avaliado e bloqueio de 3 meses entre respostas.',
+    isMultidir: true,
+  },
+  {
+    id: EVALUATION_TOOL_IDS.EMOTIONAL_INTELLIGENCE,
+    title: 'Avaliação Multidirecional de Inteligência Emocional',
+    icon: 'heart-handshake',
+    hint: 'Inteligência Emocional',
+    description: 'Avaliação por pares das 18 competências emocionais pessoais e sociais. Restrita a colegas do mesmo setor, com limite de 5 respostas por avaliado e bloqueio de 3 meses entre respostas.',
+    isMultidir: true,
   },
 ]);
 export const BEHAVIORAL_EVALUATION_OPTIONS = Object.freeze([
@@ -106,4 +127,128 @@ export const EVALUATION_UI_DEFAULTS = Object.freeze({
   evaluationSaveStatus: '',
   evaluationSaveMessage: '',
   savedEvaluationRecordsByTool: {},
+  multidirEligibility: {},   // { [toolId:evaluateeId]: { status, message, remainingResponses, nextAvailableDate } }
 });
+// ═══════════════════════════════════════════════════════════════════════════
+// AVALIAÇÃO MULTIDIRECIONAL — IDs e critérios
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const MULTIDIR_TOOL_IDS = Object.freeze({
+  WORK_EFFICACY:           'avaliacao-eficacia-trabalho',
+  EMOTIONAL_INTELLIGENCE:  'avaliacao-inteligencia-emocional',
+});
+
+export const MULTIDIR_RULES = Object.freeze({
+  MAX_RESPONDENTS:   5,
+  COOLDOWN_MONTHS:   3,
+  DHO_SECTOR_ID:     'dho',
+});
+
+// ── F_10 — Eficácia no Trabalho (ET1-ET20, cada um com sub-item A e B) ──────
+
+export const WORK_EFFICACY_CRITERIA = Object.freeze([
+  { id:'et1',  label:'ET1',  title:'Concentrar-se nos resultados',
+    a:'Tem um compromisso assumido com as metas da organização.',
+    b:'Atinge os resultados desejados.' },
+  { id:'et2',  label:'ET2',  title:'Manter a qualidade',
+    a:'Presta muita atenção em detalhes.',
+    b:'Procura trabalhar consistentemente num alto nível.' },
+  { id:'et3',  label:'ET3',  title:'Tomar iniciativa',
+    a:'Resolve problemas rapidamente.',
+    b:'Toma decisões apropriadas quando necessário.' },
+  { id:'et4',  label:'ET4',  title:'Buscar melhorias',
+    a:'Contribui com ideias e sugestões para melhoria.',
+    b:'É receptivo às ideias dos outros para melhorar.' },
+  { id:'et5',  label:'ET5',  title:'Organizar-se bem',
+    a:'Consegue administrar as grandes prioridades.',
+    b:'Tem práticas e sistemas eficientes para o seu trabalho individual.' },
+  { id:'et6',  label:'ET6',  title:'Comunicar informações',
+    a:'Transmite as informações relevantes aos outros de maneira eficiente.',
+    b:'Consegue destacar os pontos principais ao se comunicar.' },
+  { id:'et7',  label:'ET7',  title:'Cumprir as promessas',
+    a:'Acompanha todos os seus compromissos.',
+    b:'Informa os outros quando não terá condições de cumprir uma promessa.' },
+  { id:'et8',  label:'ET8',  title:'Ser franco e sincero',
+    a:'Fica à vontade ao expressar suas opiniões.',
+    b:'É habilidoso ao dar e receber feedback sobre desempenho.' },
+  { id:'et9',  label:'ET9',  title:'Resolver conflitos produtivamente',
+    a:'Consegue lidar com situações de conflito de maneira colaborativa.',
+    b:'Ajuda a mediar conflitos entre outras pessoas.' },
+  { id:'et10', label:'ET10', title:'Voltar-se sempre para o cliente',
+    a:'Mostra disposição para ajudar clientes internos e externos.',
+    b:'Procura exceder as expectativas dos clientes sempre que possível.' },
+  { id:'et11', label:'ET11', title:'Ser positivo diante das mudanças',
+    a:'É receptivo a qualquer mudança que leve a um desempenho melhor.',
+    b:'Mantém-se disposto a trabalhar pela implementação de mudanças.' },
+  { id:'et12', label:'ET12', title:'Aprender rapidamente',
+    a:'Age de maneira proativa ao buscar oportunidades para aprender.',
+    b:'Adapta-se com facilidade a novos sistemas e processos.' },
+  { id:'et13', label:'ET13', title:'Conviver bem com a tecnologia',
+    a:'Compreende bem as tecnologias de trabalho atuais e futuras.',
+    b:'Usa a tecnologia de maneira eficaz, para melhorar o desempenho no trabalho.' },
+  { id:'et14', label:'ET14', title:'Administrar a própria carreira',
+    a:'Assume a responsabilidade pelo próprio desenvolvimento profissional.',
+    b:'Tem planos realistas para atingir suas metas profissionais atuais.' },
+  { id:'et15', label:'ET15', title:'Pensar à frente',
+    a:'Antevê problemas que poderão comprometer o desempenho.',
+    b:'Busca oportunidades para o crescimento pessoal e profissional.' },
+  { id:'et16', label:'ET16', title:'Tolerar bem a incerteza',
+    a:'Sente-se à vontade, mesmo quando o futuro é incerto.',
+    b:'Continua trabalhando com eficácia, mesmo quando lhe faltam informações relevantes.' },
+  { id:'et17', label:'ET17', title:'Fazer mais com menos',
+    a:'Sabe lidar bem com recursos limitados.',
+    b:'Ajusta-se bem a um aumento na carga de trabalho.' },
+  { id:'et18', label:'ET18', title:'Ser muito flexível',
+    a:'Consegue assumir outras funções quando necessário.',
+    b:'Consegue mudar seu ponto de vista quando lhe apresentam dados convincentes.' },
+  { id:'et19', label:'ET19', title:'Ter estabilidade emocional',
+    a:'Não se aborrece nem se abala facilmente.',
+    b:'Consegue lidar com altos níveis de estresse.' },
+  { id:'et20', label:'ET20', title:'Buscar inovação',
+    a:'Dispõe-se a experimentar novas maneiras de se fazer as coisas.',
+    b:'Consegue ter ideias novas, mesmo quando está sob pressão.' },
+]);
+
+// ── F_11 — Inteligência Emocional ────────────────────────────────────────────
+
+export const IE_PERSONAL_CRITERIA = Object.freeze([
+  { id:'ie-p1', label:'1', title:'Autoconsciência Emocional',
+    description:'Identificar suas próprias emoções e reconhecer seu impacto nas ações e decisões.' },
+  { id:'ie-p2', label:'2', title:'Autoavaliação Precisa',
+    description:'Conhecer seus próprios limites e possibilidades, sem se supervalorizar ou subestimar.' },
+  { id:'ie-p3', label:'3', title:'Autoconfiança',
+    description:'Possuir um sólido senso de seu próprio valor, capacidade e potencial.' },
+  { id:'ie-p4', label:'4', title:'Autocontrole Emocional',
+    description:'Manter emoções e impulsos destrutivos sob controle.' },
+  { id:'ie-p5', label:'5', title:'Superação',
+    description:'Demonstrar ímpeto para melhorar o desempenho a fim de satisfazer padrões interiores de excelência.' },
+  { id:'ie-p6', label:'6', title:'Iniciativa',
+    description:'Estar sempre de prontidão para agir e aproveitar oportunidades.' },
+  { id:'ie-p7', label:'7', title:'Transparência',
+    description:'Ser honesto, íntegro, digno de confiança.' },
+  { id:'ie-p8', label:'8', title:'Adaptabilidade',
+    description:'Flexibilidade na adaptação a pessoas com estilos diferentes e a situações voláteis ou ao pensar e se comportar em situações antagônicas.' },
+  { id:'ie-p9', label:'9', title:'Otimismo',
+    description:'Ver o lado bom dos acontecimentos em qualquer situação que seja.' },
+]);
+
+export const IE_SOCIAL_CRITERIA = Object.freeze([
+  { id:'ie-s1', label:'1', title:'Empatia',
+    description:'Perceber as emoções alheias, compreender seus pontos de vista e interessar-se ativamente por suas preocupações.' },
+  { id:'ie-s2', label:'2', title:'Consciência Organizacional',
+    description:'Identificar e compreender as tendências, redes de decisão e a política em nível organizacional.' },
+  { id:'ie-s3', label:'3', title:'Serviço',
+    description:'Reconhecer e satisfazer às necessidades dos subordinados e clientes, servindo-os e ajudando-os a melhorarem seu desempenho e alcançarem seus objetivos.' },
+  { id:'ie-s4', label:'4', title:'Liderança Inspiradora',
+    description:'Orientar e motivar com uma visão instigante, conduzindo pessoas a objetivos de ganhos mútuos.' },
+  { id:'ie-s5', label:'5', title:'Influência',
+    description:'Dispor da capacidade de persuadir e influenciar pessoas.' },
+  { id:'ie-s6', label:'6', title:'Desenvolvimento dos Demais',
+    description:'Cultivar as capacidades alheias por meios de feedbacks e orientação.' },
+  { id:'ie-s7', label:'7', title:'Catalisação de Mudanças',
+    description:'Iniciar e gerenciar mudanças e liderar pessoas em uma nova direção.' },
+  { id:'ie-s8', label:'8', title:'Gerenciamento de Conflitos',
+    description:'Solucionar divergências entre pessoas levando-as à integração e à aceitação mútua.' },
+  { id:'ie-s9', label:'9', title:'Trabalho em Equipe',
+    description:'Conquistar a colaboração e o trabalho em equipe com alto desempenho.' },
+]);
