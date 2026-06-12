@@ -12,7 +12,7 @@ export const USER_LEVELS = Object.freeze({
 export const SECTOR_IDS = Object.freeze({
   home: 'inicio',
   commercial: 'comercial',
-  management: 'gestao',
+  vitrine: 'vitrine',
   sales: 'vendas',
   production: 'producao',
   creation: 'criacao',
@@ -39,7 +39,7 @@ export const USER_LEVEL_OPTIONS = Object.freeze([
 export const USER_ADMIN_SECTOR_OPTIONS = Object.freeze([
   { id: ACCESS_KEYS.all, label: 'Todos' },
   { id: SECTOR_IDS.commercial, label: 'Comercial' },
-  { id: SECTOR_IDS.management, label: 'Gestão' },
+  { id: SECTOR_IDS.vitrine, label: 'Vitrine' },
   { id: SECTOR_IDS.sales, label: 'Vendas' },
   { id: SECTOR_IDS.production, label: 'Produção' },
   { id: SECTOR_IDS.creation, label: 'Criação' },

@@ -19,6 +19,7 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     tiRequestsModuleHandlers,
     historicoModuleHandlers,
     questionariosModuleHandlers,
+    vitrineModuleHandlers,
     getModuleState,
   } = dependencies;
 
@@ -551,6 +552,21 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     if (quizDelete) {
       event.preventDefault();
       questionariosModuleHandlers?.deleteRecord(rootElement, sector, quizDelete.dataset.quizDelete || '');
+      return;
+    }
+
+    // ── Vitrine — tab navigation ────────────────────────────────────────
+    const vitrineTab = event.target.closest('[data-vitrine-tab]');
+    if (vitrineTab) {
+      event.preventDefault();
+      vitrineModuleHandlers?.setActiveTab(rootElement, sector, vitrineTab.dataset.vitrineTab || '');
+      return;
+    }
+
+    const vitrineRetry = event.target.closest('[data-vitrine-retry]');
+    if (vitrineRetry) {
+      event.preventDefault();
+      vitrineModuleHandlers?.retry(rootElement, sector);
       return;
     }
 

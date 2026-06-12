@@ -6,7 +6,7 @@ export const STORAGE_KEYS = {
 };
 
 export const PRODUCTION_CHILD_IDS = ['criacao', 'pcp', 'almoxarifado', 'corte', 'acabamento', 'revisao', 'externo'];
-export const COMMERCIAL_CHILD_IDS = ['gestao', 'vendas'];
+export const COMMERCIAL_CHILD_IDS = ['vitrine', 'vendas'];
 export const COMMERCIAL_SECTOR_IDS = new Set(COMMERCIAL_CHILD_IDS);
 
 export const NAVIGATION_ITEMS = [
@@ -24,15 +24,15 @@ export const NAVIGATION_ITEMS = [
     description: 'Acesse os subsetores do Comercial e encontre materiais de campanha, instruções e conteúdos de apoio.',
     children: [
       {
-        id: 'gestao',
-        label: 'Gestão',
-        icon: 'briefcase-business',
-        description: 'Consulte os materiais e orientações do subsetor Gestão para acompanhar campanhas, processos e apoio comercial.',
+        id: 'vitrine',
+        label: 'OKEY · Showcase',
+        icon: 'cherry',
+        description: 'Explore coleções, catálogos e materiais de capacitação do subsetor Vitrine para apoiar campanhas e equipes comerciais.',
       },
       {
         id: 'vendas',
         label: 'Vendas',
-        icon: 'badge-dollar-sign',
+        icon: 'dollar-sign',
         description: 'Acesse os materiais e instruções do subsetor Vendas para apoiar a rotina comercial e as campanhas ativas.',
       },
     ],

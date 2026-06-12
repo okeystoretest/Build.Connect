@@ -8,6 +8,7 @@ import {
   DEFAULT_SECTOR_CARDS,
   DHO_SECTOR_CARDS,
   RETAGUARDA_SECTOR_CARDS,
+  VITRINE_SECTOR_CARDS,
 } from '../config/sector-cards.config.js';
 import { APP_SOURCE_LABEL } from '../constants/module.constants.js';
 import { ACCESS_KEYS, SECTOR_IDS } from '../constants/sector.constants.js';
@@ -19,6 +20,7 @@ export {
   DEFAULT_SECTOR_CARDS,
   DHO_SECTOR_CARDS,
   RETAGUARDA_SECTOR_CARDS,
+  VITRINE_SECTOR_CARDS,
 } from '../config/sector-cards.config.js';
 export {
   canUserAccessModule,
@@ -51,6 +53,8 @@ export function getCardsForSector(itemId, authenticatedUser = null) {
     cards = DHO_SECTOR_CARDS;
   } else if (itemId === SECTOR_IDS.backoffice) {
     cards = RETAGUARDA_SECTOR_CARDS;
+  } else if (itemId === SECTOR_IDS.vitrine) {
+    cards = VITRINE_SECTOR_CARDS;
   } else if (COMMERCIAL_SECTOR_IDS.has(itemId)) {
     cards = COMMERCIAL_SECTOR_CARDS;
   }

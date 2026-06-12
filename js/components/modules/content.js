@@ -1,5 +1,7 @@
 import {
+  COMMERCIAL_SECTOR_CARDS,
   DEFAULT_SECTOR_CARDS,
+  VITRINE_SECTOR_CARDS,
   canUserAccessModule,
   getCardsForSector,
   getSectorBreadcrumb,
@@ -58,6 +60,11 @@ import {
   createQuestionariosModuleHandlers,
   QUIZ_UI_DEFAULTS,
 } from './modules/questionarios-module.js';
+import {
+  createVitrineModuleHandlers,
+  VITRINE_CATEGORY_MODULE_IDS,
+  vitrineInitDefaultTab,
+} from './modules/vitrine-module.js';
 import { bindContentInteractions } from './content/content-interactions.js';
 import {
   activateRevealAnimations,
@@ -66,7 +73,7 @@ import {
 } from './shared/reveal-animation.js';
 export { resetModuleSelectionForSector } from '../state/module-state.js';
 const VIEW_EXIT_DURATION_MS = 180;
-const MODULE_CARD_IDS = new Set([...DEFAULT_SECTOR_CARDS, ...getCardsForSector('dho')].map((card) => card.id));
+const MODULE_CARD_IDS = new Set([...DEFAULT_SECTOR_CARDS, ...COMMERCIAL_SECTOR_CARDS, ...VITRINE_SECTOR_CARDS, ...getCardsForSector('dho')].map((card) => card.id));
 MODULE_CARD_IDS.add(MODULE_IDS.tiRequest);
 const MODULE_REQUEST_TOKENS = new Map();
 let currentRenderToken = 0;
@@ -108,6 +115,12 @@ const historicoModuleHandlers = createHistoricoModuleHandlers({
 });
 
 const questionariosModuleHandlers = createQuestionariosModuleHandlers({
+  getModuleState,
+  setModuleState,
+  renderModuleStage,
+});
+
+const vitrineModuleHandlers = createVitrineModuleHandlers({
   getModuleState,
   setModuleState,
   renderModuleStage,
@@ -157,6 +170,7 @@ function mountView(rootElement, viewState) {
     tiRequestsModuleHandlers,
     historicoModuleHandlers,
     questionariosModuleHandlers,
+    vitrineModuleHandlers,
     getModuleState,
   });
 }
@@ -187,6 +201,10 @@ function getViewMarkup(viewState) {
 
 function isInternalModule(sectorId, moduleId) {
   if (isDhoSector(sectorId)) {
+    return true;
+  }
+
+  if (VITRINE_CATEGORY_MODULE_IDS.has(moduleId)) {
     return true;
   }
 
@@ -335,6 +353,10 @@ async function handleModuleSelection(rootElement, sector, moduleId, authenticate
 
     if (moduleId === MODULE_IDS.userAdmin) {
       initUserAdminCreateMode(rootElement, sector);
+    }
+
+    if (VITRINE_CATEGORY_MODULE_IDS.has(moduleId)) {
+      vitrineInitDefaultTab(rootElement, sector);
     }
 
     return;

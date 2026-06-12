@@ -14,6 +14,22 @@ export const MODULE_IDS = Object.freeze({
   mapasIntegracao: 'mapas-integracao',
   documentosDho: 'documentos-dho',
   questionarios: 'questionarios',
+
+  // ── Vitrine — categorias (navegação interna) ─────────────────────────
+  vitrineColecoes: 'vitrine-colecoes',
+  vitrineCatalogo: 'vitrine-catalogo',
+  vitrineWorkshop: 'vitrine-workshop',
+
+  // ── Vitrine — sub-módulos (conteúdo Drive) ───────────────────────────
+  vitrineEditoriais: 'vitrine-editoriais',
+  vitrineMateriaisMarca: 'vitrine-materiais-marca',
+  vitrineComposicoes: 'vitrine-composicoes',
+  vitrineFotosPrincipais: 'vitrine-fotos-principais',
+  vitrineCorresTecidos: 'vitrine-cores-tecidos',
+  vitrineAcabamentos: 'vitrine-acabamentos',
+  vitrineInstrucoes: 'vitrine-instrucoes',
+  vitrineMateriaisApoio: 'vitrine-materiais-apoio',
+  vitrineCapacitacao: 'vitrine-capacitacao',
 });
 
 export const MODULE_STATUS = Object.freeze({
@@ -45,6 +61,15 @@ export const MODULE_SOURCE_LABELS = Object.freeze({
   [MODULE_IDS.evaluation]: APP_SOURCE_LABEL,
   [MODULE_IDS.feedback]: APP_SOURCE_LABEL,
   [MODULE_IDS.quality]: APP_SOURCE_LABEL,
+  [MODULE_IDS.vitrineEditoriais]: 'Google Drive',
+  [MODULE_IDS.vitrineMateriaisMarca]: 'Google Drive',
+  [MODULE_IDS.vitrineComposicoes]: 'Google Drive',
+  [MODULE_IDS.vitrineFotosPrincipais]: 'Google Drive',
+  [MODULE_IDS.vitrineCorresTecidos]: 'Google Drive',
+  [MODULE_IDS.vitrineAcabamentos]: 'Google Drive',
+  [MODULE_IDS.vitrineInstrucoes]: 'Google Drive',
+  [MODULE_IDS.vitrineMateriaisApoio]: 'Google Drive',
+  [MODULE_IDS.vitrineCapacitacao]: 'Google Drive',
 });
 
 export const DOCUMENT_MODULE_IDS = new Set([
@@ -52,6 +77,15 @@ export const DOCUMENT_MODULE_IDS = new Set([
   MODULE_IDS.writtenInstructions,
   MODULE_IDS.mapasIntegracao,
   MODULE_IDS.documentosDho,
+  MODULE_IDS.vitrineEditoriais,
+  MODULE_IDS.vitrineMateriaisMarca,
+  MODULE_IDS.vitrineComposicoes,
+  MODULE_IDS.vitrineFotosPrincipais,
+  MODULE_IDS.vitrineCorresTecidos,
+  MODULE_IDS.vitrineAcabamentos,
+  MODULE_IDS.vitrineInstrucoes,
+  MODULE_IDS.vitrineMateriaisApoio,
+  MODULE_IDS.vitrineCapacitacao,
 ]);
 
 export const VIDEO_MODULE_IDS = new Set([

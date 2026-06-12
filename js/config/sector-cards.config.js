@@ -70,6 +70,34 @@ export const COMMERCIAL_SECTOR_CARDS = [
 
 ];
 
+// ── Vitrine - Vendas Externas ───────────────────────────────────
+export const VITRINE_SECTOR_CARDS = [
+  {
+    id: 'vitrine-colecoes',
+    title: 'Coleções',
+    icon: 'cherry',
+    hint: 'Campanhas e styling',
+    getDescription: () =>
+      'Editoriais, materiais da marca e composições visuais das coleções.',
+  },
+  {
+    id: 'vitrine-catalogo',
+    title: 'Catálogo',
+    icon: 'book-search',
+    hint: 'Produto e matéria-prima',
+    getDescription: () =>
+      'Consulte o catálogo da coleção atual e os conteúdos visuais das variantes de cores.',
+  },
+  {
+    id: 'vitrine-workshop',
+    title: 'Workshop',
+    icon: 'presentation',
+    hint: 'Treinamento e apoio',
+    getDescription: () =>
+      'Instruções, documentos de apoio e conteúdos de capacitação.',
+  },
+];
+
 export const RETAGUARDA_SECTOR_CARDS = [
   ...DEFAULT_SECTOR_CARDS,
   {
