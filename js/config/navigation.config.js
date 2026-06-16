@@ -25,7 +25,7 @@ export const NAVIGATION_ITEMS = [
     children: [
       {
         id: 'vitrine',
-        label: 'OKEY · Showcase',
+        label: 'OKEY · VITRINE',
         icon: 'cherry',
         description: 'Explore coleções, catálogos e materiais de capacitação do subsetor Vitrine para apoiar campanhas e equipes comerciais.',
       },
