@@ -76,8 +76,6 @@ export const NAVIGATION_ITEMS = [
     description: 'Entenda como o setor de Compras solicita, aprova e acompanha aquisições importantes para a operação.',
   },
   {
-    // Logística agora é um accordion com subsetores: Estoque e Motorista.
-    // O antigo conteúdo de "Logística" migrou integralmente para "Estoque".
     id: 'logistica',
     label: 'Logística',
     icon: 'truck',
