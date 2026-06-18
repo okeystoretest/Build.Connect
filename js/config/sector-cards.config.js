@@ -187,10 +187,10 @@ export const DHO_SECTOR_CARDS = [
 export const MOTORISTA_SECTOR_CARDS = [
   {
     id: 'requisicoes-motorista',
-    title: 'Requisições',
+    title: 'Central de Motoristas',
     icon: 'clipboard-list',
     hint: 'Serviços e entregas',
     getDescription: () =>
-      'Registre e acompanhe as requisições de serviço, entregas, coletas e outras demandas operacionais.',
+      'Acompanhe as requisições de serviço, entregas, coletas e outras demandas operacionais.',
   },
 ];
