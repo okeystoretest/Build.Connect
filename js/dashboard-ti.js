@@ -95,7 +95,10 @@ function showLoginOverlay() {
 
 function hideLoginOverlay() {
   const overlay = document.getElementById('dash-login-overlay');
-  if (overlay) overlay.hidden = true;
+  // remove() instead of hidden=true: the overlay's CSS `display:flex` has higher
+  // specificity than the UA-stylesheet `[hidden]{display:none}`, so only DOM
+  // removal guarantees the modal disappears regardless of the CSS cascade.
+  if (overlay) overlay.remove();
 }
 
 async function handleLogin() {

@@ -31,6 +31,47 @@ export function fmtDuration(mins) {
   return r > 0 ? `${h}h ${r}min` : `${h}h`;
 }
 
+// ── Month filter helpers (coluna Concluído) ────────────────────────────────
+
+const MONTH_NAMES_PT = [
+  'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+  'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro',
+];
+
+function _buildCurrentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function _formatMonthLabel(key) {
+  const [y, m] = key.split('-').map(Number);
+  return `${MONTH_NAMES_PT[m - 1]} ${y}`;
+}
+
+function _buildCompletedMonthOptions(completedTickets) {
+  const months = new Set([_buildCurrentMonthKey()]);
+  for (const t of completedTickets) {
+    const date = t.dataConclusao || t.timestamp;
+    if (!date) continue;
+    const d = new Date(date);
+    if (isNaN(d.getTime())) continue;
+    months.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+  return [...months]
+    .sort((a, b) => b.localeCompare(a))
+    .map(key => ({ key, label: _formatMonthLabel(key) }));
+}
+
+function _filterCompletedByMonth(tickets, monthKey) {
+  const [y, m] = monthKey.split('-').map(Number);
+  return tickets.filter(t => {
+    const date = t.dataConclusao || t.timestamp;
+    if (!date) return false;
+    const d = new Date(date);
+    return d.getFullYear() === y && d.getMonth() + 1 === m;
+  });
+}
+
 // ── Kanban ─────────────────────────────────────────────────────────────────
 
 const DONE_PAGE_SIZE = 5;
@@ -50,6 +91,11 @@ export function renderKanban(tickets, completedTickets, ui, respondent, isMotori
   const PAGE_SIZE    = DONE_PAGE_SIZE;
   const colsExpanded = ui.colsExpanded || {};
 
+  // ── Filtro de mês para a coluna Concluído (padrão = mês vigente) ────────
+  const activeMonthKey     = ui.completedFilterMonth || _buildCurrentMonthKey();
+  const filteredCompleted  = _filterCompletedByMonth(completedTickets, activeMonthKey);
+  const completedMonthOpts = _buildCompletedMonthOptions(completedTickets);
+
   const allByStatus = {
     'Pendente':     allActive.filter(t => t.status === 'Pendente'),
     'Atribuído':    isPrivileged
@@ -58,7 +104,7 @@ export function renderKanban(tickets, completedTickets, ui, respondent, isMotori
     'Em andamento': isPrivileged
       ? allActive.filter(t => t.status === 'Em andamento')
       : allActive.filter(t => t.status === 'Em andamento' && t.atribuidoParaId === userId),
-    'Concluído':    completedTickets,
+    'Concluído':    filteredCompleted,
   };
 
   const byStatus = Object.fromEntries(
@@ -76,6 +122,7 @@ export function renderKanban(tickets, completedTickets, ui, respondent, isMotori
         const hasMore  = all.length > PAGE_SIZE;
         const expanded = !!colsExpanded[col.status];
         const hidden   = all.length - PAGE_SIZE;
+        const isDone   = col.status === 'Concluído';
 
         return `
         <div class="ti-kanban-col" data-status="${sanitizeAttribute(col.status)}">
@@ -90,6 +137,16 @@ export function renderKanban(tickets, completedTickets, ui, respondent, isMotori
               </span>
             </div>
           </div>
+          ${isDone ? `
+            <div class="ti-kanban-done-filter">
+              <i data-lucide="calendar"></i>
+              <select class="ti-kanban-done-filter-select" data-ti-done-month aria-label="Filtrar concluídos por mês">
+                ${completedMonthOpts.map(({ key, label }) =>
+                  `<option value="${sanitizeAttribute(key)}"${key === activeMonthKey ? ' selected' : ''}>${sanitizeText(label)}</option>`
+                ).join('')}
+              </select>
+            </div>
+          ` : ''}
           <div class="ti-kanban-cards">
             ${paged.length
               ? paged.map(t => renderKanbanCard(t, col, ui, respondent, isMotorista)).join('')

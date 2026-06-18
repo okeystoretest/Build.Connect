@@ -29,6 +29,13 @@ export function createChangeHandler(rootElement, sector, dependencies) {
       return;
     }
 
+    const tiDoneMonthSelect = event.target.closest('[data-ti-done-month]');
+
+    if (tiDoneMonthSelect) {
+      tiRequestsModuleHandlers?.changeDoneMonthFilter(rootElement, sector, tiDoneMonthSelect.value || null);
+      return;
+    }
+
     // ── Questionários (Admin) ─────────────────────────────────────────
 
     const quizFilterSector = event.target.closest('[data-quiz-filter-sector]');

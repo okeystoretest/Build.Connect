@@ -22,6 +22,7 @@ export function createTiRequestsModuleHandlers(context) {
     cancelConclusion:       cancelConclusion,
     confirmConclusion:      confirmConclusion,
     changePeriod:           changeDashboardPeriod,
+    changeDoneMonthFilter:  changeDoneMonthFilter,
     openFullDashboard:      openFullDashboard,
     closeFullDashboard:     closeFullDashboard,
     setFullDashboardFilter: setFullDashboardFilter,
@@ -244,6 +245,15 @@ async function updateTiTicketStatus(rootElement, sector, ticketId, novoStatus, u
     setState(sector.id, { ...next, ui: { ...ui(next), isUpdating: false, updatingTicketId: null, errorMessage: err?.message || 'Erro ao atualizar.' } });
     render(rootElement, sector);
   }
+}
+
+// ── Done month filter ─────────────────────────────────────────────────────
+
+function changeDoneMonthFilter(rootElement, sector, monthKey) {
+  const state = getState(sector.id);
+  if (!_isTiModule(state)) return;
+  setState(sector.id, { ...state, ui: { ...ui(state), completedFilterMonth: monthKey || null } });
+  render(rootElement, sector);
 }
 
 // ── Dashboard period ──────────────────────────────────────────────────────

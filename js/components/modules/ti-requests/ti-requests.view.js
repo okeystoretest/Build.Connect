@@ -10,7 +10,7 @@ import { sanitizeText } from '../../../utils/sanitize.js';
 import { TI_REQUESTS_UI_DEFAULTS } from './ti-requests.constants.js';
 import { USER_LEVELS } from '../../../constants/sector.constants.js';
 import { MODULE_IDS } from '../../../constants/module.constants.js';
-import { renderKanban, renderCompletedCard, buildKanbanCardDetailHTML } from './ti-requests.view.kanban.js';
+import { renderKanban, buildKanbanCardDetailHTML } from './ti-requests.view.kanban.js';
 import { renderDashboard, renderFullDashboard } from './ti-requests.view.charts.js';
 
 export { buildKanbanCardDetailHTML } from './ti-requests.view.kanban.js';
@@ -87,26 +87,8 @@ function renderBody(ui, respondent, isMotorista = false) {
 
   return `
     ${renderKanban(tickets, completedTickets, ui, respondent, isMotorista)}
-    ${renderCompletedSection(completedTickets, ui)}
     ${isPrivileged && !isMotorista ? renderDashboard(ui.dashboard, ui.dashboardPeriod || 'mes') : ''}
   `;
 }
 
-// ── Completed section wrapper ─────────────────────────────────────────────
 
-function renderCompletedSection(completedTickets, ui) {
-  const count = completedTickets.length;
-  return `
-    <section class="ti-requests-section ti-completed-section" aria-label="Chamados concluídos">
-      <div class="ti-section-head">
-        <h3 class="ti-section-title"><i data-lucide="check-circle-2"></i>Concluídos</h3>
-        <span class="ti-badge is-done-badge">${count}</span>
-      </div>
-      ${count === 0
-        ? `<div class="ti-empty-state"><i data-lucide="inbox"></i><span>Nenhum chamado concluído ainda.</span></div>`
-        : `<div class="ti-completed-list">
-            ${completedTickets.map((t) => renderCompletedCard(t, ui)).join('')}
-          </div>`
-      }
-    </section>`;
-}

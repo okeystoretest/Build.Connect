@@ -3568,6 +3568,43 @@ body.has-video-modal {
   margin-top: 4px;
 }
 
+/* ── Filtro de mês da coluna Concluído ────────────────────────────────── */
+.ti-kanban-done-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.73rem;
+  color: var(--muted);
+}
+
+.ti-kanban-done-filter i {
+  width: 13px;
+  height: 13px;
+  color: #10B981;
+  flex-shrink: 0;
+}
+
+.ti-kanban-done-filter-select {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 4px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.73rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.ti-kanban-done-filter-select:focus {
+  outline: 1px solid #10B981;
+  border-radius: 4px;
+}
+
 .ti-kanban-load-more i, .ti-kanban-load-more svg { width: 13px; height: 13px; }
 .ti-kanban-load-more:hover { border-color: var(--primary); color: var(--primary); }
 
