@@ -34,15 +34,9 @@ export const DEFAULT_SECTOR_CARDS = [
 
 ];
 
+// ── Comercial > Vendas ─────────────────────────────────────────────────────
+// Nota: o card "Material" (id: 'documentos') foi removido do sub-setor Vendas.
 export const COMMERCIAL_SECTOR_CARDS = [
-  {
-    id: 'documentos',
-    title: 'Material',
-    icon: 'folder-open',
-    hint: 'Campanhas',
-    getDescription: (sectorName) =>
-      `Acesse os catálogos, materiais e arquivos das campanhas ligados ao subsetor ${sectorName}.`,
-  },
   {
     id: 'instrucoes-escritas',
     title: 'Instruções Escritas',
@@ -95,6 +89,34 @@ export const VITRINE_SECTOR_CARDS = [
     hint: 'Treinamento e apoio',
     getDescription: () =>
       'Instruções, documentos de apoio e conteúdos de capacitação.',
+  },
+];
+
+// ── Lov Club - Vitrine ─────────────────────────────────────────
+export const LOV_CLUB_SECTOR_CARDS = [
+  {
+    id: 'lovclub-colecoes',
+    title: 'Coleções',
+    icon: 'heart',
+    hint: 'Campanhas e styling',
+    getDescription: () =>
+      'Editoriais, materiais da marca e composições visuais das coleções Lov Club.',
+  },
+  {
+    id: 'lovclub-catalogo',
+    title: 'Catálogo',
+    icon: 'book-search',
+    hint: 'Produto e matéria-prima',
+    getDescription: () =>
+      'Consulte o catálogo da coleção atual e os conteúdos visuais das variantes de cores Lov Club.',
+  },
+  {
+    id: 'lovclub-workshop',
+    title: 'Workshop',
+    icon: 'presentation',
+    hint: 'Treinamento e apoio',
+    getDescription: () =>
+      'Instruções, documentos de apoio e conteúdos de capacitação Lov Club.',
   },
 ];
 
@@ -158,5 +180,17 @@ export const DHO_SECTOR_CARDS = [
     hint: 'Padrão interno',
     getDescription: () =>
       'Acompanhe os resultados dos colaboradores para decidir os próximos passos.',
+  },
+];
+
+// ── Motorista ──────────────────────────────────────────────────────────────
+export const MOTORISTA_SECTOR_CARDS = [
+  {
+    id: 'requisicoes-motorista',
+    title: 'Requisições',
+    icon: 'clipboard-list',
+    hint: 'Serviços e entregas',
+    getDescription: () =>
+      'Registre e acompanhe as requisições de serviço, entregas, coletas e outras demandas operacionais.',
   },
 ];

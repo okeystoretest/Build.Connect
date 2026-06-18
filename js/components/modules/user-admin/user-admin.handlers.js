@@ -14,6 +14,7 @@ import {
   readUserAdminFormData,
   readUserAdminSearchQuery,
 } from './user-admin.form.js';
+import { openRegistrationSuccessModal } from '../../shared/registration-success-modal.js';
 
 let userAdminModuleContext = null;
 
@@ -276,11 +277,12 @@ async function saveUserAdminRecord(rootElement, sector) {
           isSubmitting: false,
           feedbackMessage: response.message,
           feedbackType: MODULE_STATUS.success,
-          successModal: { id: generatedId, senha: senhaInformada },
           nextId: '',
           nextIdLoading: false,
         },
       });
+      // Abre modal de credenciais diretamente no document.body
+      openRegistrationSuccessModal({ id: generatedId, senha: senhaInformada });
       renderModuleStage(rootElement, sector);
       loadNextUserId(sector.id).then(() => renderModuleStage(rootElement, sector));
     } else {
@@ -318,49 +320,10 @@ async function saveUserAdminRecord(rootElement, sector) {
   }
 }
 
-function closeUserAdminSuccessModal(rootElement, sector) {
-  const state = getModuleState(sector.id);
-  if (!state) return;
-  const currentUi = getUserAdminUiState(state.ui);
-
-  setModuleState(sector.id, {
-    ...state,
-    ui: { ...currentUi, successModal: null },
-  });
-
-  renderModuleStage(rootElement, sector);
-}
-
-async function copyUserAdminRegistrationInfo(rootElement, sector) {
-  const state = getModuleState(sector.id);
-  if (!state) return;
-  const currentUi = getUserAdminUiState(state.ui);
-  const modal = currentUi.successModal;
-  if (!modal) return;
-
-  const text = `ID: ${modal.id}\nSenha: ${modal.senha}`;
-
-  try {
-    await navigator.clipboard.writeText(text);
-    const btn = rootElement.querySelector('[data-user-admin-copy-info]');
-    if (btn) {
-      const span = btn.querySelector('span');
-      const original = span?.textContent;
-      if (span) span.textContent = 'Copiado!';
-      setTimeout(() => { if (span) span.textContent = original; }, 2000);
-    }
-  } catch {
-    // Fallback para navegadores sem suporte
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
-    document.body.appendChild(ta);
-    ta.select();
-    try { document.execCommand('copy'); } catch { /* silencioso */ }
-    ta.remove();
-  }
-}
+// Estes handlers foram mantidos para compatibilidade com content-clicks.js.
+// O modal de credenciais é agora gerido por registration-success-modal.js.
+function closeUserAdminSuccessModal() { /* no-op: modal gerido externamente */ }
+async function copyUserAdminRegistrationInfo() { /* no-op: modal gerido externamente */ }
 
 async function deleteUserAdminRecord(rootElement, sector, userId) {
   if (!userId) return;

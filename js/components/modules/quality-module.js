@@ -1,4 +1,5 @@
 import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
+import { errorBoundary } from '../../utils/error.js';
 import { searchEvaluationRecords, fetchMultidirConfig, saveMultidirConfig, markEvaluationRecordRead } from '../../services/evaluations.service.js';
 import { listarFeedbacksParaUsuario, marcarFeedbackLido } from '../../services/feedbacks-reader.service.js';
 import { setCardAlert, clearCardAlert } from '../../state/module-state.js';
@@ -706,7 +707,7 @@ async function selectQualityUser(rootElement, sector, userId) {
             clearCardAlert(sector.id, 'qualidade');
             invalidateSectorAlertsCache(sector.id);
           })
-          .catch(() => {});
+          .catch(err => errorBoundary(err, 'quality:selectUser:cardAlert'));
       }
     }
   } catch (error) {

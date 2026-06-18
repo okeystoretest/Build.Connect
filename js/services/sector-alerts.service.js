@@ -1,26 +1,64 @@
 /**
  * sector-alerts.service.js
  * Loads card-level alert badges for a sector on navigation.
- * Prefetches pending evaluation users, unread quality records,
- * and content consumption gaps so badges render without flickering.
+ * Also computes Navi lock states (Sistema Navi — sequential learning path).
  */
 
 import { requestApi } from './api.service.js';
 import { loadActiveUsers } from './users.service.js';
 import { loadModuleContent } from './integrations.service.js';
-import { setCardAlert, getModuleState, setModuleState } from '../state/module-state.js';
+import { setCardAlert, getModuleState, setModuleState, setCardLock } from '../state/module-state.js';
 import { MODULE_IDS } from '../constants/module.constants.js';
+import { isAdminUser, isManagerUser } from './access.service.js';
+import { buildNaviProgress, computeNaviLocks, isNaviSector } from './navi.service.js';
 
 const CACHE_MS = 60_000;
 const _lastFetch = new Map();
 const STORAGE_KEY = 'bc_sector_alerts';
 
+// ── Lockable card IDs for Navi cleanup ──────────────────────────────────────
+const NAVI_LOCKABLE_IDS = [
+  MODULE_IDS.writtenInstructions,
+  MODULE_IDS.videoInstructions,
+  MODULE_IDS.evaluation,
+  MODULE_IDS.tiRequest,
+];
+
 // ── Public API ────────────────────────────────────────────────────────────
 
+export function hasCachedAlerts(sectorId) {
+  if (!sectorId) return false;
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const all = JSON.parse(raw);
+    return Boolean(all[sectorId] && typeof all[sectorId] === 'object');
+  } catch { return false; }
+}
+
 /**
- * Synchronously restores cached alerts for a sector into module state.
- * Call this BEFORE the first render so the initial paint already has badge data.
+ * Retorna true se o setor possui cardLocks cacheados no sessionStorage.
+ * Usado para decidir se o spinner de carregamento deve ser exibido
+ * antes das regras Navi estarem computadas.
  */
+export function hasCachedLocks(sectorId) {
+  if (!sectorId) return false;
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const all = JSON.parse(raw);
+    const entry = all[sectorId];
+    // Novo formato: { alerts: {}, locks: {} }
+    return Boolean(entry && typeof entry === 'object' && 'locks' in entry);
+  } catch { return false; }
+}
+
+export function isFetchStale(sectorId) {
+  if (!sectorId) return true;
+  const last = _lastFetch.get(sectorId) || 0;
+  return Date.now() - last >= CACHE_MS;
+}
+
 export function syncSectorAlertsFromCache(sectorId) {
   if (!sectorId) return;
   _restoreAlertsFromCache(sectorId);
@@ -28,15 +66,16 @@ export function syncSectorAlertsFromCache(sectorId) {
 
 export async function prefetchSectorAlerts(sectorId, authenticatedUser) {
   if (!sectorId) return;
-  const nivel = authenticatedUser?.nivel || 'Colaborador';
+
+  const isPrivileged = isAdminUser(authenticatedUser) || isManagerUser(authenticatedUser);
 
   const last = _lastFetch.get(sectorId) || 0;
   if (Date.now() - last < CACHE_MS) return;
   _lastFetch.set(sectorId, Date.now());
 
-  const jobs = [_checkContentPending(sectorId)];
+  const jobs = [_checkContentPending(sectorId, authenticatedUser)];
 
-  if (nivel === 'Admin' || nivel === 'Gestor') {
+  if (isPrivileged) {
     jobs.push(_checkEvaluationPending(sectorId));
     jobs.push(_checkQualityUnread(sectorId));
   }
@@ -50,15 +89,23 @@ export function invalidateSectorAlertsCache(sectorId) {
   _clearPersistedAlerts(sectorId);
 }
 
-// ── Content pending (Docs, Videos, Instructions) ──────────────────────────
+/**
+ * Invalida apenas o timer de fetch, sem tocar no sessionStorage.
+ * Força prefetchSectorAlerts a buscar dados frescos do servidor na
+ * próxima chamada, mas preserva o cache como fallback em caso de falha de rede.
+ * Usado pelo anti-bypass no retorno ao menu de setor.
+ */
+export function invalidateSectorAlertsFetchTimer(sectorId) {
+  if (sectorId) _lastFetch.delete(sectorId);
+}
 
-async function _checkContentPending(sectorId) {
+// ── Content pending + Navi locks ──────────────────────────────────────────
+
+async function _checkContentPending(sectorId, authenticatedUser) {
   try {
-    // Load consumed counts from backend
     const consumoResp = await requestApi('buscar-consumo-usuario', { sectorId });
     const consumed = consumoResp?.counts || {};
 
-    // Load content from Apps Script (cached after first call)
     const contentModules = [
       { moduleId: MODULE_IDS.documents,           cardId: MODULE_IDS.documents,           tipo: 'documento' },
       { moduleId: MODULE_IDS.writtenInstructions,  cardId: MODULE_IDS.writtenInstructions,  tipo: 'instrucao_escrita' },
@@ -69,30 +116,55 @@ async function _checkContentPending(sectorId) {
       contentModules.map(m => loadModuleContent({ sectorId, moduleId: m.moduleId }))
     );
 
+    // Collect totals for Navi progress
+    const totals = { documentos: 0, instrucoes_escritas: 0, instrucoes_video: 0 };
+
     for (let i = 0; i < contentModules.length; i++) {
-      const { cardId, tipo } = contentModules[i];
+      const { cardId, tipo, moduleId } = contentModules[i];
       const result = results[i];
       if (result.status !== 'fulfilled' || !result.value?.success) {
         setCardAlert(sectorId, cardId, null);
         continue;
       }
 
-      const total    = Array.isArray(result.value.items) ? result.value.items.length : 0;
-      const done     = consumed[tipo] || 0;
-      const pending  = Math.max(0, total - done);
+      const total   = Array.isArray(result.value.items) ? result.value.items.length : 0;
+      const done    = consumed[tipo] || 0;
+      const pending = Math.max(0, total - done);
+
+      // Collect total for Navi
+      if (moduleId === MODULE_IDS.documents)           totals.documentos = total;
+      if (moduleId === MODULE_IDS.writtenInstructions) totals.instrucoes_escritas = total;
+      if (moduleId === MODULE_IDS.videoInstructions)   totals.instrucoes_video = total;
 
       if (total === 0) {
         setCardAlert(sectorId, cardId, null);
+      } else if (done === 0) {
+        setCardAlert(sectorId, cardId, { type: 'not-started', count: total });
       } else if (pending > 0) {
-        setCardAlert(sectorId, cardId, { type: 'pending', count: pending });
+        setCardAlert(sectorId, cardId, { type: 'in-progress', count: pending });
       } else {
         setCardAlert(sectorId, cardId, { type: 'complete', count: 0 });
+      }
+    }
+
+    // ── Navi lock computation ──────────────────────────────────────────────
+    if (isNaviSector(sectorId)) {
+      const naviProgress = buildNaviProgress(consumed, totals);
+      const naviLocks    = computeNaviLocks(naviProgress, authenticatedUser, sectorId);
+
+      // Apply new lock states
+      for (const [cardId, lockState] of Object.entries(naviLocks)) {
+        setCardLock(sectorId, cardId, lockState);
+      }
+      // Clear locks for cards that are now unlocked
+      for (const cardId of NAVI_LOCKABLE_IDS) {
+        if (!naviLocks[cardId]) setCardLock(sectorId, cardId, null);
       }
     }
   } catch { /* silent */ }
 }
 
-// ── Evaluation pending ────────────────────────────────────────────────────
+// ── Evaluation pending ──────────────────────────────────────────────────────
 
 async function _checkEvaluationPending(sectorId) {
   try {
@@ -100,25 +172,21 @@ async function _checkEvaluationPending(sectorId) {
     const allUsers = Array.isArray(usersResponse.users) ? usersResponse.users : [];
 
     const sectorUsers = allUsers.filter((u) => {
-      if (u.nivel === 'Admin' || u.nivel === 'Gestor') return true;
+      if (isAdminUser(u) || isManagerUser(u)) return true;
       const s = String(u.setor || '').toLowerCase();
       return s === 'all' || s.split(/,\s*/).includes(sectorId);
     });
 
-    if (!sectorUsers.length) {
-      setCardAlert(sectorId, 'avaliacao', null);
-      return;
-    }
+    if (!sectorUsers.length) { setCardAlert(sectorId, 'avaliacao', null); return; }
 
     const userIds = sectorUsers.map(u => u.id);
     const response = await requestApi('buscar-pendencias-avaliacao', { sectorId, userIds });
-
     const pendingIds = Array.isArray(response?.pendingUserIds) ? response.pendingUserIds : [];
+
     setCardAlert(sectorId, 'avaliacao', pendingIds.length > 0
       ? { type: 'pending', count: pendingIds.length }
       : null);
 
-    // Store pendingUserIds + pendingByTool in moduleData if already initialized
     const currentState = getModuleState(sectorId);
     if (currentState.moduleData) {
       setModuleState(sectorId, {
@@ -130,16 +198,10 @@ async function _checkEvaluationPending(sectorId) {
         },
       });
     }
-
-    // Also store pendingByTool in cardAlerts metadata for evaluation view
-    const alertData = getModuleState(sectorId).cardAlerts?.avaliacao;
-    if (alertData) {
-      alertData.pendingByTool = response?.pendingByTool || {};
-    }
   } catch { /* silent */ }
 }
 
-// ── Quality unread ────────────────────────────────────────────────────────
+// ── Quality unread ──────────────────────────────────────────────────────────
 
 async function _checkQualityUnread(sectorId) {
   try {
@@ -151,28 +213,41 @@ async function _checkQualityUnread(sectorId) {
   } catch { /* silent */ }
 }
 
-// ── Session cache (flicker prevention) ────────────────────────────────────
+// ── Session cache ───────────────────────────────────────────────────────────
 
 function _restoreAlertsFromCache(sectorId) {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return;
     const all = JSON.parse(raw);
-    const cached = all[sectorId];
-    if (!cached || typeof cached !== 'object') return;
-    for (const [cardId, alert] of Object.entries(cached)) {
-      setCardAlert(sectorId, cardId, alert);
+    const entry = all[sectorId];
+    if (!entry || typeof entry !== 'object') return;
+
+    // Suporte ao formato novo { alerts: {}, locks: {} } e formato legado (flat)
+    const alerts = entry.alerts || entry;
+    const locks  = entry.locks  || {};
+
+    for (const [cardId, alert] of Object.entries(alerts)) {
+      if (cardId !== 'alerts' && cardId !== 'locks') {
+        setCardAlert(sectorId, cardId, alert);
+      }
+    }
+    // Restaura locks Navi do cache — elimina a janela de flash de cards desbloqueados
+    for (const [cardId, lock] of Object.entries(locks)) {
+      setCardLock(sectorId, cardId, lock);
     }
   } catch { /* silent */ }
 }
 
 function _persistAlertsToCache(sectorId) {
   try {
-    const state = getModuleState(sectorId);
+    const state  = getModuleState(sectorId);
     const alerts = state.cardAlerts || {};
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    const all = raw ? JSON.parse(raw) : {};
-    all[sectorId] = alerts;
+    const locks  = state.cardLocks  || {};
+    const raw    = sessionStorage.getItem(STORAGE_KEY);
+    const all    = raw ? JSON.parse(raw) : {};
+    // Novo formato: persiste tanto alerts quanto locks juntos
+    all[sectorId] = { alerts, locks };
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(all));
   } catch { /* silent */ }
 }

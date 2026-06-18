@@ -2,6 +2,7 @@ import { MODULE_IDS } from '../constants/module.constants.js';
 import { ACCESS_KEYS, SECTOR_IDS, USER_LEVELS } from '../constants/sector.constants.js';
 import {
   COMMERCIAL_CHILD_IDS,
+  LOGISTICS_CHILD_IDS,
   NAVIGATION_ITEMS,
   PRODUCTION_CHILD_IDS,
 } from '../config/navigation.config.js';
@@ -21,62 +22,42 @@ export function normalizeUserLevel(value) {
   return normalized;
 }
 
-export function isAdminUser(user) {
-  return normalizeUserLevel(user?.nivel) === USER_LEVELS.admin;
-}
-
-export function isManagerUser(user) {
-  return normalizeUserLevel(user?.nivel) === USER_LEVELS.gestor;
-}
-
-export function isCollaboratorUser(user) {
-  return normalizeUserLevel(user?.nivel) === USER_LEVELS.colaborador;
-}
+export function isAdminUser(user)        { return normalizeUserLevel(user?.nivel) === USER_LEVELS.admin; }
+export function isManagerUser(user)      { return normalizeUserLevel(user?.nivel) === USER_LEVELS.gestor; }
+export function isCollaboratorUser(user) { return normalizeUserLevel(user?.nivel) === USER_LEVELS.colaborador; }
 
 export function normalizeSectorAccessKeys(value) {
   const values = Array.isArray(value)
     ? value
-    : String(value || '')
-      .split(/[,;|]+/)
-      .map((item) => item.trim());
+    : String(value || '').split(/[,;|]+/).map((item) => item.trim());
 
   const normalizedKeys = values
     .map(normalizeSectorAccessKey)
     .filter(Boolean)
     .map((key) => (key === ACCESS_KEYS.todos ? ACCESS_KEYS.all : key));
 
-  if (!normalizedKeys.length) {
-    return [ACCESS_KEYS.all];
-  }
-
-  if (normalizedKeys.includes(ACCESS_KEYS.all)) {
-    return [ACCESS_KEYS.all];
-  }
+  if (!normalizedKeys.length) return [ACCESS_KEYS.all];
+  if (normalizedKeys.includes(ACCESS_KEYS.all)) return [ACCESS_KEYS.all];
 
   return [...new Set(normalizedKeys)];
 }
 
 export function normalizeUserSectorAccessKeys(user) {
   const rawAccess = Array.isArray(user?.setorList) && user.setorList.length ? user.setorList : user?.setor;
-  const accessKeys = normalizeSectorAccessKeys(rawAccess).filter((accessKey) => accessKey !== ACCESS_KEYS.all && accessKey !== ACCESS_KEYS.todos);
-
+  const accessKeys = normalizeSectorAccessKeys(rawAccess).filter((k) => k !== ACCESS_KEYS.all && k !== ACCESS_KEYS.todos);
   return [...new Set(accessKeys)];
 }
 
 export function getAccessKeysForUser(user) {
-  if (isAdminUser(user)) {
-    return [ACCESS_KEYS.all];
-  }
-
+  if (isAdminUser(user)) return [ACCESS_KEYS.all];
   return normalizeUserSectorAccessKeys(user);
 }
 
-export function isProductionChildAccess(accessKey) {
-  return PRODUCTION_CHILD_IDS.includes(accessKey);
-}
-
-export function isCommercialChildAccess(accessKey) {
-  return COMMERCIAL_CHILD_IDS.includes(accessKey);
+export function isProductionChildAccess(accessKey)  { return PRODUCTION_CHILD_IDS.includes(accessKey); }
+export function isCommercialChildAccess(accessKey)  { return COMMERCIAL_CHILD_IDS.includes(accessKey); }
+export function isLogisticsChildAccess(accessKey)   {
+  // 'logistica' (legacy key) também concede acesso ao subsetor estoque
+  return LOGISTICS_CHILD_IDS.includes(accessKey) || accessKey === SECTOR_IDS.logistics;
 }
 
 export function getNavigationItemsForUser(user) {
@@ -85,52 +66,58 @@ export function getNavigationItemsForUser(user) {
 
 export function getNavigationItemsForAccess(sectorAccess) {
   const accessKeys = normalizeSectorAccessKeys(sectorAccess);
-  const homeItem = NAVIGATION_ITEMS.find((item) => item.id === SECTOR_IDS.home);
+  const homeItem   = NAVIGATION_ITEMS.find((item) => item.id === SECTOR_IDS.home);
 
-  if (accessKeys.includes(ACCESS_KEYS.all)) {
-    return NAVIGATION_ITEMS;
-  }
+  if (accessKeys.includes(ACCESS_KEYS.all)) return NAVIGATION_ITEMS;
 
   const baseItems = homeItem ? [homeItem] : [];
   const accessSet = new Set(accessKeys);
 
   NAVIGATION_ITEMS.forEach((item) => {
-    if (item.id === SECTOR_IDS.home) {
-      return;
-    }
+    if (item.id === SECTOR_IDS.home) return;
 
+    // ── Comercial (accordion) ──────────────────────────────────────────────
     if (item.id === SECTOR_IDS.commercial) {
-      const allowFullCommercial = accessSet.has(SECTOR_IDS.commercial);
-      const allowedChildren = allowFullCommercial
+      const allowFull      = accessSet.has(SECTOR_IDS.commercial);
+      const allowedChildren = allowFull
         ? item.children || []
         : (item.children || []).filter((child) => accessSet.has(child.id));
-
-      if (allowFullCommercial || allowedChildren.length) {
-        baseItems.push({
-          ...item,
-          children: allowedChildren,
-        });
+      if (allowFull || allowedChildren.length) {
+        baseItems.push({ ...item, children: allowedChildren });
       }
-
       return;
     }
 
+    // ── Produção (accordion) ──────────────────────────────────────────────
     if (item.id === SECTOR_IDS.production) {
-      const allowFullProduction = accessSet.has(SECTOR_IDS.production);
-      const allowedChildren = allowFullProduction
+      const allowFull       = accessSet.has(SECTOR_IDS.production);
+      const allowedChildren = allowFull
         ? item.children || []
         : (item.children || []).filter((child) => accessSet.has(child.id));
-
-      if (allowFullProduction || allowedChildren.length) {
-        baseItems.push({
-          ...item,
-          children: allowedChildren,
-        });
+      if (allowFull || allowedChildren.length) {
+        baseItems.push({ ...item, children: allowedChildren });
       }
-
       return;
     }
 
+    // ── Logística (accordion) ─────────────────────────────────────────────
+    // Regra de migração: chave de acesso 'logistica' concede acesso ao
+    // subsetor 'estoque' (conteúdo migrado do antigo setor Logística).
+    if (item.id === SECTOR_IDS.logistics) {
+      const allowedChildren = (item.children || []).filter((child) => {
+        if (child.id === SECTOR_IDS.estoque) {
+          // 'estoque' direto OU 'logistica' (legado) → acesso ao Estoque
+          return accessSet.has(child.id) || accessSet.has(SECTOR_IDS.logistics);
+        }
+        return accessSet.has(child.id);
+      });
+      if (allowedChildren.length) {
+        baseItems.push({ ...item, children: allowedChildren });
+      }
+      return;
+    }
+
+    // ── Setores simples ───────────────────────────────────────────────────
     if (accessSet.has(item.id)) {
       baseItems.push(item);
     }
@@ -140,33 +127,27 @@ export function getNavigationItemsForAccess(sectorAccess) {
 }
 
 export function getCardsForUserAccess(cards, user) {
-  if (!isCollaboratorUser(user)) {
-    return cards;
-  }
-
+  if (!isCollaboratorUser(user)) return cards;
   return cards.filter((card) => card.id !== MODULE_IDS.evaluation);
 }
 
 export function canUserAccessModule(user, moduleId) {
-  if (isCollaboratorUser(user) && moduleId === MODULE_IDS.evaluation) {
-    return false;
-  }
-
+  if (isCollaboratorUser(user) && moduleId === MODULE_IDS.evaluation) return false;
   return true;
 }
 
 export function shouldStartProductionExpandedForAccess(sectorAccess) {
-  return normalizeSectorAccessKeys(sectorAccess).some((accessKey) => accessKey === SECTOR_IDS.production || isProductionChildAccess(accessKey));
+  return normalizeSectorAccessKeys(sectorAccess).some((k) => k === SECTOR_IDS.production || isProductionChildAccess(k));
 }
 
 export function shouldStartCommercialExpandedForAccess(sectorAccess) {
-  return normalizeSectorAccessKeys(sectorAccess).some((accessKey) => accessKey === SECTOR_IDS.commercial || isCommercialChildAccess(accessKey));
+  return normalizeSectorAccessKeys(sectorAccess).some((k) => k === SECTOR_IDS.commercial || isCommercialChildAccess(k));
 }
 
-export function shouldStartProductionExpandedForUser(_user) {
-  return false;
+export function shouldStartLogisticsExpandedForAccess(sectorAccess) {
+  return normalizeSectorAccessKeys(sectorAccess).some((k) => k === SECTOR_IDS.logistics || isLogisticsChildAccess(k));
 }
 
-export function shouldStartCommercialExpandedForUser(_user) {
-  return false;
-}
+export function shouldStartProductionExpandedForUser(_user)  { return false; }
+export function shouldStartCommercialExpandedForUser(_user)  { return false; }
+export function shouldStartLogisticsExpandedForUser(_user)   { return false; }

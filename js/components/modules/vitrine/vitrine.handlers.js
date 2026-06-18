@@ -42,6 +42,15 @@ function patchVitrineUi(sectorId, patch) {
   });
 }
 
+/**
+ * Resolves the Apps Script sectorId for a given vitrine tab.
+ * Tabs prefixed with 'lovclub-' belong to the Lov Club Vitrine sector;
+ * all others belong to the OKEY Vitrine sector.
+ */
+function _getSectorIdForTab(tabId) {
+  return String(tabId || '').startsWith('lovclub-') ? 'lovclub' : 'vitrine';
+}
+
 // ── Init — auto-select first tab on module open ───────────────────────
 
 export function vitrineInitDefaultTab(rootElement, sector) {
@@ -94,8 +103,9 @@ async function vitrineSetActiveTab(rootElement, sector, tabId) {
   renderModuleStage(rootElement, sector);
 
   try {
+    // FIX: use the correct sectorId based on the tab prefix (lovclub- vs vitrine-)
     const response = await loadModuleContent({
-      sectorId: 'vitrine',
+      sectorId: _getSectorIdForTab(tabId),
       moduleId: tabId,
       forceRefresh: false,
     });

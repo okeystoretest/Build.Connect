@@ -45,6 +45,8 @@ export function createEvaluationModuleHandlers(dependencies) {
     saveResult:        saveEvaluationResult,
     downloadGraph:     downloadEvaluationGraph,
     setActiveTab:      setEvaluationActiveTab,
+    nextFormPage:      nextEvaluationFormPage,
+    prevFormPage:      prevEvaluationFormPage,
     startPendingFlow:  (rootEl, sector, userId) => startPendingFlow(rootEl, sector, userId),
     triggerExpiredNotifications: (rootEl, sector) => {
       const state = moduleContext.getModuleState(sector.id);
@@ -64,7 +66,7 @@ function selectEvaluationTool(rootElement, sector, toolId) {
   if (state.selectedModuleId !== MODULE_IDS.evaluation || !EVALUATION_TOOLS.some((t) => t.id === toolId)) return;
   setModuleState(sector.id, {
     ...state,
-    ui: { ...getEvaluationUiState(state.ui), selectedEvaluationToolId: toolId, isEvaluateeListOpen: false },
+    ui: { ...getEvaluationUiState(state.ui), selectedEvaluationToolId: toolId, isEvaluateeListOpen: false, evaluationFormPage: 0 },
   });
   renderModuleStage(rootElement, sector);
 }
@@ -161,6 +163,7 @@ function selectEvaluationUser(rootElement, sector, userId) {
       selectedEvaluateeId:             user.id,
       evaluateeQuery:                  `${user.id} — ${user.nome}`,
       isEvaluateeListOpen:             false,
+      evaluationFormPage:              0,
       evaluationScores:                clearedScores,
       evaluationNotesByTool:           clearedNotesByTool,
       evaluationFormFieldsByTool:      clearedFieldsByTool,
@@ -281,4 +284,42 @@ function updateEvaluationField(rootElement, sector, fieldName, value) {
       evaluationSaveMessage: '',
     },
   });
+}
+
+// ── Form Page Navigation ───────────────────────────────────────────────────
+// Page counts per tool — must match evaluation.view.js TOOL_PAGE_COUNTS
+const _PAGE_COUNTS = {
+  [EVALUATION_TOOL_IDS.PRE_EFFECTIVE]:          2,
+  [EVALUATION_TOOL_IDS.BEHAVIORAL]:             2,
+  [EVALUATION_TOOL_IDS.MATRIX]:                 2,
+  [EVALUATION_TOOL_IDS.WORK_EFFICACY]:          3,
+  [EVALUATION_TOOL_IDS.EMOTIONAL_INTELLIGENCE]: 2,
+};
+
+function nextEvaluationFormPage(rootElement, sector) {
+  const state  = getModuleState(sector.id);
+  if (state.selectedModuleId !== MODULE_IDS.evaluation) return;
+  const ui     = getEvaluationUiState(state.ui);
+  const total  = _PAGE_COUNTS[ui.selectedEvaluationToolId] || 1;
+  const next   = Math.min((ui.evaluationFormPage || 0) + 1, total - 1);
+  setModuleState(sector.id, { ...state, ui: { ...ui, evaluationFormPage: next } });
+  renderModuleStage(rootElement, sector);
+  _scrollStageTop(rootElement);
+}
+
+function prevEvaluationFormPage(rootElement, sector) {
+  const state  = getModuleState(sector.id);
+  if (state.selectedModuleId !== MODULE_IDS.evaluation) return;
+  const ui     = getEvaluationUiState(state.ui);
+  const prev   = Math.max((ui.evaluationFormPage || 0) - 1, 0);
+  setModuleState(sector.id, { ...state, ui: { ...ui, evaluationFormPage: prev } });
+  renderModuleStage(rootElement, sector);
+  _scrollStageTop(rootElement);
+}
+
+function _scrollStageTop(rootElement) {
+  const stage = rootElement.querySelector('[data-module-stage]');
+  if (stage) stage.scrollTop = 0;
+  const shell = rootElement.querySelector('.evaluation-shell');
+  if (shell) shell.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }

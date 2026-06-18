@@ -1,6 +1,7 @@
 import {
   COMMERCIAL_SECTOR_CARDS,
   DEFAULT_SECTOR_CARDS,
+  LOV_CLUB_SECTOR_CARDS,
   VITRINE_SECTOR_CARDS,
   canUserAccessModule,
   getCardsForSector,
@@ -73,7 +74,7 @@ import {
 } from './shared/reveal-animation.js';
 export { resetModuleSelectionForSector } from '../state/module-state.js';
 const VIEW_EXIT_DURATION_MS = 180;
-const MODULE_CARD_IDS = new Set([...DEFAULT_SECTOR_CARDS, ...COMMERCIAL_SECTOR_CARDS, ...VITRINE_SECTOR_CARDS, ...getCardsForSector('dho')].map((card) => card.id));
+const MODULE_CARD_IDS = new Set([...DEFAULT_SECTOR_CARDS, ...COMMERCIAL_SECTOR_CARDS, ...VITRINE_SECTOR_CARDS, ...LOV_CLUB_SECTOR_CARDS, ...getCardsForSector('dho')].map((card) => card.id));
 MODULE_CARD_IDS.add(MODULE_IDS.tiRequest);
 const MODULE_REQUEST_TOKENS = new Map();
 let currentRenderToken = 0;

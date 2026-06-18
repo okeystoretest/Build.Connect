@@ -1,8 +1,9 @@
 /**
  * evaluation.view-forms.js
  * Multidir evaluation markup, save panel, users dropdown, feedback tab.
- * Behavioral/Pre-effective → evaluation.view-behavioral.js
- * Matrix/Graph             → evaluation.view-matrix.js
+ * Supports horizontal pagination via currentPage parameter.
+ * - WORK_EFFICACY:          3 pages — criteria 0-6 | 7-13 | 14-19
+ * - EMOTIONAL_INTELLIGENCE: 2 pages — personal (9) | social (9)
  */
 
 import { sanitizeAttribute, sanitizeText } from '../../../utils/sanitize.js';
@@ -12,19 +13,19 @@ import {
   IE_PERSONAL_CRITERIA,
   IE_SOCIAL_CRITERIA,
 } from './evaluation.constants.js';
-import {
-  getEvaluationScoreKey,
-} from './evaluation.calculations.js';
+import { getEvaluationScoreKey } from './evaluation.calculations.js';
 
 // Re-export from submodules so evaluation.view.js has a single import surface
 export { getPreEffectiveEvaluationMarkup, getBehavioralEvaluationMarkup } from './evaluation.view-behavioral.js';
 export { getMatrixEvaluationMarkup, getMatrixDecisionGraphMarkup }         from './evaluation.view-matrix.js';
 
+const EFFICACY_PER_PAGE = 7; // 20 total → pages: 0-6 | 7-13 | 14-19
+
 // ═══════════════════════════════════════════════════════════════════════════
 // AVALIAÇÕES MULTIDIRECIONAIS
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function getMultidirEvaluationMarkup(selectedTool, selectedUser, evaluationUi, type) {
+export function getMultidirEvaluationMarkup(selectedTool, selectedUser, evaluationUi, type, currentPage = 0) {
   const eligKey = `${selectedTool.id}:${selectedUser.id}`;
   const elig    = evaluationUi.multidirEligibility?.[eligKey];
   const toolId  = selectedTool.id;
@@ -52,27 +53,37 @@ export function getMultidirEvaluationMarkup(selectedTool, selectedUser, evaluati
   }
 
   const remaining = elig.remainingResponses ?? '?';
-  const body = type === 'efficacy' ? _getEfficacyFormBody(toolId, scores) : _getIEFormBody(toolId, scores);
+  const statusBar = `
+    <div class="multidir-status-bar">
+      <span class="multidir-status-pill">
+        <i data-lucide="users"></i>
+        ${remaining} vaga${remaining !== 1 ? 's' : ''} restante${remaining !== 1 ? 's' : ''}
+      </span>
+      <span class="multidir-status-note">Você tem 1 resposta disponível para ${sanitizeText(selectedUser.nome)} nesta avaliação.</span>
+    </div>`;
+
+  const body = type === 'efficacy'
+    ? _getEfficacyFormBody(toolId, scores, currentPage)
+    : _getIEFormBody(toolId, scores, currentPage);
 
   return `
     <div class="multidir-form-wrap">
-      <div class="multidir-status-bar">
-        <span class="multidir-status-pill">
-          <i data-lucide="users"></i>
-          ${remaining} vaga${remaining !== 1 ? 's' : ''} restante${remaining !== 1 ? 's' : ''}
-        </span>
-        <span class="multidir-status-note">Você tem 1 resposta disponível para ${sanitizeText(selectedUser.nome)} nesta avaliação.</span>
-      </div>
+      ${statusBar}
       ${body}
-      ${getEvaluationSavePanelMarkup(evaluationUi)}
     </div>
   `;
 }
 
-function _getEfficacyFormBody(toolId, scores) {
+// ── Efficacy — paged (7 per page, 3 pages for 20 criteria) ───────────────────
+
+function _getEfficacyFormBody(toolId, scores, currentPage) {
+  const start  = currentPage * EFFICACY_PER_PAGE;
+  const end    = Math.min(start + EFFICACY_PER_PAGE, WORK_EFFICACY_CRITERIA.length);
+  const slice  = WORK_EFFICACY_CRITERIA.slice(start, end);
+
   return `
     <div class="multidir-criteria-list">
-      ${WORK_EFFICACY_CRITERIA.map((criterion) => {
+      ${slice.map((criterion) => {
         const keyA  = getEvaluationScoreKey(toolId, criterion.id, 'a');
         const keyB  = getEvaluationScoreKey(toolId, criterion.id, 'b');
         const sA    = Number(scores[keyA] || 0);
@@ -95,30 +106,43 @@ function _getEfficacyFormBody(toolId, scores) {
   `;
 }
 
-function _getIEFormBody(toolId, scores) {
-  const personal     = IE_PERSONAL_CRITERIA;
-  const social       = IE_SOCIAL_CRITERIA;
-  const totalPessoal = personal.reduce((s, c) => s + Number(scores[getEvaluationScoreKey(toolId, c.id, 'score')] || 0), 0);
-  const totalSocial  = social.reduce((s, c)   => s + Number(scores[getEvaluationScoreKey(toolId, c.id, 'score')] || 0), 0);
-  const totalGeral   = totalPessoal + totalSocial;
-  const allFilled    = [...personal, ...social].every((c) => scores[getEvaluationScoreKey(toolId, c.id, 'score')]);
+// ── IE — paged (page 0: personal; page 1: social) ────────────────────────────
+
+function _getIEFormBody(toolId, scores, currentPage) {
+  const personal  = IE_PERSONAL_CRITERIA;
+  const social    = IE_SOCIAL_CRITERIA;
+
+  if (currentPage === 0) {
+    const totalPessoal = personal.reduce((s, c) => s + Number(scores[getEvaluationScoreKey(toolId, c.id, 'score')] || 0), 0);
+    return `
+      <div class="multidir-ie-wrap">
+        <div class="multidir-ie-section">
+          <header class="multidir-ie-section-head"><i data-lucide="user-round"></i><strong>Competências Emocionais Pessoais</strong></header>
+          ${personal.map((c) => _scoreRow(toolId, c.id, 'score', `<strong>${sanitizeText(c.title)}</strong> — ${sanitizeText(c.description)}`, scores, 'ie-item')).join('')}
+          <div class="multidir-ie-subtotal">Total pessoal: <strong>${totalPessoal}</strong> / ${personal.length * 5}</div>
+        </div>
+      </div>`;
+  }
+
+  // Page 1: social + grand total
+  const personal2 = IE_PERSONAL_CRITERIA;
+  const totalPessoal2 = personal2.reduce((s, c) => s + Number(scores[getEvaluationScoreKey(toolId, c.id, 'score')] || 0), 0);
+  const totalSocial   = social.reduce((s, c)    => s + Number(scores[getEvaluationScoreKey(toolId, c.id, 'score')] || 0), 0);
+  const totalGeral    = totalPessoal2 + totalSocial;
+  const allFilled     = [...personal2, ...social].every((c) => scores[getEvaluationScoreKey(toolId, c.id, 'score')]);
 
   return `
     <div class="multidir-ie-wrap">
-      <div class="multidir-ie-section">
-        <header class="multidir-ie-section-head"><i data-lucide="user-round"></i><strong>Competências Emocionais Pessoais</strong></header>
-        ${personal.map((c) => _scoreRow(toolId, c.id, 'score', `<strong>${sanitizeText(c.title)}</strong> — ${sanitizeText(c.description)}`, scores, 'ie-item')).join('')}
-        <div class="multidir-ie-subtotal">Total pessoal: <strong>${totalPessoal}</strong> / ${personal.length * 5}</div>
-      </div>
       <div class="multidir-ie-section">
         <header class="multidir-ie-section-head"><i data-lucide="users-round"></i><strong>Competências Emocionais Sociais</strong></header>
         ${social.map((c) => _scoreRow(toolId, c.id, 'score', `<strong>${sanitizeText(c.title)}</strong> — ${sanitizeText(c.description)}`, scores, 'ie-item')).join('')}
         <div class="multidir-ie-subtotal">Total social: <strong>${totalSocial}</strong> / ${social.length * 5}</div>
       </div>
-      ${allFilled ? `<div class="multidir-ie-total">Total geral: <strong>${totalGeral}</strong> / ${(personal.length + social.length) * 5}</div>` : ''}
-    </div>
-  `;
+      ${allFilled ? `<div class="multidir-ie-total">Total geral: <strong>${totalGeral}</strong> / ${(personal2.length + social.length) * 5}</div>` : ''}
+    </div>`;
 }
+
+// ── Score row ─────────────────────────────────────────────────────────────────
 
 function _scoreRow(toolId, criterionId, periodId, label, scores, variant) {
   const key     = getEvaluationScoreKey(toolId, criterionId, periodId);
@@ -140,7 +164,7 @@ function _scoreRow(toolId, criterionId, periodId, label, scores, variant) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SAVE PANEL
+// SAVE PANEL (usado internamente pela paginação em evaluation.view.js)
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function getEvaluationSavePanelMarkup(evaluationUi) {

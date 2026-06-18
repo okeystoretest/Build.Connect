@@ -56,5 +56,18 @@ export function createChangeHandler(rootElement, sector, dependencies) {
       questionariosModuleHandlers?.setGabarito(rootElement, sector, quizGabaritoRadio.value || '');
       return;
     }
+
+    // ── DHO: seleção automática de setores vinculados ──────────────────────
+    // Ao marcar "Logística", inclui automaticamente "Estoque" e "Motorista".
+    const sectorCheckbox = event.target.closest('[data-user-admin-sector]');
+    if (sectorCheckbox) {
+      if (sectorCheckbox.value === 'logistica' && sectorCheckbox.checked) {
+        ['estoque', 'motorista'].forEach((id) => {
+          const cb = rootElement.querySelector(`[data-user-admin-sector][value="${id}"]`);
+          if (cb && !cb.checked) { cb.checked = true; }
+        });
+      }
+      return;
+    }
   };
 }

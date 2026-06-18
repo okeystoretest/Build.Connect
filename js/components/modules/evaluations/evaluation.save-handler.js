@@ -22,6 +22,7 @@ import {
 import { advancePendingFlowAfterSave } from './evaluation.pending-handlers.js';
 import { setCardAlert } from '../../../state/module-state.js';
 import { invalidateSectorAlertsCache } from '../../../services/sector-alerts.service.js';
+import { errorBoundary } from '../../../utils/error.js';
 
 let _ctx = null;
 
@@ -144,7 +145,7 @@ export async function saveEvaluationResult(rootElement, sector) {
             : null);
           renderModuleStage(rootElement, sector);
         })
-        .catch(() => {});
+        .catch(err => errorBoundary(err, 'save-handler:setCardAlert'));
     }
 
     advancePendingFlowAfterSave(rootElement, sector, selectedToolId, savedAtTimestamp);

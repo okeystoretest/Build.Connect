@@ -1,6 +1,9 @@
 /**
  * evaluation.view-matrix.js
  * Matrix evaluation form markup, decision graph, and criterion row helper.
+ * Supports horizontal pagination via currentPage parameter.
+ * - Page 0: Competências Técnicas (17 critérios)
+ * - Page 1: Competências Emocionais (13 critérios) + resultado
  */
 
 import { sanitizeAttribute, sanitizeText } from '../../../utils/sanitize.js';
@@ -12,7 +15,6 @@ import {
   formatEvaluationNumber,
   formatEvaluationTimestamp,
   getEvaluationScoreKey,
-  getEvaluationToolFields,
   getMatrixComputedResult,
   getMatrixDecisionColor,
   getMatrixGraphPointPosition,
@@ -22,43 +24,58 @@ import {
   getEvaluationSaveFeedbackMarkup,
 } from './evaluation.view-forms.js';
 
-export function getMatrixEvaluationMarkup(selectedTool, selectedUser, evaluationUi, moduleData) {
-  const fields               = getEvaluationToolFields(evaluationUi, selectedTool.id);
+// ── Main export ───────────────────────────────────────────────────────────────
+
+export function getMatrixEvaluationMarkup(selectedTool, selectedUser, evaluationUi, moduleData, currentPage = 0) {
   const respondent           = moduleData?.respondent || null;
   const respondentName       = String(respondent?.nome || '').trim();
   const evaluationSectorName = String(moduleData?.evaluationSector?.label || '').trim();
   const computedResult       = getMatrixComputedResult(evaluationUi, selectedTool.id, selectedUser.id);
 
+  const contextGrid = `
+    <div class="matrix-context-grid">
+      <label class="form-field evaluation-form-field matrix-context-card">
+        <span class="form-label">Funcionário</span>
+        <input class="evaluation-form-input" type="text" value="${sanitizeAttribute(selectedUser.nome || '')}" readonly aria-label="Funcionário avaliado" />
+      </label>
+      <label class="form-field evaluation-form-field matrix-context-card">
+        <span class="form-label">Respondente</span>
+        <input class="evaluation-form-input" type="text" value="${sanitizeAttribute(respondentName || 'Respondente não identificado')}" readonly aria-label="Nome do respondente" />
+      </label>
+      <label class="form-field evaluation-form-field matrix-context-card">
+        <span class="form-label">Setor</span>
+        <input class="evaluation-form-input" type="text" value="${sanitizeAttribute(evaluationSectorName || 'Setor não identificado')}" readonly aria-label="Setor da avaliação" />
+      </label>
+    </div>`;
+
+  if (currentPage === 0) {
+    return `
+      <section class="matrix-evaluation-page" aria-label="Matriz de decisão — Competências Técnicas">
+        ${contextGrid}
+        <div class="matrix-workspace">
+          <div class="matrix-score-column">
+            <article class="matrix-competency-card">
+              <header class="matrix-competency-header">
+                <div>
+                  <span class="evaluation-section-eyebrow">Competências técnicas</span>
+                  <h3 class="card-title">Habilidade e conhecimento</h3>
+                </div>
+                <span class="matrix-scale-badge">0 a 10</span>
+              </header>
+              <div class="matrix-criteria-list">
+                ${MATRIX_TECHNICAL_CRITERIA.map((c, i) => getMatrixCriterionRowMarkup(selectedTool.id, c, 'technical', i, evaluationUi.evaluationScores)).join('')}
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>`;
+  }
+
+  // Page 1: Emotional criteria + result panel
   return `
-    <section class="matrix-evaluation-page" aria-label="Matriz de decisão">
-      <div class="matrix-context-grid">
-        <label class="form-field evaluation-form-field matrix-context-card">
-          <span class="form-label">Funcionário</span>
-          <input class="evaluation-form-input" type="text" value="${sanitizeAttribute(selectedUser.nome || '')}" readonly aria-label="Funcionário avaliado" />
-        </label>
-        <label class="form-field evaluation-form-field matrix-context-card">
-          <span class="form-label">Respondente</span>
-          <input class="evaluation-form-input" type="text" value="${sanitizeAttribute(respondentName || 'Respondente não identificado')}" readonly aria-label="Nome do respondente" />
-        </label>
-        <label class="form-field evaluation-form-field matrix-context-card">
-          <span class="form-label">Setor</span>
-          <input class="evaluation-form-input" type="text" value="${sanitizeAttribute(evaluationSectorName || 'Setor não identificado')}" readonly aria-label="Setor da avaliação" />
-        </label>
-      </div>
+    <section class="matrix-evaluation-page" aria-label="Matriz de decisão — Competências Emocionais e Resultado">
       <div class="matrix-workspace">
         <div class="matrix-score-column">
-          <article class="matrix-competency-card">
-            <header class="matrix-competency-header">
-              <div>
-                <span class="evaluation-section-eyebrow">Competências técnicas</span>
-                <h3 class="card-title">Habilidade e conhecimento</h3>
-              </div>
-              <span class="matrix-scale-badge">0 a 10</span>
-            </header>
-            <div class="matrix-criteria-list">
-              ${MATRIX_TECHNICAL_CRITERIA.map((c, i) => getMatrixCriterionRowMarkup(selectedTool.id, c, 'technical', i, evaluationUi.evaluationScores)).join('')}
-            </div>
-          </article>
           <article class="matrix-competency-card">
             <header class="matrix-competency-header">
               <div>
@@ -97,9 +114,10 @@ export function getMatrixEvaluationMarkup(selectedTool, selectedUser, evaluation
           </div>
         </aside>
       </div>
-    </section>
-  `;
+    </section>`;
 }
+
+// ── Criterion row ─────────────────────────────────────────────────────────────
 
 export function getMatrixCriterionRowMarkup(toolId, criterion, categoryId, index, scores) {
   const scoreKey     = getEvaluationScoreKey(toolId, criterion.id, categoryId);
@@ -133,6 +151,8 @@ export function getMatrixCriterionRowMarkup(toolId, criterion, categoryId, index
     </article>
   `;
 }
+
+// ── Decision graph ────────────────────────────────────────────────────────────
 
 export function getMatrixDecisionGraphMarkup(result) {
   const graphPoint  = getMatrixGraphPointPosition(result.technicalAverage, result.emotionalAverage);

@@ -3,6 +3,7 @@ import { appDom, syncAppShellState as syncShellState } from './app/dom.js';
 import { openTiModal } from './components/shared/ti-modal.js';
 import { openNotificationsPanel } from './components/shared/notifications-panel.js';
 import { openSendNotificationModal } from './components/shared/send-notification-modal.js';
+import { openSettingsModal } from './components/shared/settings-modal.js';
 import {
   renderApplication,
   renderAuthentication,
@@ -18,7 +19,11 @@ import {
   getNavigationItemsForUser,
   persistNavigationState,
 } from './services/navigation.service.js';
-import { applyTheme, toggleTheme } from './utils/theme.js';
+import { applyTheme } from './utils/theme.js';
+import { applyPendingBadgesSetting } from './services/settings.service.js';
+
+// Restaura configuração de badges ao iniciar
+applyPendingBadgesSetting();
 
 const { authRoot, sidebarRoot, appShell, contentRoot } = appDom;
 
@@ -55,12 +60,12 @@ authController = createAuthController({
 
 handlers = {
   onSidebarToggle: navigationController.handleSidebarToggle,
-  onThemeToggle:   handleThemeToggle,
   onNavigate:      navigationController.handleNavigation,
   onGroupToggle:   navigationController.handleGroupToggle,
   onLogout:        authController.handleLogout,
   onTiModal:       () => openTiModal({ user: state.authenticatedUser }),
   onBroadcast:     () => openSendNotificationModal(state.activeItemId),
+  onSettings:      () => openSettingsModal({ onThemeChange: handleThemeChange }),
 };
 
 authController.bootstrap();
@@ -106,25 +111,16 @@ function renderLoginScreen() {
   });
 }
 
-function handleThemeToggle() {
-  themeState.currentTheme = toggleTheme();
-
-  if (state.authenticatedUser) {
-    renderApp();
-    return;
-  }
-
-  renderLoginScreen();
+function handleThemeChange(theme) {
+  themeState.currentTheme = theme;
+  if (state.authenticatedUser) { renderApp(); } else { renderLoginScreen(); }
 }
 
 function persistAndRender({ shouldRenderContent = true, animateContent = false } = {}) {
   persistNavigationState(state);
   syncAppShellState();
   renderApp();
-
-  if (shouldRenderContent) {
-    renderCurrentView({ animate: animateContent });
-  }
+  if (shouldRenderContent) renderCurrentView({ animate: animateContent });
 }
 
 function syncAppShellState() {

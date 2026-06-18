@@ -92,7 +92,8 @@ export function getModuleStageMarkup(sector, stageState) {
     return getQualityModuleMarkup(selectedCard, stageState.moduleData, stageState.ui);
   }
 
-  if (stageState.selectedModuleId === MODULE_IDS.tiRequest) {
+  if (stageState.selectedModuleId === MODULE_IDS.tiRequest ||
+      stageState.selectedModuleId === MODULE_IDS.motorRequests) {
     return getTiRequestsModuleMarkup(selectedCard, stageState.moduleData, stageState.ui);
   }
 

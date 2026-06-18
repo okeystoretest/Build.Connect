@@ -13,13 +13,8 @@ export function getUserManagementModuleMarkup(card, moduleData, moduleUi) {
     ? `Atualize os dados de ${sanitizeText(adminUi.originalId)} mantendo o acesso sincronizado.`
     : 'Preencha os dados essenciais para criar um novo acesso.';
 
-  const successModal = adminUi.successModal
-    ? renderUserAdminSuccessModal(adminUi.successModal)
-    : '';
-
   return `
     <div class="module-shell user-admin-shell" data-module-shell>
-      ${successModal}
       <div class="module-shell-header user-admin-hero">
         <div class="user-admin-hero-copy">
           <p class="module-eyebrow">DHO · Gestão de acessos</p>

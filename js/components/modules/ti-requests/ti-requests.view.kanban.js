@@ -1,0 +1,325 @@
+/**
+ * ti-requests.view.kanban.js
+ * Kanban board, card detail, conclusion panel, and ticket list rendering.
+ * Split from ti-requests.view.js to stay within the 500-line module limit.
+ */
+
+import { sanitizeAttribute, sanitizeText } from '../../../utils/sanitize.js';
+import { TI_REQUEST_STATUS } from './ti-requests.constants.js';
+import { USER_LEVELS, SETOR_LABELS } from '../../../constants/sector.constants.js';
+
+export function setorLabel(id) { return SETOR_LABELS[id] || id || 'Setor'; }
+
+export function fmtDate(iso) {
+  if (!iso) return '—';
+  try { return new Date(iso).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' }); }
+  catch { return '—'; }
+}
+
+export function fmtDateTime(iso) {
+  if (!iso) return '—';
+  try { return new Date(iso).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
+  catch { return '—'; }
+}
+
+export function fmtDuration(mins) {
+  if (!mins || isNaN(mins)) return null;
+  const m = parseInt(mins, 10);
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return r > 0 ? `${h}h ${r}min` : `${h}h`;
+}
+
+// ── Kanban ─────────────────────────────────────────────────────────────────
+
+const DONE_PAGE_SIZE = 5;
+
+const KANBAN_COLS = [
+  { status: 'Pendente',     label: 'Pendente',     icon: 'clock',         color: '#F59E0B', cls: 'is-pending'  },
+  { status: 'Atribuído',    label: 'Atribuído',    icon: 'user-check',    color: '#8B5CF6', cls: 'is-assigned' },
+  { status: 'Em andamento', label: 'Em andamento', icon: 'loader-circle', color: '#3B82F6', cls: 'is-progress' },
+  { status: 'Concluído',    label: 'Concluído',    icon: 'circle-check',  color: '#10B981', cls: 'is-done'     },
+];
+
+export function renderKanban(tickets, completedTickets, ui, respondent, isMotorista = false) {
+  const allActive    = tickets;
+  const userId       = respondent?.id || '';
+  const nivel        = respondent?.nivel || '';
+  const isPrivileged = nivel === USER_LEVELS.admin || nivel === USER_LEVELS.gestor;
+  const PAGE_SIZE    = DONE_PAGE_SIZE;
+  const colsExpanded = ui.colsExpanded || {};
+
+  const allByStatus = {
+    'Pendente':     allActive.filter(t => t.status === 'Pendente'),
+    'Atribuído':    isPrivileged
+      ? allActive.filter(t => t.status === 'Atribuído')
+      : allActive.filter(t => t.status === 'Atribuído' && t.atribuidoParaId === userId),
+    'Em andamento': isPrivileged
+      ? allActive.filter(t => t.status === 'Em andamento')
+      : allActive.filter(t => t.status === 'Em andamento' && t.atribuidoParaId === userId),
+    'Concluído':    completedTickets,
+  };
+
+  const byStatus = Object.fromEntries(
+    Object.entries(allByStatus).map(([status, items]) => [
+      status,
+      colsExpanded[status] ? items : items.slice(0, PAGE_SIZE),
+    ])
+  );
+
+  return `
+    <div class="ti-kanban">
+      ${KANBAN_COLS.map(col => {
+        const all      = allByStatus[col.status];
+        const paged    = byStatus[col.status];
+        const hasMore  = all.length > PAGE_SIZE;
+        const expanded = !!colsExpanded[col.status];
+        const hidden   = all.length - PAGE_SIZE;
+
+        return `
+        <div class="ti-kanban-col" data-status="${sanitizeAttribute(col.status)}">
+          <div class="ti-kanban-col-head">
+            <div class="ti-kanban-col-title">
+              <i data-lucide="${sanitizeAttribute(col.icon)}"></i>
+              <span>${sanitizeText(col.label)}</span>
+            </div>
+            <div class="ti-kanban-col-counts">
+              <span class="ti-kanban-badge">
+                ${paged.length}${hasMore ? `<span style="opacity:.6">/${all.length}</span>` : ''}
+              </span>
+            </div>
+          </div>
+          <div class="ti-kanban-cards">
+            ${paged.length
+              ? paged.map(t => renderKanbanCard(t, col, ui, respondent, isMotorista)).join('')
+              : `<div class="ti-kanban-empty">
+                  <i data-lucide="inbox"></i>
+                  <span>${
+                    !isPrivileged && (col.status === 'Atribuído' || col.status === 'Em andamento')
+                      ? 'Nenhum chamado seu aqui'
+                      : 'Nenhum chamado'
+                  }</span>
+                </div>`
+            }
+            ${hasMore ? `
+              <button type="button" class="ti-kanban-load-more" data-ti-toggle-col="${sanitizeAttribute(col.status)}">
+                <i data-lucide="${expanded ? 'chevron-up' : 'chevron-down'}"></i>
+                <span>${expanded ? 'Ver menos' : `Ver mais ${hidden}`}</span>
+              </button>
+            ` : ''}
+          </div>
+        </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+export function buildKanbanCardDetailHTML(ticket, col, ui) {
+  const isUpdating = ui.isUpdating && ui.updatingTicketId === ticket.id;
+  const nextActions = {
+    'Pendente':     { label: 'Atribuir para mim', next: 'Atribuído',    icon: 'user-plus' },
+    'Atribuído':    { label: 'Iniciar',            next: 'Em andamento', icon: 'play' },
+    'Em andamento': { label: 'Concluir',           next: 'Concluído',    icon: 'check-circle' },
+    'Concluído':    null,
+  };
+  const action = nextActions[ticket.status];
+
+  return `
+    <div class="ti-kc-detail" data-ti-no-view>
+      ${ticket.descricao ? `<p class="ti-kc-detail-desc">${sanitizeText(ticket.descricao)}</p>` : ''}
+      <div class="ti-kc-detail-grid">
+        ${ticket.atribuidoParaNome ? `
+          <div class="ti-kc-detail-field">
+            <span>Responsável: <strong>${sanitizeText(ticket.atribuidoParaNome)}</strong></span>
+          </div>` : ''}
+        <div class="ti-kc-detail-field">
+          <i data-lucide="clock-4"></i>
+          <span>${fmtDateTime(ticket.timestamp)}</span>
+        </div>
+        ${ticket.cidade   ? `<div class="ti-kc-detail-field"><i data-lucide="map-pin"></i><span>${sanitizeText(ticket.cidade)}</span></div>` : ''}
+        ${ticket.bairro   ? `<div class="ti-kc-detail-field"><i data-lucide="map"></i><span>${sanitizeText(ticket.bairro)}</span></div>` : ''}
+        ${ticket.endereco ? `<div class="ti-kc-detail-field"><i data-lucide="navigation"></i><span>${sanitizeText(ticket.endereco)}</span></div>` : ''}
+        ${ticket.duracaoMinutos ? `
+          <div class="ti-kc-detail-field">
+            <span>${fmtDuration(ticket.duracaoMinutos)}</span>
+          </div>` : ''}
+      </div>
+      ${action ? `
+        <div class="ti-kc-detail-action">
+          ${isUpdating
+            ? `<span class="ti-updating"><i data-lucide="loader-circle"></i> Atualizando…</span>`
+            : ui.confirmingConclusionId === ticket.id
+              ? renderInlineConclusionPanel(ticket.id)
+              : ticket.status === 'Em andamento'
+                ? `<button type="button" class="ti-kc-btn is-conclude"
+                    data-ti-start-conclusion="${sanitizeAttribute(ticket.id)}">
+                    <i data-lucide="check-circle"></i>${action.label}
+                  </button>`
+                : `<button type="button" class="ti-kc-btn"
+                    data-ti-status="${sanitizeAttribute(ticket.id)}"
+                    data-ti-next-status="${sanitizeAttribute(action.next)}">
+                    <i data-lucide="${sanitizeAttribute(action.icon)}"></i>${action.label}
+                  </button>`
+          }
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderKanbanCard(ticket, col, ui, respondent, isMotorista = false) {
+  const isExpanded = ui.expandedTicketId === ticket.id;
+  const badgeLabel = isMotorista
+    ? (ticket.tipoServico || ticket.categoria || '—')
+    : (ticket.categoria || '—');
+
+  // Data + hora de criação — padrão unificado Retaguarda e Motorista
+  const datetimeLabel = fmtDateTime(ticket.timestamp);
+
+  // Campos exclusivos Motorista: localização compacta + endereço
+  const hasLocation = isMotorista && (ticket.cidade || ticket.bairro);
+  const locationText = hasLocation
+    ? [ticket.cidade, ticket.bairro].filter(Boolean).join(' · ')
+    : '';
+
+  return `
+    <div class="ti-kc-row ${isExpanded ? 'is-expanded' : ''}"
+      data-ti-expand="${sanitizeAttribute(ticket.id)}">
+
+      <div class="ti-kc-row-main">
+        <div class="ti-kc-status-badge">
+          <i data-lucide="${sanitizeAttribute(col.icon)}"></i>
+        </div>
+
+        <div class="ti-kc-info">
+          <span class="ti-kc-name">${sanitizeText(ticket.solicitanteNome || '—')}</span>
+
+          <span class="ti-kc-meta">
+            ${sanitizeText(setorLabel(ticket.solicitanteSetor) || '—')}
+            ${ticket.unidade ? `<span class="ti-kc-sep">|</span> ${sanitizeText(ticket.unidade)}` : ''}
+          </span>
+
+          <span class="ti-kc-cat-badge">${sanitizeText(badgeLabel)}</span>
+
+          ${hasLocation ? `
+            <span class="ti-kc-location">
+              <i data-lucide="map-pin"></i>
+              ${sanitizeText(locationText)}
+            </span>` : ''}
+
+          ${isMotorista && ticket.endereco ? `
+            <span class="ti-kc-address-line">
+              <i data-lucide="navigation"></i>
+              ${sanitizeText(ticket.endereco)}
+            </span>` : ''}
+
+          ${datetimeLabel ? `
+            <span class="ti-kc-timestamp">
+              <i data-lucide="clock-4"></i>
+              ${sanitizeText(datetimeLabel)}
+            </span>` : ''}
+        </div>
+
+        <div class="ti-kc-right">
+          <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="ti-kc-chevron"></i>
+        </div>
+      </div>
+
+      ${isExpanded ? buildKanbanCardDetailHTML(ticket, col, ui) : ''}
+    </div>
+  `;
+}
+
+function renderInlineConclusionPanel(ticketId) {
+  return `
+    <div class="ti-inline-conclusion" data-ti-no-view>
+      <p class="ti-inline-conclusion-label">
+        <i data-lucide="check-circle"></i>
+        Descreva o que foi feito:
+      </p>
+      <textarea
+        class="ti-conclusion-textarea"
+        placeholder="O que foi feito para resolver este chamado…"
+        data-ti-obs-input="${sanitizeAttribute(ticketId)}"
+        rows="3"
+      ></textarea>
+      <p class="ti-obs-error" data-ti-obs-error style="display:none">Descreva a resolução antes de confirmar.</p>
+      <div class="ti-inline-conclusion-btns">
+        <button type="button" class="ti-kc-btn is-conclude"
+          data-ti-confirm-conclusion="${sanitizeAttribute(ticketId)}">
+          <i data-lucide="check"></i>Confirmar
+        </button>
+        <button type="button" class="ti-kc-btn is-cancel" data-ti-cancel-conclusion>
+          <i data-lucide="x"></i>Cancelar
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// ── Completed tickets ──────────────────────────────────────────────────────
+
+export function renderCompletedCard(ticket, ui) {
+  const isExpanded = ui.expandedCompletedId === ticket.id;
+  const duration   = fmtDuration(ticket.duracaoMinutos);
+  const concluded  = fmtDateTime(ticket.dataConclusao || ticket.dataFim);
+
+  return `
+    <article class="ti-completed-ticket ${isExpanded ? 'is-expanded' : ''}">
+      <button type="button" class="ti-completed-compact"
+        data-ti-expand-completed="${sanitizeAttribute(ticket.id)}"
+        aria-expanded="${isExpanded}">
+        <span class="ti-ticket-status is-done">
+          <i data-lucide="circle-check"></i><span>Concluído</span>
+        </span>
+        <div class="ti-ticket-meta">
+          <strong class="ti-ticket-name">${sanitizeText(ticket.solicitanteNome || 'Solicitante')}</strong>
+          <span class="ti-ticket-chips">
+            <span class="ti-chip">${sanitizeText(setorLabel(ticket.solicitanteSetor))}</span>
+            <span class="ti-chip">Unidade ${sanitizeText(ticket.unidade)}</span>
+            ${duration ? `<span class="ti-chip ti-chip--timer"><i data-lucide="timer"></i> ${sanitizeText(duration)}</span>` : ''}
+          </span>
+        </div>
+        <span class="ti-ticket-date">${fmtDate(ticket.dataConclusao)}</span>
+        <span class="ti-ticket-chevron" aria-hidden="true"><i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}"></i></span>
+      </button>
+
+      <div class="ti-ticket-detail" aria-hidden="${!isExpanded}">
+        <div class="ti-ticket-detail-inner ti-completed-detail">
+          <div class="ti-completed-meta-grid">
+            ${renderDetailRow('Solicitante', ticket.solicitanteNome, 'user')}
+            ${renderDetailRow('Setor', setorLabel(ticket.solicitanteSetor), 'layers')}
+            ${renderDetailRow('Unidade', ticket.unidade, 'building-2')}
+            ${ticket.tipoServico
+              ? renderDetailRow('Tipo de Serviço', ticket.tipoServico, 'tag')
+              : renderDetailRow('Categoria', ticket.categoria, 'tag')}
+            ${ticket.cidade   ? renderDetailRow('Cidade',  ticket.cidade,  'map-pin') : ''}
+            ${ticket.bairro   ? renderDetailRow('Bairro',  ticket.bairro,  'map')     : ''}
+            ${ticket.endereco ? renderDetailRow('Endereço', ticket.endereco, 'navigation') : ''}
+            ${renderDetailRow('Realizado por', ticket.atribuidoParaNome || '—', 'user-check')}
+            ${renderDetailRow('Concluído em', concluded, 'calendar-check')}
+            ${duration ? renderDetailRow('Duração', duration, 'timer') : ''}
+          </div>
+          <div class="ti-detail-desc">
+            <span class="ti-detail-label">Descrição da solicitação</span>
+            <p class="ti-detail-text">${sanitizeText(ticket.descricao)}</p>
+          </div>
+          ${ticket.observacao ? `
+            <div class="ti-detail-obs">
+              <span class="ti-detail-label">Observações do responsável</span>
+              <p class="ti-detail-text ti-obs-text">${sanitizeText(ticket.observacao)}</p>
+            </div>` : ''}
+        </div>
+      </div>
+    </article>`;
+}
+
+function renderDetailRow(label, value, icon) {
+  return `
+    <div class="ti-completed-row">
+      <span class="ti-completed-row-label"><i data-lucide="${sanitizeAttribute(icon)}"></i>${sanitizeText(label)}</span>
+      <span class="ti-completed-row-value">${sanitizeText(String(value || '—'))}</span>
+    </div>`;
+}

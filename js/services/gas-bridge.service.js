@@ -102,7 +102,11 @@ function appendHiddenField(form, name, value) {
 
 function getParentOrigin() {
   const origin = window.location.origin;
-  return !origin || origin === 'null' ? '*' : origin;
+  // S-007: Nunca enviar '*' como origin — GAS rejeitará requests sem origem válida.
+  // Em contextos file:// ou iframes sandboxed, retorna string vazia para que o
+  // servidor recuse o postMessage em vez de transmitir dados para qualquer listener.
+  if (!origin || origin === 'null') return '';
+  return origin;
 }
 
 function isAllowedBridgeOrigin(origin) {

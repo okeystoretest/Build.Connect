@@ -11,7 +11,7 @@ export function loginUser(id, password) {
 
   return requestApi('login', { id: normalizedId, password: normalizedPassword })
     .then(normalizeAuthResponse)
-    .catch((error) => ({ success: false, code: 'NETWORK_ERROR', message: error?.message || 'Falha ao comunicar com o servidor.' }));
+    .catch(() => ({ success: false, code: 'NETWORK_ERROR', message: 'Falha ao comunicar com o servidor. Verifique sua conexão e tente novamente.' }));
 }
 
 export async function logoutUser() {

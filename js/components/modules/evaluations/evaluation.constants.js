@@ -128,6 +128,7 @@ export const EVALUATION_UI_DEFAULTS = Object.freeze({
   evaluationSaveMessage: '',
   savedEvaluationRecordsByTool: {},
   multidirEligibility: {},   // { [toolId:evaluateeId]: { status, message, remainingResponses, nextAvailableDate } }
+  evaluationFormPage: 0,     // paginação horizontal do formulário da ferramenta ativa
 });
 // ═══════════════════════════════════════════════════════════════════════════
 // AVALIAÇÃO MULTIDIRECIONAL — IDs e critérios

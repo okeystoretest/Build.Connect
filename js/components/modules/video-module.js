@@ -1,13 +1,19 @@
-import { MODULE_ITEM_TYPES, MODULE_VIEW_MODE, TOOL_FILTER_OPTIONS } from '../../constants/module.constants.js';
 import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
 import { animateOut } from '../../utils/motion.js';
 import { registrarAtividade } from '../../services/historico.service.js';
 import { fetchQuizForVideo, submitQuizAnswer } from '../../services/quiz.service.js';
-import { prepareModuleItems } from './module-items.js';
+import {
+  markContentInProgress,
+  markContentComplete,
+} from '../../services/content-progress.service.js';
+import { _contentStatusPill } from './video-module.markup.js';
+import { queueCelebration } from '../../utils/celebration.js';
+
+export { getVideoModuleMarkup } from './video-module.markup.js';
 
 const WATCH_THRESHOLD = 0.90;
 const DURATION_RETRY_INTERVAL_MS = 500;
-const DURATION_MAX_RETRIES = 6; // max 3s de espera (6 × 500ms)
+const DURATION_MAX_RETRIES = 6;
 
 let activeVideoModal = null;
 let ytPlayer = null;
@@ -17,33 +23,21 @@ let watchInterval = null;
 let completionRegistered = false;
 let activeVideoContext = null;
 
-// ── YouTube IFrame API ─────────────────────────────────────────────────────
+// ── YouTube IFrame API ──────────────────────────────────────────────────────
 
 function loadYouTubeAPI() {
   return new Promise((resolve, reject) => {
-    // API já carregada
-    if (window.YT && window.YT.Player) {
-      resolve(window.YT);
-      return;
-    }
+    if (window.YT && window.YT.Player) { resolve(window.YT); return; }
 
-    // Timeout de segurança: 10s
-    const timeout = setTimeout(() => {
-      reject(new Error('YouTube IFrame API não carregou a tempo.'));
-    }, 10000);
+    const timeout = setTimeout(() => reject(new Error('YouTube IFrame API timeout.')), 10000);
 
-    // Injeta o script se ainda não existir
     if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
       const script = document.createElement('script');
       script.src = 'https://www.youtube.com/iframe_api';
-      script.onerror = () => {
-        clearTimeout(timeout);
-        reject(new Error('Falha ao carregar a API do YouTube.'));
-      };
+      script.onerror = () => { clearTimeout(timeout); reject(new Error('Falha ao carregar API YouTube.')); };
       document.head.appendChild(script);
     }
 
-    // Encadeia com callbacks anteriores para não quebrar múltiplas chamadas
     const prev = window.onYouTubeIframeAPIReady;
     window.onYouTubeIframeAPIReady = () => {
       clearTimeout(timeout);
@@ -58,7 +52,6 @@ function extractVideoId(embedUrl) {
   return match ? match[1] : null;
 }
 
-// Aguarda a duração ficar disponível (getDuration retorna 0 antes dos metadados carregarem)
 function waitForDuration(player, retries = 0) {
   const d = player.getDuration?.() ?? 0;
   if (d > 0) return Promise.resolve(d);
@@ -74,17 +67,12 @@ function startWatchTracking(player, duration, onComplete) {
   completionRegistered = false;
   videoDuration = duration;
 
-  if (duration <= 0) {
-    // Duração desconhecida — não registra
-    return;
-  }
+  if (duration <= 0) return;
 
   const required = duration * WATCH_THRESHOLD;
 
   watchInterval = setInterval(() => {
     if (!player || typeof player.getPlayerState !== 'function') return;
-
-    // 1 = PLAYING
     if (player.getPlayerState() === 1) {
       watchedSeconds += 1;
       if (!completionRegistered && watchedSeconds >= required) {
@@ -96,7 +84,7 @@ function startWatchTracking(player, duration, onComplete) {
   }, 1000);
 }
 
-// ── Modal ──────────────────────────────────────────────────────────────────
+// ── Modal ───────────────────────────────────────────────────────────────────
 
 export function openVideoModal(video, context = {}) {
   if (!video.embedUrl) return;
@@ -107,6 +95,11 @@ export function openVideoModal(video, context = {}) {
   if (!videoId) return;
 
   activeVideoContext = { ...context, videoId, title: video.title || 'Vídeo de treinamento' };
+
+  // Marca como "em andamento" imediatamente ao abrir
+  const refId = `video-${videoId}`;
+  markContentInProgress(refId);
+  _updateCardBadge(videoId, 'in-progress');
 
   const backdrop = document.createElement('div');
   backdrop.className = 'video-modal-backdrop';
@@ -125,89 +118,131 @@ export function openVideoModal(video, context = {}) {
   `;
 
   backdrop.querySelector('[data-video-close]').addEventListener('click', closeVideoModal);
-  backdrop.addEventListener('click', (e) => {
-    if (e.target === backdrop) closeVideoModal();
-  });
-  document.addEventListener('keydown', handleEscapeVideo);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeVideoModal(); });
+  document.addEventListener('keydown', _handleEscapeVideo);
 
   document.body.appendChild(backdrop);
   document.body.classList.add('has-video-modal');
   activeVideoModal = backdrop;
 
-  // Carrega YT API e cria player
   loadYouTubeAPI()
     .then((YT) => {
       if (!activeVideoModal) return;
-
       ytPlayer = new YT.Player('bc-yt-player', {
         videoId,
         width: '100%',
         height: '100%',
-        playerVars: {
-          autoplay: 1,
-          rel: 0,
-          modestbranding: 1,
-          origin: window.location.origin,
-        },
+        playerVars: { autoplay: 1, rel: 0, modestbranding: 1, origin: window.location.origin },
         events: {
           onReady: async (e) => {
-            // Espera duração ficar disponível antes de iniciar o tracking
             const duration = await waitForDuration(e.target);
-            if (activeVideoModal) {
-              startWatchTracking(e.target, duration, handleVideoComplete);
-            }
+            if (activeVideoModal) startWatchTracking(e.target, duration, _handleVideoComplete);
           },
           onStateChange: (e) => {
-            // ENDED (0) sem ter completado — limpa intervalo
-            if (e.data === 0 && !completionRegistered) {
-              clearInterval(watchInterval);
-            }
+            if (e.data === 0 && !completionRegistered) clearInterval(watchInterval);
           },
         },
       });
     })
     .catch(() => {
-      // Fallback: abre iframe direto se a API falhar
       if (!activeVideoModal) return;
       const wrap = activeVideoModal.querySelector('.video-modal-frame-wrap');
       if (wrap) {
         wrap.innerHTML = `
-          <iframe
-            class="video-modal-frame"
+          <iframe class="video-modal-frame"
             src="https://www.youtube.com/embed/${sanitizeAttribute(videoId)}?autoplay=1&rel=0"
             title="${sanitizeAttribute(video.title || 'Vídeo')}"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen
-          ></iframe>
-        `;
+            allowfullscreen></iframe>`;
       }
     });
 }
 
-function handleEscapeVideo(e) {
+function _handleEscapeVideo(e) {
   if (e.key === 'Escape') closeVideoModal();
 }
 
-function handleVideoComplete() {
+async function _handleVideoComplete() {
   if (!activeVideoContext) return;
-  registrarAtividade({
+
+  const refId = `video-${activeVideoContext.videoId}`;
+  const ctx = { ...activeVideoContext };
+
+  // Promove de "em andamento" para "concluído" imediatamente no DOM
+  markContentComplete(refId);
+  _updateCardBadge(ctx.videoId, 'complete');
+
+  // Aguarda registro no banco antes de enfileirar celebração
+  await registrarAtividade({
     tipo: 'video',
-    titulo: activeVideoContext.title,
-    setorId: activeVideoContext.sectorId || '',
-    moduloId: activeVideoContext.moduloId || 'instrucoes-video',
-    referenciaId: `video-${activeVideoContext.videoId}`,
+    titulo: ctx.title,
+    setorId: ctx.sectorId || '',
+    moduloId: ctx.moduloId || 'instrucoes-video',
+    referenciaId: refId,
   });
 
-  // Verifica se o vídeo possui questionário e abre o modal
-  const ctx = { ...activeVideoContext };
-  fetchQuizForVideo(ctx.videoId).then((response) => {
-    if (response?.success && response.questionario) {
-      openQuizModal(response.questionario, ctx);
-    }
-  }).catch(() => { /* silencioso — não interrompe a experiência */ });
+  // Celebração disparada apenas ao retornar ao menu (flush em clearSelectedModule)
+  queueCelebration({ message: 'Parabéns! Vídeo concluído com sucesso.' });
+
+  // Notifica content.js para atualizar badges de progresso em tempo real
+  document.dispatchEvent(new CustomEvent('bc:content-completed', {
+    detail: { sectorId: ctx.sectorId, refId },
+  }));
+
+  fetchQuizForVideo(ctx.videoId)
+    .then((response) => { if (response?.success && response.questionario) openQuizModal(response.questionario, ctx); })
+    .catch(() => { /* silencioso */ });
 }
 
-// ── Quiz Modal ─────────────────────────────────────────────────────────────
+function _updateCardBadge(videoId, state) {
+  if (!videoId) return;
+  const btn    = document.querySelector(`[data-video-embed-url*="${CSS.escape(videoId)}"]`);
+  const cardEl = btn?.closest('[data-module-entry]');
+  if (!cardEl) return;
+
+  if (state === 'complete') cardEl.classList.add('is-done');
+
+  const badge = cardEl.querySelector('.content-status-pill');
+  if (!badge) return;
+
+  const isDone       = state === 'complete';
+  const isInProgress = state === 'in-progress';
+  if (badge.classList.contains('content-status-pill--complete') && !isDone) return;
+
+  badge.outerHTML = _contentStatusPill(isDone, isInProgress);
+  const newBadge = cardEl.querySelector('.content-status-pill');
+  if (newBadge && window.lucide) window.lucide.createIcons({ nodes: [newBadge] });
+}
+
+export function closeVideoModal() {
+  document.removeEventListener('keydown', _handleEscapeVideo);
+  clearInterval(watchInterval);
+  watchInterval = null;
+
+  if (ytPlayer && typeof ytPlayer.destroy === 'function') {
+    try { ytPlayer.destroy(); } catch { /* noop */ }
+    ytPlayer = null;
+  }
+
+  watchedSeconds = 0;
+  videoDuration = 0;
+  completionRegistered = false;
+  activeVideoContext = null;
+
+  if (!activeVideoModal) {
+    document.body.classList.remove('has-video-modal');
+    return;
+  }
+
+  const target = activeVideoModal;
+  activeVideoModal = null;
+  animateOut(target, 'is-closing', 200, () => {
+    target.remove();
+    document.body.classList.remove('has-video-modal');
+  });
+}
+
+// ── Quiz Modal ──────────────────────────────────────────────────────────────
 
 let activeQuizModal = null;
 
@@ -238,29 +273,24 @@ function openQuizModal(quiz, context) {
               <input type="radio" name="quiz-modal-resposta" value="${sanitizeAttribute(o.key)}" />
               <span class="quiz-opcao-letter">${o.key.toUpperCase()}</span>
               <span class="quiz-opcao-texto">${sanitizeText(o.texto)}</span>
-            </label>
-          `).join('')}
+            </label>`).join('')}
         </div>
         <div class="quiz-modal-result" id="quiz-modal-result" style="display:none"></div>
       </div>
       <div class="quiz-modal-footer">
         <button type="button" class="module-action-button" id="quiz-modal-submit">
-          <i data-lucide="send"></i>
-          <span>Confirmar resposta</span>
+          <i data-lucide="send"></i><span>Confirmar resposta</span>
         </button>
       </div>
     </div>
   `;
 
-  // Lucide icons
   if (window.lucide) window.lucide.createIcons({ root: backdrop });
 
-  // Close button
-  backdrop.querySelector('[data-quiz-modal-close]').addEventListener('click', closeQuizModal);
-  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeQuizModal(); });
-  document.addEventListener('keydown', handleEscapeQuiz);
+  backdrop.querySelector('[data-quiz-modal-close]').addEventListener('click', _closeQuizModal);
+  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) _closeQuizModal(); });
+  document.addEventListener('keydown', _handleEscapeQuiz);
 
-  // Submit
   backdrop.querySelector('#quiz-modal-submit').addEventListener('click', async () => {
     const selected = backdrop.querySelector('input[name="quiz-modal-resposta"]:checked');
     if (!selected) return;
@@ -268,18 +298,14 @@ function openQuizModal(quiz, context) {
     const opcaoEscolhida = selected.value;
     const isCorreta = opcaoEscolhida === quiz.gabarito;
 
-    // Disable options after answer
     backdrop.querySelectorAll('input[name="quiz-modal-resposta"]').forEach((el) => { el.disabled = true; });
     backdrop.querySelector('#quiz-modal-submit').disabled = true;
 
-    // Visual feedback on options
     backdrop.querySelectorAll('[data-opcao]').forEach((el) => {
-      const key = el.dataset.opcao;
-      if (key === quiz.gabarito) el.classList.add('is-correct');
-      else if (key === opcaoEscolhida && !isCorreta) el.classList.add('is-wrong');
+      if (el.dataset.opcao === quiz.gabarito) el.classList.add('is-correct');
+      else if (el.dataset.opcao === opcaoEscolhida && !isCorreta) el.classList.add('is-wrong');
     });
 
-    // Result message
     const resultEl = backdrop.querySelector('#quiz-modal-result');
     resultEl.style.display = '';
     resultEl.className = `quiz-modal-result ${isCorreta ? 'is-correct' : 'is-wrong'}`;
@@ -288,7 +314,6 @@ function openQuizModal(quiz, context) {
       : `<i data-lucide="x-circle"></i><span>Resposta incorreta. A alternativa correta é <strong>${quiz.gabarito.toUpperCase()}</strong>.</span>`;
     if (window.lucide) window.lucide.createIcons({ root: resultEl });
 
-    // Save answer (best-effort)
     await submitQuizAnswer({
       questionarioId: quiz.id,
       userId: context.userId || '',
@@ -304,113 +329,12 @@ function openQuizModal(quiz, context) {
   if (window.lucide) window.lucide.createIcons({ root: backdrop });
 }
 
-function handleEscapeQuiz(e) {
-  if (e.key === 'Escape') closeQuizModal();
-}
+function _handleEscapeQuiz(e) { if (e.key === 'Escape') _closeQuizModal(); }
 
-function closeQuizModal() {
-  document.removeEventListener('keydown', handleEscapeQuiz);
+function _closeQuizModal() {
+  document.removeEventListener('keydown', _handleEscapeQuiz);
   if (!activeQuizModal) return;
   const target = activeQuizModal;
   activeQuizModal = null;
   animateOut(target, 'is-closing', 200, () => target.remove());
-}
-
-export function closeVideoModal() {
-  document.removeEventListener('keydown', handleEscapeVideo);
-  clearInterval(watchInterval);
-  watchInterval = null;
-
-  if (ytPlayer && typeof ytPlayer.destroy === 'function') {
-    try { ytPlayer.destroy(); } catch { /* noop */ }
-    ytPlayer = null;
-  }
-
-  watchedSeconds = 0;
-  videoDuration = 0;
-  completionRegistered = false;
-  activeVideoContext = null;
-
-  if (!activeVideoModal) {
-    document.body.classList.remove('has-video-modal');
-    return;
-  }
-
-  const target = activeVideoModal;
-  activeVideoModal = null;
-
-  animateOut(target, 'is-closing', 200, () => {
-    target.remove();
-    document.body.classList.remove('has-video-modal');
-  });
-}
-
-// ── Markup ─────────────────────────────────────────────────────────────────
-
-export function getVideoModuleMarkup(card, moduleData, moduleUi, renderDependencies) {
-  const items = Array.isArray(moduleData?.items) ? moduleData.items : [];
-  const { getModuleEmptyMarkup, getModuleToolbarMarkup, getModuleSearchEmptyMarkup, getModuleToolFilterMarkup } = renderDependencies;
-  const consumedRefIds = new Set(Array.isArray(moduleData?.consumedRefIds) ? moduleData.consumedRefIds : []);
-
-  if (!items.length) {
-    return getModuleEmptyMarkup(card, moduleData?.emptyMessage || 'Nenhum vídeo foi encontrado para este módulo.');
-  }
-
-  const activeFilter = moduleUi?.selectedToolFilter || '';
-  const preparedItems = prepareModuleItems(items, moduleUi, MODULE_ITEM_TYPES.video);
-
-  return `
-    <div class="module-shell" data-module-shell>
-      <div class="module-shell-header module-shell-header--stacked">
-        <div>
-          <p class="module-eyebrow">Conteúdo carregado</p>
-          <h2 class="module-title">${sanitizeText(card.title)}</h2>
-          <p class="module-description">Vídeos carregados automaticamente a partir da base de dados.</p>
-        </div>
-        ${getModuleToolbarMarkup(card.id, moduleUi, items.length, preparedItems.length, 'Busque por título do vídeo')}
-      </div>
-      ${getModuleToolFilterMarkup(TOOL_FILTER_OPTIONS, activeFilter)}
-      <div class="module-items-grid module-items-grid-video ${moduleUi.view === MODULE_VIEW_MODE.list ? 'is-list-view' : 'is-grid-view'}" data-module-items-container>
-        ${preparedItems.length ? preparedItems.map((item) => renderVideoItemCard(item, consumedRefIds)).join('') : getModuleSearchEmptyMarkup()}
-      </div>
-    </div>
-  `;
-}
-
-function renderVideoItemCard(item, consumedRefIds = new Set()) {
-  const thumbnail = sanitizeAttribute(item.thumbnailUrl || '');
-  const title = sanitizeText(item.title || 'Vídeo sem título');
-  const embedUrl = sanitizeAttribute(item.embedUrl || '');
-
-  const videoIdMatch = String(item.embedUrl || '').match(/youtube\.com\/embed\/([^?&/]+)/);
-  const videoId = videoIdMatch ? videoIdMatch[1] : null;
-  const refId = videoId ? `video-${videoId}` : null;
-  const isDone = refId && consumedRefIds.has(refId);
-
-  return `
-    <article class="module-item-card is-video ${isDone ? 'is-done' : ''}" data-module-entry>
-      <span class="module-item-status-badge ${isDone ? 'is-complete' : 'is-pending'}" aria-label="${isDone ? 'Concluído' : 'Atenção'}">
-        <i data-lucide="${isDone ? 'check-circle-2' : 'alert-triangle'}"></i>
-        <span>${isDone ? 'Concluído' : 'Atenção'}</span>
-      </span>
-      <div class="video-thumb-wrap">
-        <img class="video-thumb" src="${thumbnail}" alt="Thumbnail do vídeo ${title}" loading="lazy" />
-        <span class="video-duration-badge">${sanitizeText(item.durationLabel || '00:00')}</span>
-      </div>
-      <div class="module-item-copy">
-        <h3 class="module-item-title">${title}</h3>
-      </div>
-      <div class="module-item-actions">
-        <button
-          type="button"
-          class="module-link-button"
-          data-video-embed-url="${embedUrl}"
-          data-video-title="${sanitizeAttribute(item.title || 'Vídeo de treinamento')}"
-        >
-          <i data-lucide="play"></i>
-          <span>Assistir</span>
-        </button>
-      </div>
-    </article>
-  `;
 }

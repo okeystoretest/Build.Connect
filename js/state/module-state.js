@@ -15,6 +15,9 @@ export function createDefaultModuleState() {
     moduleData: null,
     errorMessage: '',
     ui: { ...MODULE_UI_DEFAULTS },
+    isAlertsLoading: false,
+    cardAlerts: {},
+    cardLocks: {},      // Navi — { [cardId]: { locked, reason, pct } | null }
   };
 }
 
@@ -26,16 +29,25 @@ export function setModuleState(sectorId, state) {
   MODULE_STATE_BY_SECTOR.set(sectorId, state);
 }
 
-export function resetModuleSelectionForSector(sectorId) {
-  if (!sectorId) {
-    return;
-  }
+/**
+ * Sets the isAlertsLoading flag for a sector without touching any other state.
+ */
+export function setModuleAlertsLoading(sectorId, loading) {
+  if (!sectorId) return;
+  const current = getModuleState(sectorId);
+  MODULE_STATE_BY_SECTOR.set(sectorId, { ...current, isAlertsLoading: Boolean(loading) });
+}
 
-  // Preserve cardAlerts so badges remain visible after navigating back to the cards view
+export function resetModuleSelectionForSector(sectorId) {
+  if (!sectorId) return;
+
   const current = getModuleState(sectorId);
   MODULE_STATE_BY_SECTOR.set(sectorId, {
     ...createDefaultModuleState(),
-    cardAlerts: current.cardAlerts || {},
+    cardAlerts:        current.cardAlerts        || {},
+    cardLocks:         current.cardLocks         || {},  // preserva locks Navi
+    authenticatedUser: current.authenticatedUser || null,
+    isAlertsLoading:   false,
   });
 }
 
@@ -44,19 +56,43 @@ export function getModuleStateEntries() {
 }
 
 // ── Card Alerts ────────────────────────────────────────────────────────────
-// cardAlerts: { [cardId]: { type: 'pending' | 'unread', count: number } | null }
 
 export function setCardAlert(sectorId, cardId, alert) {
   const current = getModuleState(sectorId);
   const cardAlerts = { ...(current.cardAlerts || {}) };
-  if (alert) {
-    cardAlerts[cardId] = alert;
-  } else {
-    delete cardAlerts[cardId];
-  }
+  if (alert) { cardAlerts[cardId] = alert; } else { delete cardAlerts[cardId]; }
   MODULE_STATE_BY_SECTOR.set(sectorId, { ...current, cardAlerts });
 }
 
 export function clearCardAlert(sectorId, cardId) {
   setCardAlert(sectorId, cardId, null);
+}
+
+// ── Card Locks (Navi) ──────────────────────────────────────────────────────
+
+/**
+ * Armazena o estado de bloqueio Navi de um card.
+ * @param {string} sectorId
+ * @param {string} cardId
+ * @param {{ locked: boolean, reason: string, pct: number } | null} lockState
+ */
+export function setCardLock(sectorId, cardId, lockState) {
+  const current = getModuleState(sectorId);
+  const cardLocks = { ...(current.cardLocks || {}) };
+  if (lockState?.locked) {
+    cardLocks[cardId] = lockState;
+  } else {
+    delete cardLocks[cardId];
+  }
+  MODULE_STATE_BY_SECTOR.set(sectorId, { ...current, cardLocks });
+}
+
+/**
+ * Retorna o estado de bloqueio Navi de um card, ou null se desbloqueado.
+ * @param {string} sectorId
+ * @param {string} cardId
+ * @returns {{ locked: boolean, reason: string, pct: number } | null}
+ */
+export function getCardLock(sectorId, cardId) {
+  return getModuleState(sectorId).cardLocks?.[cardId] || null;
 }

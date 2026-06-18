@@ -1,6 +1,9 @@
 import { refreshLucideIcons } from '../services/icons.service.js';
 import { sanitizeAttribute, sanitizeText } from '../utils/sanitize.js';
 import { USER_LEVELS } from '../constants/sector.constants.js';
+import { applyPendingBadgesSetting } from '../services/settings.service.js';
+
+export { applyPendingBadgesSetting } from '../services/settings.service.js';
 
 export function renderSidebar(rootElement, state, handlers, navigationItems, theme) {
   rootElement.innerHTML = `
@@ -40,9 +43,7 @@ export function renderSidebar(rootElement, state, handlers, navigationItems, the
           aria-label="Fazer Requisição"
           title="Fazer Requisição"
         >
-          <span class="nav-icon" aria-hidden="true">
-            <i data-lucide="headset"></i>
-          </span>
+          <span class="nav-icon" aria-hidden="true"><i data-lucide="headset"></i></span>
           <span class="item-tooltip">Chamado (TI)</span>
         </button>
 
@@ -54,9 +55,7 @@ export function renderSidebar(rootElement, state, handlers, navigationItems, the
           aria-label="Comunicar setor"
           title="Comunicar setor"
         >
-          <span class="nav-icon" aria-hidden="true">
-            <i data-lucide="megaphone"></i>
-          </span>
+          <span class="nav-icon" aria-hidden="true"><i data-lucide="megaphone"></i></span>
           <span class="item-tooltip">Comunicar setor</span>
         </button>
         ` : ''}
@@ -64,14 +63,12 @@ export function renderSidebar(rootElement, state, handlers, navigationItems, the
         <button
           class="footer-icon-button"
           type="button"
-          id="theme-switch"
-          aria-label="Alternar entre modo claro e modo escuro"
-          title="Alternar tema"
+          id="settings-button"
+          aria-label="Configurações"
+          title="Configurações"
         >
-          <span class="nav-icon" aria-hidden="true">
-            <i data-lucide="${theme === 'dark' ? 'moon-star' : 'sun-medium'}"></i>
-          </span>
-          <span class="item-tooltip">${theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</span>
+          <span class="nav-icon" aria-hidden="true"><i data-lucide="settings-2"></i></span>
+          <span class="item-tooltip">Configurações</span>
         </button>
 
         <button
@@ -81,9 +78,7 @@ export function renderSidebar(rootElement, state, handlers, navigationItems, the
           aria-label="Logout"
           title="Logout"
         >
-          <span class="nav-icon" aria-hidden="true">
-            <i data-lucide="log-out"></i>
-          </span>
+          <span class="nav-icon" aria-hidden="true"><i data-lucide="log-out"></i></span>
           <span class="item-tooltip">Logout</span>
         </button>
       </div>
@@ -109,12 +104,8 @@ function renderNavigationItem(item, state) {
         aria-label="${sanitizeText(item.label)}"
         title="${sanitizeText(item.label)}"
       >
-        <span class="nav-icon" aria-hidden="true">
-          <i data-lucide="${sanitizeAttribute(item.icon)}"></i>
-        </span>
-        <span class="nav-text">
-          <span class="nav-label">${sanitizeText(item.label)}</span>
-        </span>
+        <span class="nav-icon" aria-hidden="true"><i data-lucide="${sanitizeAttribute(item.icon)}"></i></span>
+        <span class="nav-text"><span class="nav-label">${sanitizeText(item.label)}</span></span>
         ${commonTooltip}
       </button>
     `;
@@ -122,7 +113,8 @@ function renderNavigationItem(item, state) {
 
   const expandedStateMap = {
     comercial: state.isCommercialExpanded,
-    producao: state.isProductionExpanded,
+    producao:  state.isProductionExpanded,
+    logistica: state.isLogisticsExpanded,
   };
   const isExpanded = Boolean(expandedStateMap[item.id]);
 
@@ -137,19 +129,14 @@ function renderNavigationItem(item, state) {
         aria-label="${sanitizeText(item.label)}"
         title="${sanitizeText(item.label)}"
       >
-        <span class="nav-icon" aria-hidden="true">
-          <i data-lucide="${sanitizeAttribute(item.icon)}"></i>
-        </span>
-        <span class="nav-text">
-          <span class="nav-label">${sanitizeText(item.label)}</span>
-        </span>
-        <span class="chevron-icon" aria-hidden="true">
-          <i data-lucide="chevron-down"></i>
-        </span>
+        <span class="nav-icon" aria-hidden="true"><i data-lucide="${sanitizeAttribute(item.icon)}"></i></span>
+        <span class="nav-text"><span class="nav-label">${sanitizeText(item.label)}</span></span>
+        <span class="chevron-icon" aria-hidden="true"><i data-lucide="chevron-down"></i></span>
         ${commonTooltip}
       </button>
 
-      <div class="submenu" id="submenu-${sanitizeAttribute(item.id)}" role="group" aria-label="Submenu ${sanitizeText(item.label)}" aria-hidden="${String(!isExpanded)}">
+      <div class="submenu" id="submenu-${sanitizeAttribute(item.id)}" role="group"
+        aria-label="Submenu ${sanitizeText(item.label)}" aria-hidden="${String(!isExpanded)}">
         ${item.children.map((child) => renderSubmenuItem(child, state.activeItemId)).join('')}
       </div>
     </div>
@@ -158,7 +145,6 @@ function renderNavigationItem(item, state) {
 
 function renderSubmenuItem(item, activeItemId) {
   const isActive = activeItemId === item.id;
-
   return `
     <button
       class="submenu-item ${isActive ? 'is-active' : ''}"
@@ -168,12 +154,8 @@ function renderSubmenuItem(item, activeItemId) {
       aria-label="${sanitizeText(item.label)}"
       title="${sanitizeText(item.label)}"
     >
-      <span class="nav-icon" aria-hidden="true">
-        <i data-lucide="${sanitizeAttribute(item.icon)}"></i>
-      </span>
-      <span class="nav-text">
-        <span class="submenu-label">${sanitizeText(item.label)}</span>
-      </span>
+      <span class="nav-icon" aria-hidden="true"><i data-lucide="${sanitizeAttribute(item.icon)}"></i></span>
+      <span class="nav-text"><span class="submenu-label">${sanitizeText(item.label)}</span></span>
       <span class="item-tooltip">${sanitizeText(item.label)}</span>
     </button>
   `;
@@ -182,27 +164,18 @@ function renderSubmenuItem(item, activeItemId) {
 function bindSidebarEvents(rootElement, handlers) {
   const toggleButton    = rootElement.querySelector('#sidebar-toggle');
   const tiButton        = rootElement.querySelector('#ti-button');
-  const themeSwitch     = rootElement.querySelector('#theme-switch');
   const logoutButton    = rootElement.querySelector('#logout-button');
   const broadcastButton = rootElement.querySelector('#broadcast-button');
+  const settingsButton  = rootElement.querySelector('#settings-button');
   const navItems        = rootElement.querySelectorAll('[data-nav-item]');
   const groupToggles    = rootElement.querySelectorAll('[data-nav-group-toggle]');
 
   toggleButton?.addEventListener('click', handlers.onSidebarToggle);
   tiButton?.addEventListener('click', handlers.onTiModal);
-  themeSwitch?.addEventListener('click', handlers.onThemeToggle);
   logoutButton?.addEventListener('click', handlers.onLogout);
   broadcastButton?.addEventListener('click', handlers.onBroadcast);
+  settingsButton?.addEventListener('click', handlers.onSettings);
 
-  navItems.forEach((itemButton) => {
-    itemButton.addEventListener('click', () => {
-      handlers.onNavigate(itemButton.dataset.navItem);
-    });
-  });
-
-  groupToggles.forEach((groupButton) => {
-    groupButton.addEventListener('click', () => {
-      handlers.onGroupToggle(groupButton.dataset.navGroupToggle);
-    });
-  });
+  navItems.forEach((btn) => btn.addEventListener('click', () => handlers.onNavigate(btn.dataset.navItem)));
+  groupToggles.forEach((btn) => btn.addEventListener('click', () => handlers.onGroupToggle(btn.dataset.navGroupToggle)));
 }

@@ -4,6 +4,7 @@ import {
   isDhoSector,
 } from '../../services/navigation.service.js';
 import { refreshLucideIcons } from '../../services/icons.service.js';
+import { requestApi } from '../../services/api.service.js';
 import {
   MODULE_SOURCE_LABELS,
   loadModuleContent,
@@ -11,6 +12,7 @@ import {
 import {
   ACTIVE_USERS_MODULE_IDS,
   APP_SOURCE_LABEL,
+  DYNAMIC_EXTERNAL_MODULE_IDS,
   INTERNAL_USER_MODULE_IDS,
   MODULE_IDS,
   MODULE_STATUS,
@@ -24,6 +26,7 @@ import {
   setCardAlert,
 } from '../../state/module-state.js';
 import { fetchPendingEvaluationUserIds } from '../../services/evaluations.service.js';
+import { isAdminUser } from '../../services/access.service.js';
 import { EVALUATION_UI_DEFAULTS } from '../modules/evaluation-module.js';
 import { FEEDBACK_UI_DEFAULTS } from '../modules/feedback-module.js';
 import { QUALITY_UI_DEFAULTS } from '../modules/quality-module.js';
@@ -64,19 +67,49 @@ export async function executeModuleSelection(
     return;
   }
 
-  setModuleState(sector.id, {
+  // Helper: preserva cardAlerts, cardLocks e authenticatedUser em toda transição de estado.
+  // cardAlerts → pílulas de status visíveis ao retornar para o grid de cards.
+  // cardLocks  → bloqueios Navi; sem esta preservação, entrar num módulo apagava os locks,
+  //              permitindo que o usuário visse cards desbloqueados ao clicar Voltar (bypass).
+  // authenticatedUser → garante filtro correto de cards por nível de acesso.
+  const _set = (state) => setModuleState(sector.id, {
+    ...state,
+    cardAlerts:        getModuleState(sector.id).cardAlerts        || currentState.cardAlerts        || {},
+    cardLocks:         getModuleState(sector.id).cardLocks         || currentState.cardLocks         || {},
+    authenticatedUser: authenticatedUser || currentState.authenticatedUser || null,
+  });
+
+  // Busca consumos do usuário (refIds) para cards de conteúdo (docs/vídeos)
+  // e popula moduleData.consumedRefIds, permitindo pílulas por item corretas.
+  const _fetchAndInjectConsumedRefs = (requestToken) => {
+    if (!DYNAMIC_EXTERNAL_MODULE_IDS.has(moduleId)) return;
+    requestApi('buscar-meus-consumos', { sectorId: sector.id })
+      .then((r) => {
+        if (MODULE_REQUEST_TOKENS.get(sector.id) !== requestToken) return;
+        const cs = getModuleState(sector.id);
+        if (!cs.moduleData) return;
+        _set({ ...cs, moduleData: { ...cs.moduleData, consumedRefIds: r?.refIds || [] } });
+        renderModuleStage(rootElement, sector);
+      })
+      .catch(() => { /* silencioso */ });
+  };
+
+  // naviSequentialActive: false para Admin → sem lock sequencial de itens
+  const naviSequentialActive = !isAdminUser(authenticatedUser);
+
+  _set({
     selectedModuleId: moduleId,
     status: MODULE_STATUS.loading,
     moduleData: null,
     errorMessage: '',
-    ui: { ...MODULE_UI_DEFAULTS },
+    ui: { ...MODULE_UI_DEFAULTS, naviSequentialActive },
   });
   renderModuleStage(rootElement, sector);
 
-  // Modules that load their own data via handlers (e.g. TI Requests)
+  // Modules that load their own data via handlers (e.g. TI Requests, Motorista)
   if (SELF_LOADING_MODULE_IDS.has(moduleId)) {
     if (moduleId === MODULE_IDS.questionarios) {
-      setModuleState(sector.id, {
+      _set({
         selectedModuleId: moduleId,
         status: MODULE_STATUS.success,
         moduleData: { respondent: authenticatedUser },
@@ -87,7 +120,8 @@ export async function executeModuleSelection(
       return;
     }
 
-    setModuleState(sector.id, {
+    // TI Requests (retaguarda) ou Motorista Requests
+    _set({
       selectedModuleId: moduleId,
       status: MODULE_STATUS.success,
       moduleData: { respondent: authenticatedUser },
@@ -110,7 +144,7 @@ export async function executeModuleSelection(
       const usersResponse = await loadActiveUsers({ forceRefresh });
 
       if (!usersResponse.success) {
-        setModuleState(sector.id, {
+        _set({
           selectedModuleId: moduleId,
           status: MODULE_STATUS.error,
           moduleData: null,
@@ -142,7 +176,7 @@ export async function executeModuleSelection(
         users: sectorFilteredUsers,
       };
 
-      setModuleState(sector.id, {
+      _set({
         selectedModuleId: moduleId,
         status: MODULE_STATUS.success,
         moduleData,
@@ -157,7 +191,7 @@ export async function executeModuleSelection(
           // Store pending IDs + pendingByTool in moduleData so the evaluation view can use them
           const latestState = getModuleState(sector.id);
           if (latestState.moduleData) {
-            setModuleState(sector.id, {
+            _set({
               ...latestState,
               moduleData: {
                 ...latestState.moduleData,
@@ -205,7 +239,7 @@ export async function executeModuleSelection(
       renderModuleStage(rootElement, sector);
       return;
     } catch (error) {
-      setModuleState(sector.id, {
+      _set({
         selectedModuleId: moduleId,
         status: MODULE_STATUS.error,
         moduleData: null,
@@ -218,7 +252,7 @@ export async function executeModuleSelection(
   }
 
   if (isInternalModule(sector.id, moduleId)) {
-    setModuleState(sector.id, {
+    _set({
       selectedModuleId: moduleId,
       status: MODULE_STATUS.success,
       moduleData: {
@@ -233,7 +267,7 @@ export async function executeModuleSelection(
   }
 
   if (VITRINE_CATEGORY_MODULE_IDS.has(moduleId)) {
-    setModuleState(sector.id, {
+    _set({
       selectedModuleId: moduleId,
       status: MODULE_STATUS.success,
       moduleData: { respondent: authenticatedUser },
@@ -256,15 +290,20 @@ export async function executeModuleSelection(
     }
 
     if (response.success) {
-      setModuleState(sector.id, {
+      _set({
         selectedModuleId: moduleId,
         status: MODULE_STATUS.success,
         moduleData: response,
         errorMessage: '',
         ui: currentState.selectedModuleId === moduleId ? currentState.ui || { ...MODULE_UI_DEFAULTS } : { ...MODULE_UI_DEFAULTS },
       });
+
+      // Busca assíncrona dos refIds consumidos pelo usuário neste setor/módulo.
+      // Popula moduleData.consumedRefIds → pílulas de status corretas por item
+      // (Concluído / Em andamento / Não iniciado) em docs, instruções e vídeos.
+      _fetchAndInjectConsumedRefs(requestToken);
     } else {
-      setModuleState(sector.id, {
+      _set({
         selectedModuleId: moduleId,
         status: MODULE_STATUS.error,
         moduleData: null,
@@ -277,7 +316,7 @@ export async function executeModuleSelection(
       return;
     }
 
-    setModuleState(sector.id, {
+    _set({
       selectedModuleId: moduleId,
       status: MODULE_STATUS.error,
       moduleData: null,

@@ -12,6 +12,10 @@ import {
   persistNavigationState,
   sanitizeActiveItemForNavigation,
 } from '../services/navigation.service.js';
+import {
+  syncSectorAlertsFromCache,
+  prefetchSectorAlerts,
+} from '../services/sector-alerts.service.js';
 import { showAuthenticatedShell, showLoginShell } from './dom.js';
 
 export function createAuthController({
@@ -107,11 +111,24 @@ export function createAuthController({
   function showAuthenticatedApplication() {
     const navigationItems = getAccessibleNavigationItems();
     state.activeItemId = sanitizeActiveItemForNavigation(state.activeItemId, navigationItems);
+
+    // Restaura alerts + locks Navi do sessionStorage ANTES da primeira renderização.
+    // Isso garante que ao pressionar F5, os cards já aparecem com o estado correto
+    // de bloqueio, sem flash de cards desbloqueados indevidamente.
+    if (state.activeItemId && state.activeItemId !== SECTOR_IDS.home) {
+      syncSectorAlertsFromCache(state.activeItemId);
+    }
+
     showAuthenticatedShell(roots);
     syncAppShellState();
     renderApp();
     renderCurrentView({ animate: false });
     startPolling();
+
+    // Revalida locks em background para garantir que o sessionStorage não esteja desatualizado.
+    if (state.activeItemId && state.activeItemId !== SECTOR_IDS.home && state.authenticatedUser) {
+      prefetchSectorAlerts(state.activeItemId, state.authenticatedUser).catch(() => {/* silencioso */});
+    }
   }
 
   function showLoginScreen() {

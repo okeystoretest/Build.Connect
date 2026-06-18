@@ -1,6 +1,9 @@
 /**
  * evaluation.view-behavioral.js
  * Pre-effective and Behavioral evaluation form markup + criterion row helpers.
+ * Supports horizontal pagination via currentPage parameter.
+ * - PRE_EFFECTIVE: 2 pages — criteria 0-7 | criteria 8-15 + notes
+ * - BEHAVIORAL:    2 pages — meta+criteria 0-7 | criteria 8-15
  */
 
 import { sanitizeAttribute, sanitizeText } from '../../../utils/sanitize.js';
@@ -15,11 +18,17 @@ import {
   getEvaluationToolNotes,
   getEvaluationTotals,
 } from './evaluation.calculations.js';
-import { getEvaluationSavePanelMarkup } from './evaluation.view-forms.js';
 
-export function getPreEffectiveEvaluationMarkup(selectedTool, evaluationUi) {
-  const totals = getEvaluationTotals(evaluationUi.evaluationScores, selectedTool.id);
-  const notes  = getEvaluationToolNotes(evaluationUi, selectedTool.id);
+const CRITERIA_PER_PAGE = 8; // 16 total → 2 pages of 8
+
+// ── Pre-Effective ─────────────────────────────────────────────────────────────
+
+export function getPreEffectiveEvaluationMarkup(selectedTool, evaluationUi, currentPage = 0) {
+  const totals      = getEvaluationTotals(evaluationUi.evaluationScores, selectedTool.id);
+  const notes       = getEvaluationToolNotes(evaluationUi, selectedTool.id);
+  const pageSlice   = EVALUATION_CRITERIA.slice(currentPage * CRITERIA_PER_PAGE, (currentPage + 1) * CRITERIA_PER_PAGE);
+  const isLastPage  = currentPage >= 1;
+
   return `
     <div class="evaluation-table-wrap">
       <table class="evaluation-table">
@@ -30,29 +39,37 @@ export function getPreEffectiveEvaluationMarkup(selectedTool, evaluationUi) {
           </tr>
         </thead>
         <tbody>
-          ${EVALUATION_CRITERIA.map((c, i) => getEvaluationCriterionRowMarkup(selectedTool.id, c, i, evaluationUi.evaluationScores)).join('')}
-          <tr>
-            <th>Total</th>
-            ${EVALUATION_PERIODS.map((p) => `<td class="evaluation-total-cell">${totals[p.id] || 0}</td>`).join('')}
-          </tr>
+          ${pageSlice.map((c, localIdx) => {
+            const globalIdx = currentPage * CRITERIA_PER_PAGE + localIdx;
+            return getEvaluationCriterionRowMarkup(selectedTool.id, c, globalIdx, evaluationUi.evaluationScores);
+          }).join('')}
+          ${isLastPage ? `
+            <tr>
+              <th>Total</th>
+              ${EVALUATION_PERIODS.map((p) => `<td class="evaluation-total-cell">${totals[p.id] || 0}</td>`).join('')}
+            </tr>` : ''}
         </tbody>
       </table>
     </div>
-    <label class="form-field evaluation-notes-field">
-      <span class="form-label">Observações</span>
-      <textarea class="evaluation-notes-textarea" rows="4" data-evaluation-notes placeholder="Registre observações importantes sobre a avaliação.">${sanitizeText(notes)}</textarea>
-    </label>
-    ${getEvaluationSavePanelMarkup(evaluationUi)}
+    ${isLastPage ? `
+      <label class="form-field evaluation-notes-field">
+        <span class="form-label">Observações</span>
+        <textarea class="evaluation-notes-textarea" rows="4" data-evaluation-notes
+          placeholder="Registre observações importantes sobre a avaliação.">${sanitizeText(notes)}</textarea>
+      </label>` : ''}
   `;
 }
 
-export function getBehavioralEvaluationMarkup(selectedTool, selectedUser, evaluationUi, moduleData) {
-  const fields               = getEvaluationToolFields(evaluationUi, selectedTool.id);
+// ── Behavioral ────────────────────────────────────────────────────────────────
+
+export function getBehavioralEvaluationMarkup(selectedTool, selectedUser, evaluationUi, moduleData, currentPage = 0) {
   const respondent           = moduleData?.respondent || null;
   const respondentName       = String(respondent?.nome || '').trim();
   const evaluationSectorName = String(moduleData?.evaluationSector?.label || '').trim();
+  const pageSlice            = EVALUATION_CRITERIA.slice(currentPage * CRITERIA_PER_PAGE, (currentPage + 1) * CRITERIA_PER_PAGE);
+  const isLastPage           = currentPage >= 1;
 
-  return `
+  const metaBlock = currentPage === 0 ? `
     <div class="evaluation-form-grid">
       <label class="form-field evaluation-form-field">
         <span class="form-label">Funcionário</span>
@@ -66,7 +83,10 @@ export function getBehavioralEvaluationMarkup(selectedTool, selectedUser, evalua
         <span class="form-label">Setor</span>
         <input class="evaluation-form-input" type="text" value="${sanitizeAttribute(evaluationSectorName || 'Setor não identificado')}" readonly aria-label="Setor da avaliação" />
       </label>
-    </div>
+    </div>` : '';
+
+  return `
+    ${metaBlock}
     <div class="evaluation-table-wrap">
       <table class="evaluation-table evaluation-table--behavioral">
         <thead>
@@ -76,20 +96,26 @@ export function getBehavioralEvaluationMarkup(selectedTool, selectedUser, evalua
           </tr>
         </thead>
         <tbody>
-          ${EVALUATION_CRITERIA.map((c, i) => getBehavioralCriterionRowMarkup(selectedTool.id, c, i, evaluationUi.evaluationScores)).join('')}
+          ${pageSlice.map((c, localIdx) => {
+            const globalIdx = currentPage * CRITERIA_PER_PAGE + localIdx;
+            return getBehavioralCriterionRowMarkup(selectedTool.id, c, globalIdx, evaluationUi.evaluationScores);
+          }).join('')}
         </tbody>
       </table>
     </div>
     <div class="evaluation-legend" aria-label="Legenda da avaliação comportamental">
       ${BEHAVIORAL_EVALUATION_OPTIONS.map((o) => `<span><strong>${sanitizeText(o.label)}</strong> - ${sanitizeText(o.title)}</span>`).join('')}
     </div>
-    <label class="form-field evaluation-notes-field">
-      <span class="form-label">Observações</span>
-      <textarea class="evaluation-notes-textarea" rows="4" data-evaluation-notes placeholder="Registre observações importantes sobre a avaliação comportamental.">${sanitizeText(getEvaluationToolNotes(evaluationUi, selectedTool.id))}</textarea>
-    </label>
-    ${getEvaluationSavePanelMarkup(evaluationUi)}
+    ${isLastPage ? `
+      <label class="form-field evaluation-notes-field">
+        <span class="form-label">Observações</span>
+        <textarea class="evaluation-notes-textarea" rows="4" data-evaluation-notes
+          placeholder="Registre observações importantes sobre a avaliação comportamental.">${sanitizeText(getEvaluationToolNotes(evaluationUi, selectedTool.id))}</textarea>
+      </label>` : ''}
   `;
 }
+
+// ── Shared row helpers ────────────────────────────────────────────────────────
 
 export function getEvaluationCriterionRowMarkup(toolId, criterion, index, scores) {
   return `

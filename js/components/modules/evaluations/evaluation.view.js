@@ -1,7 +1,7 @@
 /**
  * evaluation.view.js
  * Top-level markup: module shell, tool catalog, form shell, tool dispatch.
- * Form-level markup delegates to evaluation.view-forms.js.
+ * Horizontal pagination: each tool form is split into N pages (no vertical scroll).
  */
 
 import { sanitizeAttribute, sanitizeText } from '../../../utils/sanitize.js';
@@ -13,9 +13,7 @@ import {
   getEvaluationUiState,
   getFilteredEvaluationUsers,
 } from './evaluation.calculations.js';
-import {
-  getPendingFlowProgress,
-} from './evaluation.pending-handlers.js';
+import { getPendingFlowProgress } from './evaluation.pending-handlers.js';
 import {
   getMultidirEvaluationMarkup,
   getPreEffectiveEvaluationMarkup,
@@ -23,9 +21,24 @@ import {
   getMatrixEvaluationMarkup,
   getEvaluationUsersDropdownMarkup,
   getFeedbackTabMarkup,
+  getEvaluationSaveButtonMarkup,
+  getEvaluationSaveFeedbackMarkup,
 } from './evaluation.view-forms.js';
 
 export { getMatrixDecisionGraphMarkup } from './evaluation.view-forms.js';
+
+// Page counts per tool (must stay in sync with evaluation.handlers.js _PAGE_COUNTS)
+const TOOL_PAGE_COUNTS = {
+  [EVALUATION_TOOL_IDS.PRE_EFFECTIVE]:          2,
+  [EVALUATION_TOOL_IDS.BEHAVIORAL]:             2,
+  [EVALUATION_TOOL_IDS.MATRIX]:                 2,
+  [EVALUATION_TOOL_IDS.WORK_EFFICACY]:          3,
+  [EVALUATION_TOOL_IDS.EMOTIONAL_INTELLIGENCE]: 2,
+};
+
+function getToolPageCount(toolId) {
+  return TOOL_PAGE_COUNTS[toolId] || 1;
+}
 
 // ── Entry point ──────────────────────────────────────────────────────────────
 
@@ -108,12 +121,14 @@ function getEvaluationToolsCatalogMarkup(card, moduleData, activeTab = 'avaliaco
 function getEvaluationToolFormMarkup(card, moduleData, evaluationUi, selectedTool, activeTab = 'avaliacoes') {
   const users          = Array.isArray(moduleData?.users) ? moduleData.users : [];
   const respondent     = moduleData?.respondent || null;
-  // pendingUserIds comes from the async backend fetch stored in moduleData
   const pendingUserIds = new Set(Array.isArray(moduleData?.pendingUserIds) ? moduleData.pendingUserIds : []);
   const filteredUsers  = getFilteredEvaluationUsers(users, evaluationUi.evaluateeQuery, evaluationUi.selectedEvaluateeId);
   const selectedUser   = users.find((u) => u.id === evaluationUi.selectedEvaluateeId) || null;
 
-  const flow         = evaluationUi.pendingFlow;
+  const currentPage = evaluationUi.evaluationFormPage || 0;
+  const totalPages  = getToolPageCount(selectedTool.id);
+
+  const flow        = evaluationUi.pendingFlow;
   const pendingBanner = flow?.pendingFlowActive
     ? `<div class="evaluation-pending-banner" role="status" aria-live="polite">
         <i data-lucide="list-checks"></i>
@@ -164,9 +179,6 @@ function getEvaluationToolFormMarkup(card, moduleData, evaluationUi, selectedToo
             ${users.map((u) => {
               const isPending  = pendingUserIds.has(u.id);
               const isSelected = u.id === evaluationUi.selectedEvaluateeId;
-              // data-evaluation-pending-user marca a pill como ponto de entrada do
-              // fluxo contínuo — o router de eventos em content-clicks.js usa este
-              // atributo para chamar startPendingFlow em vez de selectUser.
               return `<button type="button"
                 class="evaluation-user-pill${isPending ? ' is-pending' : ''}${isSelected ? ' is-selected' : ''}"
                 data-evaluatee-option
@@ -184,33 +196,84 @@ function getEvaluationToolFormMarkup(card, moduleData, evaluationUi, selectedToo
         </div>
       </div>
 
-      ${selectedUser ? getEvaluationSelectedToolMarkup(selectedTool, selectedUser, evaluationUi, moduleData) : `
-        <div class="empty-state is-compact">
-          <span class="empty-state-icon" aria-hidden="true"><i data-lucide="users"></i></span>
-          <div>
-            <h3 class="card-title">Selecione o colaborador avaliado</h3>
-            <p class="card-description">O questionário é liberado depois que você escolher um usuário ativo na busca acima.</p>
-          </div>
-        </div>
-      `}
+      ${selectedUser
+        ? _getPaginatedFormMarkup(selectedTool, selectedUser, evaluationUi, moduleData, currentPage, totalPages)
+        : `<div class="empty-state is-compact">
+            <span class="empty-state-icon" aria-hidden="true"><i data-lucide="users"></i></span>
+            <div>
+              <h3 class="card-title">Selecione o colaborador avaliado</h3>
+              <p class="card-description">O questionário é liberado depois que você escolher um usuário ativo na busca acima.</p>
+            </div>
+          </div>`
+      }
     </div>
   `;
 }
 
-// ── Tool dispatch ─────────────────────────────────────────────────────────────
+// ── Paginated form wrapper ────────────────────────────────────────────────────
 
-function getEvaluationSelectedToolMarkup(selectedTool, selectedUser, evaluationUi, moduleData) {
+function _getPaginatedFormMarkup(selectedTool, selectedUser, evaluationUi, moduleData, currentPage, totalPages) {
+  const pageContent = _getPageContent(selectedTool, selectedUser, evaluationUi, moduleData, currentPage);
+  const isLastPage  = currentPage >= totalPages - 1;
+  const isFirstPage = currentPage === 0;
+
+  const dotsHtml = Array.from({ length: totalPages }, (_, i) =>
+    `<button type="button" class="eval-page-dot ${i === currentPage ? 'is-active' : ''}"
+      aria-label="Ir para página ${i + 1}" aria-current="${i === currentPage ? 'true' : 'false'}"></button>`
+  ).join('');
+
+  return `
+    <div class="eval-paginated-form" aria-label="Formulário de avaliação — página ${currentPage + 1} de ${totalPages}">
+      <div class="eval-form-page">
+        ${pageContent}
+      </div>
+
+      <div class="eval-page-nav" role="navigation" aria-label="Navegação por páginas da avaliação">
+        <button type="button" class="module-link-button is-secondary eval-nav-btn"
+          data-eval-prev-page
+          ${isFirstPage ? 'disabled aria-disabled="true"' : ''}
+          aria-label="Página anterior">
+          <i data-lucide="arrow-left"></i><span>Anterior</span>
+        </button>
+
+        <div class="eval-page-indicator">
+          <div class="eval-page-dots" role="group" aria-label="Progresso das páginas">
+            ${dotsHtml}
+          </div>
+          <span class="eval-page-counter" aria-live="polite">${currentPage + 1} / ${totalPages}</span>
+        </div>
+
+        ${isLastPage
+          ? `<div class="eval-nav-save-group">
+              ${getEvaluationSaveButtonMarkup(evaluationUi, 'Salvar avaliação')}
+              ${getEvaluationSaveFeedbackMarkup(evaluationUi)}
+             </div>`
+          : `<button type="button" class="module-link-button eval-nav-btn"
+              data-eval-next-page
+              aria-label="Próxima página">
+              <span>Próximo</span><i data-lucide="arrow-right"></i>
+             </button>`
+        }
+      </div>
+    </div>
+  `;
+}
+
+// ── Page content dispatch ─────────────────────────────────────────────────────
+
+function _getPageContent(selectedTool, selectedUser, evaluationUi, moduleData, currentPage) {
   if (selectedTool.id === EVALUATION_TOOL_IDS.BEHAVIORAL) {
-    return getBehavioralEvaluationMarkup(selectedTool, selectedUser, evaluationUi, moduleData);
+    return getBehavioralEvaluationMarkup(selectedTool, selectedUser, evaluationUi, moduleData, currentPage);
   }
   if (selectedTool.id === EVALUATION_TOOL_IDS.MATRIX) {
-    return getMatrixEvaluationMarkup(selectedTool, selectedUser, evaluationUi, moduleData);
+    return getMatrixEvaluationMarkup(selectedTool, selectedUser, evaluationUi, moduleData, currentPage);
   }
   if (selectedTool.id === EVALUATION_TOOL_IDS.WORK_EFFICACY) {
-    return getMultidirEvaluationMarkup(selectedTool, selectedUser, evaluationUi, 'efficacy');
+    return getMultidirEvaluationMarkup(selectedTool, selectedUser, evaluationUi, 'efficacy', currentPage);
   }
   if (selectedTool.id === EVALUATION_TOOL_IDS.EMOTIONAL_INTELLIGENCE) {
-    return getMultidirEvaluationMarkup(selectedTool, selectedUser, evaluationUi, 'ie');
+    return getMultidirEvaluationMarkup(selectedTool, selectedUser, evaluationUi, 'ie', currentPage);
   }
-  return getPreEffectiveEvaluationMarkup(selectedTool, evaluationUi);
+  // PRE_EFFECTIVE (default)
+  return getPreEffectiveEvaluationMarkup(selectedTool, evaluationUi, currentPage);
 }
