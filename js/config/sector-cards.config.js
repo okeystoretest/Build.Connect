@@ -35,7 +35,6 @@ export const DEFAULT_SECTOR_CARDS = [
 ];
 
 // ── Comercial > Vendas ─────────────────────────────────────────────────────
-// Nota: o card "Material" (id: 'documentos') foi removido do sub-setor Vendas.
 export const COMMERCIAL_SECTOR_CARDS = [
   {
     id: 'instrucoes-escritas',
