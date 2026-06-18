@@ -5,8 +5,6 @@ import { openAnonFeedbackModal } from './shared/anon-feedback-modal.js';
 export function renderLoginView(rootElement, loginState, handlers) {
   const existingPanel = rootElement.querySelector('.login-panel');
 
-  // Se o painel já existe, atualiza apenas os elementos dinâmicos
-  // para evitar replay da animação CSS de entrada.
   if (existingPanel) {
     const alertEl = existingPanel.querySelector('.login-alert');
     if (alertEl) {
