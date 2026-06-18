@@ -1,0 +1,166 @@
+/**
+ * eval-pagination.css
+ * Estilos para paginação horizontal do formulário de avaliação.
+ * Elimina scroll vertical dentro do formulário — conteúdo dividido em páginas.
+ */
+
+/* ── Container paginado ──────────────────────────────────────────────────── */
+
+.eval-paginated-form {
+  display: grid;
+  gap: 0;
+  margin-top: 24px;
+}
+
+.eval-form-page {
+  min-height: 0;
+  animation: eval-page-in 280ms var(--ease-premium) both;
+}
+
+@keyframes eval-page-in {
+  from { opacity: 0; transform: translate3d(12px, 0, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+/* ── Barra de navegação entre páginas ────────────────────────────────────── */
+
+.eval-page-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 0 8px;
+  border-top: 1px solid var(--border);
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.eval-nav-btn {
+  min-width: 118px;
+  justify-content: center;
+}
+
+/* ── Indicador de página (pontos + contador) ─────────────────────────────── */
+
+.eval-page-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.eval-page-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.eval-page-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: var(--border);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-soft),
+              transform var(--duration-fast) var(--ease-premium),
+              width var(--duration-fast) var(--ease-soft);
+  padding: 0;
+}
+
+.eval-page-dot.is-active {
+  background: var(--primary);
+  width: 22px;
+  border-radius: 4px;
+}
+
+.eval-page-dot:hover:not(.is-active) {
+  background: color-mix(in srgb, var(--primary) 40%, var(--border));
+  transform: scale(1.2);
+}
+
+.eval-page-counter {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+/* ── Grupo de botão salvar na última página ──────────────────────────────── */
+
+.eval-nav-save-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ── Responsivo ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .eval-page-nav {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .eval-nav-btn {
+    width: 100%;
+  }
+
+  .eval-page-indicator {
+    order: -1;
+  }
+
+  .eval-nav-save-group {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .eval-nav-save-group .module-action-button {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* ── Eval tabs — estilos mantidos aqui para co-localização ──────────────── */
+
+.eval-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 18px 0 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-2);
+  width: fit-content;
+}
+
+.eval-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-soft),
+              color var(--duration-fast) var(--ease-soft);
+}
+
+.eval-tab i,
+.eval-tab svg { width: 15px; height: 15px; }
+
+.eval-tab:hover { color: var(--text); }
+
+.eval-tab.is-active {
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+}

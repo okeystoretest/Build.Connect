@@ -245,6 +245,7 @@
   border-top: 1px solid var(--border);
 }
 
+/* Legacy fallback — shown only when no alert pill exists */
 .feature-card-status {
   color: var(--primary);
   font-size: 0.8rem;
@@ -257,6 +258,88 @@
   color: var(--muted);
   font-size: 0.84rem;
   font-weight: 600;
+}
+
+/* ── Feature card status pills ──────────────────────────────────────────── */
+
+.fc-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px 4px 7px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+}
+
+.fc-status-pill i,
+.fc-status-pill svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+/* Não iniciado */
+.fc-status-pill--not-started {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--border) 60%, transparent);
+  border-color: var(--border);
+}
+
+/* Em andamento */
+.fc-status-pill--in-progress {
+  color: #92400E;
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.fc-status-pill--in-progress i,
+.fc-status-pill--in-progress svg {
+  animation: fc-pill-spin 1.4s linear infinite;
+}
+
+/* Concluído */
+.fc-status-pill--complete {
+  color: #064E3B;
+  background: rgba(16, 185, 129, 0.13);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+/* Alert — avaliação / qualidade (manutenção do comportamento atual) */
+.fc-status-pill--alert {
+  color: #fff;
+  background: #EF4444;
+  border-color: transparent;
+}
+
+/* Dark theme overrides */
+[data-theme="dark"] .fc-status-pill--not-started { color: var(--muted); }
+[data-theme="dark"] .fc-status-pill--in-progress { color: #FCD34D; }
+[data-theme="dark"] .fc-status-pill--complete    { color: #6EE7B7; }
+
+/* Card border accent by state */
+.feature-card.is-status-not-started { border-color: var(--border); }
+
+.feature-card.is-status-in-progress {
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.feature-card.is-status-complete {
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.feature-card.has-alert {
+  border-color: color-mix(in srgb, #EF4444 30%, var(--border));
+}
+
+@keyframes fc-pill-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 .content-panel.is-view-entering .reveal-item,

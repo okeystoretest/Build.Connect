@@ -3716,6 +3716,50 @@ body.has-video-modal {
 
 .ti-kc-chevron { width: 14px; height: 14px; color: var(--muted); flex-shrink: 0; }
 
+/* ── Novos elementos inline do card (data/hora + localização motorista) ───── */
+
+.ti-kc-timestamp {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.69rem;
+  color: var(--muted);
+  margin-top: 3px;
+  opacity: 0.85;
+}
+
+.ti-kc-timestamp i,
+.ti-kc-timestamp svg { width: 11px; height: 11px; flex-shrink: 0; }
+
+.ti-kc-location {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ti-kc-location i,
+.ti-kc-location svg { width: 11px; height: 11px; flex-shrink: 0; color: var(--primary); opacity: 0.7; }
+
+.ti-kc-address-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.70rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ti-kc-address-line i,
+.ti-kc-address-line svg { width: 11px; height: 11px; flex-shrink: 0; opacity: 0.6; }
+
 /* Expanded detail */
 .ti-kc-detail {
   border-top: 1px solid var(--border);
@@ -4824,7 +4868,8 @@ body.has-video-modal {
 
 .module-item-status-badge {
   position: absolute;
-  top: 8px;
+  top: auto;
+  bottom: 8px;
   right: 8px;
   display: inline-flex;
   align-items: center;
@@ -4846,7 +4891,6 @@ body.has-video-modal {
 .module-item-status-badge.is-pending {
   color: #F59E0B;
   background: rgba(245,158,11,0.12);
-  /* Posicionar no canto inferior direito do card de conteúdo */
   top: auto;
   bottom: 8px;
   right: 8px;
@@ -4855,6 +4899,73 @@ body.has-video-modal {
 .module-item-status-badge.is-complete {
   color: #10B981;
   background: rgba(16,185,129,0.12);
+  top: auto;
+  bottom: 8px;
+  right: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONTENT STATUS PILL — 3-state badges for individual content items
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.content-status-pill {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px 4px 7px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  z-index: 1;
+  pointer-events: none;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.content-status-pill i,
+.content-status-pill svg {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+}
+
+/* Não iniciado — neutro/muted */
+.content-status-pill--not-started {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--border) 70%, transparent);
+  border-color: var(--border);
+}
+
+/* Em andamento — âmbar */
+.content-status-pill--in-progress {
+  color: #B45309;
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.content-status-pill--in-progress i,
+.content-status-pill--in-progress svg {
+  animation: pill-spin 1.4s linear infinite;
+}
+
+/* Concluído — verde */
+.content-status-pill--complete {
+  color: #065F46;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+[data-theme="dark"] .content-status-pill--not-started { color: var(--muted); }
+[data-theme="dark"] .content-status-pill--in-progress { color: #FCD34D; }
+[data-theme="dark"] .content-status-pill--complete    { color: #6EE7B7; }
+
+@keyframes pill-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 .module-item-card.is-done {
@@ -4879,4 +4990,80 @@ body.has-video-modal {
   width: 14px;
   height: 14px;
   color: #fff;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TI MODAL — Seleção de destino (Retaguarda vs Motorista)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.ti-dest-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+
+.ti-dest-hint {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.ti-dest-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.ti-dest-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 16px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 180ms var(--ease-soft), background 180ms var(--ease-soft), transform 120ms var(--ease-soft);
+  text-align: center;
+}
+
+.ti-dest-card:hover {
+  border-color: var(--primary);
+  background: var(--surface-2, var(--surface));
+  transform: translateY(-2px);
+}
+
+.ti-dest-card:active { transform: translateY(0); }
+
+.ti-dest-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+}
+
+.ti-dest-icon i,
+.ti-dest-icon svg { width: 20px; height: 20px; }
+
+.ti-dest-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.ti-dest-sub {
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+@media (max-width: 480px) {
+  .ti-dest-grid { grid-template-columns: 1fr; }
 }
