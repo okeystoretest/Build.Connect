@@ -107,8 +107,8 @@ function getDestinationStepMarkup() {
           </button>
           <button type="button" class="ti-dest-card" data-ti-dest="motorista">
             <span class="ti-dest-icon"><i data-lucide="car"></i></span>
-            <strong class="ti-dest-label">Motorista</strong>
-            <span class="ti-dest-sub">Entregas, coletas e serviços</span>
+            <strong class="ti-dest-label">Central de Coletas e Entregas</strong>
+            <span class="ti-dest-sub">Entregas, coletas e outros serviços</span>
           </button>
         </div>
       </div>
