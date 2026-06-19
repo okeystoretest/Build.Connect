@@ -3681,6 +3681,23 @@ body.has-video-modal {
 .ti-kc-row:nth-child(5) { animation-delay: 140ms; }
 .ti-kc-row:nth-child(n+6) { animation-delay: 170ms; }
 
+/* ── Novo chamado — animação de entrada em tempo real (polling) ──────────── */
+@keyframes kanbanNewTicketIn {
+  0%   { opacity: 0; transform: translateY(-10px) scale(0.97); box-shadow: 0 0 0 0 rgba(59,130,246,0.5); }
+  60%  { opacity: 1; transform: translateY(2px) scale(1.005); }
+  100% { opacity: 1; transform: none; box-shadow: 0 0 0 4px rgba(59,130,246,0); }
+}
+
+.ti-kc-row.is-new-ticket {
+  animation: kanbanNewTicketIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  border-color: rgba(59, 130, 246, 0.55);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18),
+              0 4px 14px rgba(59, 130, 246, 0.12);
+}
+
+/* Remove delay escalonado em chamados novos para entrada imediata */
+.ti-kc-row.is-new-ticket:nth-child(n) { animation-delay: 0ms; }
+
 .ti-kc-row-main {
   display: flex;
   align-items: center;

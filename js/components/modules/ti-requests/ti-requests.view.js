@@ -11,7 +11,7 @@ import { TI_REQUESTS_UI_DEFAULTS } from './ti-requests.constants.js';
 import { USER_LEVELS } from '../../../constants/sector.constants.js';
 import { MODULE_IDS } from '../../../constants/module.constants.js';
 import { renderKanban, buildKanbanCardDetailHTML } from './ti-requests.view.kanban.js';
-import { renderDashboard, renderFullDashboard } from './ti-requests.view.charts.js';
+import { renderDashboard, renderFullDashboard, buildLocalDashboard } from './ti-requests.view.charts.js';
 
 export { buildKanbanCardDetailHTML } from './ti-requests.view.kanban.js';
 
@@ -37,6 +37,16 @@ export function getTiRequestsModuleMarkup(card, moduleData, moduleUi) {
     ? 'Gerencie as requisições de serviço, entregas, coletas e demandas operacionais do Motorista.'
     : 'Gerencie chamados técnicos, acompanhe atribuições e visualize indicadores de desempenho do suporte.';
 
+  const expandBtn = isMotorista
+    ? `<button type="button" class="module-action-button ti-full-dashboard-btn" data-ti-open-full-dashboard>
+         <i data-lucide="maximize-2"></i>
+         <span>Tela cheia</span>
+       </button>`
+    : `<a href="./dashboard-ti.html" target="_blank" rel="noopener noreferrer" class="module-action-button ti-full-dashboard-btn">
+         <i data-lucide="maximize-2"></i>
+         <span>Tela cheia</span>
+       </a>`;
+
   return `
     <div class="module-shell ti-requests-shell" data-module-shell>
       <div class="module-shell-header ti-requests-hero">
@@ -46,11 +56,7 @@ export function getTiRequestsModuleMarkup(card, moduleData, moduleUi) {
           <p class="module-description">${sanitizeText(description)}</p>
         </div>
         <div class="ti-header-actions">
-          ${!isMotorista ? `
-          <a href="./dashboard-ti.html" target="_blank" rel="noopener noreferrer" class="module-action-button ti-full-dashboard-btn">
-            <i data-lucide="maximize-2"></i>
-            <span>Tela cheia</span>
-          </a>` : ''}
+          ${expandBtn}
           <div class="module-source-pill" aria-label="Sincronizado com a planilha">
             <i data-lucide="shield-check"></i>
             <span>Banco de dados sincronizado</span>
@@ -85,10 +91,14 @@ function renderBody(ui, respondent, isMotorista = false) {
   const nivel            = respondent?.nivel || '';
   const isPrivileged     = nivel === USER_LEVELS.admin || nivel === USER_LEVELS.gestor;
 
+  // Para o Motorista: o servidor pode não retornar `ui.dashboard`.
+  // Nesse caso, calcula o dashboard localmente a partir dos tickets já carregados.
+  const effectiveDashboard = isMotorista && !ui.dashboard
+    ? buildLocalDashboard(tickets, completedTickets)
+    : ui.dashboard;
+
   return `
     ${renderKanban(tickets, completedTickets, ui, respondent, isMotorista)}
-    ${isPrivileged && !isMotorista ? renderDashboard(ui.dashboard, ui.dashboardPeriod || 'mes') : ''}
+    ${isPrivileged ? renderDashboard(effectiveDashboard, ui.dashboardPeriod || 'mes', isMotorista) : ''}
   `;
 }
-
-

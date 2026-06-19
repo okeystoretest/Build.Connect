@@ -27,6 +27,7 @@ import {
 } from '../../state/module-state.js';
 import { fetchPendingEvaluationUserIds } from '../../services/evaluations.service.js';
 import { isAdminUser } from '../../services/access.service.js';
+import { isNaviSector } from '../../services/navi.service.js';
 import { EVALUATION_UI_DEFAULTS } from '../modules/evaluation-module.js';
 import { FEEDBACK_UI_DEFAULTS } from '../modules/feedback-module.js';
 import { QUALITY_UI_DEFAULTS } from '../modules/quality-module.js';
@@ -38,6 +39,14 @@ import {
 } from '../modules/vitrine-module.js';
 
 const MODULE_REQUEST_TOKENS = new Map();
+
+// Cards que requerem progresso validado antes de permitir acesso em setores Navi.
+const NAVI_PROGRESS_GATED_IDS = new Set([
+  MODULE_IDS.writtenInstructions,
+  MODULE_IDS.videoInstructions,
+  MODULE_IDS.evaluation,
+  MODULE_IDS.tiRequest,
+]);
 
 function isInternalModule(sectorId, moduleId) {
   if (isDhoSector(sectorId)) {
@@ -61,6 +70,27 @@ export async function executeModuleSelection(
 
   if (!canUserAccessModule(authenticatedUser, moduleId)) {
     return;
+  }
+
+  // ── ANTI-BYPASS #2: Validação de lock Navi via estado em memória ─────────
+  // Impede a janela de bypass onde o atributo DOM data-navi-locked ainda não
+  // foi aplicado durante o carregamento assíncrono dos dados de progresso.
+  // A validação ocorre no estado JavaScript (fonte da verdade), não no DOM.
+  if (isNaviSector(sector.id) && NAVI_PROGRESS_GATED_IDS.has(moduleId)) {
+    const naviLock = (currentState.cardLocks || {})[moduleId];
+
+    if (naviLock?.locked) {
+      // Lock confirmado em memória: aborta silenciosamente.
+      // O toast com o motivo já foi exibido pelo handler de clique no DOM.
+      return;
+    }
+
+    // Guarda pessimista: se os dados de alerta/lock ainda estão sendo carregados
+    // do servidor, bloqueia o acesso até que a resposta seja processada.
+    // Evita o bypass por clique rápido antes do fetch retornar.
+    if (currentState.isAlertsLoading) {
+      return;
+    }
   }
 
   if (!forceRefresh && currentState.selectedModuleId === moduleId && currentState.status === MODULE_STATUS.success) {
@@ -88,7 +118,16 @@ export async function executeModuleSelection(
         if (MODULE_REQUEST_TOKENS.get(sector.id) !== requestToken) return;
         const cs = getModuleState(sector.id);
         if (!cs.moduleData) return;
-        _set({ ...cs, moduleData: { ...cs.moduleData, consumedRefIds: r?.refIds || [] } });
+
+        // FIX: mescla em vez de substituir.
+        // Se o usuário concluiu um item entre o início do fetch e sua resolução,
+        // o refId já teria sido adicionado localmente pelo handler de bc:content-completed.
+        // Substituir com r?.refIds apagaria esse progresso local — merge preserva ambos.
+        const existing = Array.isArray(cs.moduleData.consumedRefIds)
+          ? cs.moduleData.consumedRefIds : [];
+        const merged = [...new Set([...existing, ...(r?.refIds || [])])];
+
+        _set({ ...cs, moduleData: { ...cs.moduleData, consumedRefIds: merged } });
         renderModuleStage(rootElement, sector);
       })
       .catch(() => { /* silencioso */ });

@@ -92,6 +92,9 @@ export function openDocumentModal(documentItem) {
   markContentInProgress(refId);
   _updateDocCardBadge(documentItem.previewUrl, 'in-progress');
 
+  // Guard: previne duplo disparo se o botão for clicado mais de uma vez antes do modal fechar.
+  let _finishing = false;
+
   openOverlayModal({
     title,
     frameUrl: documentItem.previewUrl,
@@ -99,24 +102,33 @@ export function openDocumentModal(documentItem) {
     modalClassName: 'video-modal document-modal',
     frameWrapClassName: 'video-modal-frame-wrap document-modal-frame-wrap',
     frameClassName: 'video-modal-frame document-modal-frame',
-    onFinishReading: () => {
-      registrarAtividade({
+    onFinishReading: async () => {
+      if (_finishing) return;
+      _finishing = true;
+
+      // ── Operações síncronas imediatas (UX: não bloqueia o fechamento do modal) ──
+      markContentComplete(refId);
+      _updateDocCardBadge(documentItem.previewUrl, 'complete');
+      if (!isVitrineModuleId(documentItem.moduloId)) {
+        queueCelebration({ message: 'Parabéns! Conteúdo concluído.' });
+      }
+      closeActiveOverlayModal();
+
+      // ── Aguarda o registro no servidor antes de disparar o evento ──────────────
+      // FIX: registrarAtividade era chamado sem await, causando race condition:
+      // prefetchSectorAlerts (disparado pelo evento) lia buscar-consumo-usuario
+      // antes do servidor gravar a atividade → pill do card não atualizava.
+      await registrarAtividade({
         tipo,
         titulo: title,
         setorId: documentItem.sectorId || '',
         moduloId: documentItem.moduloId || 'documentos',
         referenciaId: refId,
-      });
-      markContentComplete(refId);
-      // Vitrine: sem parabenização pós-consumo
-      if (!isVitrineModuleId(documentItem.moduloId)) {
-        queueCelebration({ message: 'Parabéns! Conteúdo concluído.' });
-      }
+      }).catch(() => { /* silencioso — a atividade será re-registrada na próxima sessão */ });
+
       document.dispatchEvent(new CustomEvent('bc:content-completed', {
         detail: { sectorId: documentItem.sectorId, refId },
       }));
-      _updateDocCardBadge(documentItem.previewUrl, 'complete');
-      closeActiveOverlayModal();
     },
   });
 }

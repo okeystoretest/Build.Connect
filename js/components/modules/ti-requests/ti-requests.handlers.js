@@ -1,14 +1,19 @@
 import { MODULE_IDS } from '../../../constants/module.constants.js';
 import { SECTOR_IDS } from '../../../constants/sector.constants.js';
 import { listarChamadosTI, listarChamadosMotorista, atualizarStatusChamadoTI } from '../../../services/ti-requests.service.js';
-import { TI_REQUESTS_UI_DEFAULTS } from './ti-requests.constants.js';
+import { TI_REQUESTS_UI_DEFAULTS, KANBAN_POLL_INTERVAL_MS } from './ti-requests.constants.js';
 import { buildKanbanCardDetailHTML } from './ti-requests.view.js';
 import { refreshLucideIcons } from '../../../services/icons.service.js';
+import { showToast } from '../../../utils/toast.js';
 
 // Conjunto de IDs de módulo que usam os handlers de TI
 const TI_MODULE_IDS = new Set([MODULE_IDS.tiRequest, MODULE_IDS.motorRequests]);
 
 let moduleContext = null;
+
+// ── Polling state (Kanban em tempo real — Motoristas) ──────────────────────
+let _pollTimer    = null;
+let _pollSectorId = null;
 
 export function createTiRequestsModuleHandlers(context) {
   moduleContext = context;
@@ -29,6 +34,7 @@ export function createTiRequestsModuleHandlers(context) {
     setFullDashboardPeriod: setFullDashboardPeriod,
     toggleDoneExpanded:     toggleDoneExpanded,
     toggleColExpanded:      toggleColExpanded,
+    stopPolling:            _stopKanbanPolling,
   };
 }
 
@@ -43,11 +49,83 @@ function _getDestino(sector) {
   return sector?.id === SECTOR_IDS.motorista ? 'motorista' : 'retaguarda';
 }
 
+// ── Polling (Kanban em tempo real) ────────────────────────────────────────
+
+function _stopKanbanPolling() {
+  if (_pollTimer) {
+    clearInterval(_pollTimer);
+    _pollTimer    = null;
+    _pollSectorId = null;
+  }
+}
+
+function _startKanbanPolling(rootElement, sector) {
+  _stopKanbanPolling();
+  _pollSectorId = sector.id;
+  _pollTimer = setInterval(
+    () => _pollKanbanTickets(rootElement, sector),
+    KANBAN_POLL_INTERVAL_MS,
+  );
+}
+
+async function _pollKanbanTickets(rootElement, sector) {
+  // Auto-cleanup: interrompe se o setor ou módulo mudou
+  if (_pollSectorId !== sector.id) { _stopKanbanPolling(); return; }
+  const state = getState(sector.id);
+  if (!_isTiModule(state)) { _stopKanbanPolling(); return; }
+
+  const currentUi = ui(state);
+  // Não policia durante update em andamento para evitar sobreposição de estado
+  if (currentUi.isUpdating) return;
+
+  try {
+    const response = await listarChamadosMotorista(currentUi.dashboardPeriod || 'mes');
+
+    // Revalida após o await — o usuário pode ter navegado durante a requisição
+    const next = getState(sector.id);
+    if (!_isTiModule(next) || _pollSectorId !== sector.id) return;
+    if (!response?.success) return;
+
+    const prevIds    = new Set((ui(next).tickets || []).map((t) => t.id));
+    const freshTickets = Array.isArray(response.tickets) ? response.tickets : [];
+    const newOnes    = freshTickets.filter((t) => !prevIds.has(t.id));
+
+    if (newOnes.length > 0) {
+      const newTicketIds = newOnes.map((t) => t.id);
+      setState(sector.id, {
+        ...next,
+        ui: {
+          ...ui(next),
+          tickets:         freshTickets,
+          completedTickets: Array.isArray(response.completedTickets) ? response.completedTickets : [],
+          newTicketIds,
+        },
+      });
+      render(rootElement, sector);
+
+      // Exibe toast e remove highlight após animação
+      showToast(
+        `${newOnes.length} novo${newOnes.length > 1 ? 's' : ''} chamado${newOnes.length > 1 ? 's' : ''} chegou${newOnes.length > 1 ? 'ram' : ''}!`,
+        { type: 'info', duration: 4000 },
+      );
+
+      setTimeout(() => {
+        const cur = getState(sector.id);
+        if (!_isTiModule(cur)) return;
+        setState(sector.id, { ...cur, ui: { ...ui(cur), newTicketIds: [] } });
+      }, 3500);
+    }
+  } catch { /* erro silencioso no polling — não interrompe o ciclo */ }
+}
+
 // ── Load ──────────────────────────────────────────────────────────────────
 
 async function loadTiTickets(rootElement, sector) {
   const state = getState(sector.id);
   if (!_isTiModule(state)) return;
+
+  // Para polling existente antes de iniciar novo ciclo de carga
+  _stopKanbanPolling();
 
   const currentUi = ui(state);
   setState(sector.id, { ...state, ui: { ...currentUi, loadStatus: 'loading', errorMessage: '' } });
@@ -76,9 +154,15 @@ async function loadTiTickets(rootElement, sector) {
           expandedTicketId:       null,
           expandedCompletedId:    null,
           confirmingConclusionId: null,
+          newTicketIds:           [],
           errorMessage:           '',
         },
       });
+
+      // Ativa polling em tempo real apenas no Kanban de Motoristas
+      if (destino === 'motorista') {
+        _startKanbanPolling(rootElement, sector);
+      }
     } else {
       setState(sector.id, { ...next, ui: { ...nextUi, loadStatus: 'error', errorMessage: response?.message || 'Não foi possível carregar as requisições.' } });
     }

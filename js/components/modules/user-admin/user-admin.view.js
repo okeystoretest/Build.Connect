@@ -278,6 +278,8 @@ function renderUserAdminResultItem(user) {
   const nivelOption = USER_LEVEL_OPTIONS.find((o) => o.id === String(user.nivel || '').trim().toLowerCase());
   const nivelLabel = nivelOption?.label || sanitizeText(user.nivel || '—');
   const nivelKey = nivelOption?.id || 'colaborador';
+  // Prefere o label legível (ex: "Motorista"); fallback para a chave normalizada (ex: "motorista")
+  const setorDisplay = user.setorLabel || user.setor || '';
 
   return `
     <article class="user-admin-result-card">
@@ -285,6 +287,7 @@ function renderUserAdminResultItem(user) {
       <div class="user-admin-result-copy">
         <strong class="user-admin-result-id">${sanitizeText(user.id)}</strong>
         <p class="user-admin-result-name">${sanitizeText(user.nome)}</p>
+        ${setorDisplay ? `<span class="user-admin-result-setor" title="${sanitizeAttribute(setorDisplay)}">${sanitizeText(setorDisplay)}</span>` : ''}
       </div>
       <span class="user-admin-nivel-badge is-${sanitizeAttribute(nivelKey)}" aria-label="Nível ${nivelLabel}">${nivelLabel}</span>
       <span class="user-admin-status ${user.status ? 'is-active' : 'is-inactive'}">${user.status ? 'Ativo' : 'Inativo'}</span>

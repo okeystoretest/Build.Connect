@@ -10,7 +10,26 @@ import { fmtDate, fmtDateTime, fmtDuration, setorLabel } from './ti-requests.vie
 
 // ── Standard dashboard section ────────────────────────────────────────────
 
-export function renderDashboard(dashboard, period) {
+/**
+ * Constrói um objeto de dashboard localmente a partir dos arrays de tickets.
+ * Usado quando o servidor não retorna `dashboard` (ex: módulo Motorista).
+ * @param {Array} tickets          Chamados em aberto
+ * @param {Array} completedTickets Chamados concluídos
+ * @returns {object}
+ */
+export function buildLocalDashboard(tickets = [], completedTickets = []) {
+  const all  = [...tickets, ...completedTickets];
+  const done = completedTickets;
+  return {
+    totalAtivos:              tickets.length,
+    totalConcluidos:          done.length,
+    concluidosPorUsuario:     countBy(done, t => t.atribuidoParaNome || 'Não atribuído').slice(0, 5),
+    solicitacoesPorUnidade:   countBy(all,  'unidade').slice(0, 5),
+    solicitacoesPorCategoria: countBy(all,  t => t.tipoServico || t.categoria || 'N/I').slice(0, 5),
+  };
+}
+
+export function renderDashboard(dashboard, period, isMotorista = false) {
   const periodOpts = TI_DASHBOARD_PERIODS.map((p) =>
     `<option value="${sanitizeAttribute(p.id)}" ${p.id === period ? 'selected' : ''}>${sanitizeText(p.label)}</option>`
   ).join('');
@@ -43,7 +62,7 @@ export function renderDashboard(dashboard, period) {
       <div class="ti-charts-grid">
         ${renderBarChart('Concluídos por usuário',    dashboard.concluidosPorUsuario,    'user')}
         ${renderBarChart('Solicitações por unidade',  dashboard.solicitacoesPorUnidade,  'building-2')}
-        ${renderBarChart('Solicitações por categoria',dashboard.solicitacoesPorCategoria,'tag')}
+        ${renderBarChart(isMotorista ? 'Por Tipo de Serviço' : 'Solicitações por categoria', dashboard.solicitacoesPorCategoria, 'tag')}
       </div>
     </section>`;
 }
@@ -126,7 +145,7 @@ export function renderFullDashboard(ui, isMotorista = false) {
         </button>
         <div>
           <p class="module-eyebrow">${isMotorista ? 'Motorista · Requisições' : 'Retaguarda · TI'}</p>
-          <h2 class="module-title">Dashboard Completo</h2>
+          <h2 class="module-title">Logística de Transportes</h2>
         </div>
       </div>
 

@@ -241,8 +241,13 @@ function renderKanbanCard(ticket, col, ui, respondent, isMotorista = false) {
     ? [ticket.cidade, ticket.bairro].filter(Boolean).join(' · ')
     : '';
 
+  // Animação de entrada para chamados novos detectados pelo polling em tempo real
+  const isNewTicket = isMotorista
+    && Array.isArray(ui.newTicketIds)
+    && ui.newTicketIds.includes(ticket.id);
+
   return `
-    <div class="ti-kc-row ${isExpanded ? 'is-expanded' : ''}"
+    <div class="ti-kc-row ${isExpanded ? 'is-expanded' : ''} ${isNewTicket ? 'is-new-ticket' : ''}"
       data-ti-expand="${sanitizeAttribute(ticket.id)}">
 
       <div class="ti-kc-row-main">

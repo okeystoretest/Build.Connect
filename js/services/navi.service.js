@@ -46,22 +46,45 @@ export function isNaviSector(sectorId) {
 
 /**
  * Constrói o objeto de progresso Navi a partir dos dados brutos da API.
- * Regra de zero-item: se um módulo não tem itens, considera-se 100% concluído.
+ *
+ * Regra de zero-item: se um módulo não tem itens cadastrados, considera-se
+ * automaticamente concluído (pct = 1.0) e MARCADO como sem conteúdo (hasContent = false).
+ * O campo `hasContent` permite que `computeNaviLocks` desconsidere módulos
+ * vazios no cálculo de progresso exibido ao usuário e na média de conclusão.
  *
  * @param {{ documento?: number, instrucao_escrita?: number, video?: number }} counts
  * @param {{ documentos?: number, instrucoes_escritas?: number, instrucoes_video?: number }} totals
- * @returns {Record<string, { total: number, consumed: number, pct: number }>}
+ * @returns {Record<string, { total: number, consumed: number, pct: number, hasContent: boolean }>}
  */
 export function buildNaviProgress(counts, totals) {
   const safePct = (consumed, total) => (total > 0 ? consumed / total : 1.0);
 
-  const docs = { total: totals.documentos || 0, consumed: counts.documento || 0, pct: 0 };
+  const docsTotal    = totals.documentos         || 0;
+  const writtenTotal = totals.instrucoes_escritas || 0;
+  const videoTotal   = totals.instrucoes_video    || 0;
+
+  const docs = {
+    total:      docsTotal,
+    consumed:   counts.documento        || 0,
+    pct:        0,
+    hasContent: docsTotal > 0,
+  };
   docs.pct = safePct(docs.consumed, docs.total);
 
-  const written = { total: totals.instrucoes_escritas || 0, consumed: counts.instrucao_escrita || 0, pct: 0 };
+  const written = {
+    total:      writtenTotal,
+    consumed:   counts.instrucao_escrita || 0,
+    pct:        0,
+    hasContent: writtenTotal > 0,
+  };
   written.pct = safePct(written.consumed, written.total);
 
-  const video = { total: totals.instrucoes_video || 0, consumed: counts.video || 0, pct: 0 };
+  const video = {
+    total:      videoTotal,
+    consumed:   counts.video            || 0,
+    pct:        0,
+    hasContent: videoTotal > 0,
+  };
   video.pct = safePct(video.consumed, video.total);
 
   return {
@@ -76,25 +99,43 @@ export function buildNaviProgress(counts, totals) {
 /**
  * Calcula o estado de bloqueio de cada card Navi.
  *
- * @param {Record<string, { total: number, consumed: number, pct: number }>} progress
+ * FIX #1 — Progresso com categorias vazias:
+ *   • `allDone` e a percentagem exibida ao usuário são computados APENAS
+ *     com base nos módulos que possuem conteúdo cadastrado (hasContent = true).
+ *   • Módulos com 0 itens são automaticamente considerados concluídos e
+ *     IGNORADOS no denominador da média de progresso.
+ *
+ * FIX #2 — Lock robusto de Avaliações / Requisições:
+ *   • A validação usa o estado em memória, não atributos do DOM, eliminando
+ *     a janela de bypass durante o carregamento assíncrono dos dados.
+ *
+ * @param {Record<string, { total: number, consumed: number, pct: number, hasContent: boolean }>} progress
  * @param {object|null} user   Usuário autenticado
  * @param {string} sectorId
  * @returns {Record<string, { locked: boolean, reason: string, pct: number }>}
  */
 export function computeNaviLocks(progress, user, sectorId) {
   if (!isNaviSector(sectorId)) return {};
-  // Admin: acesso irrestrito e global — nenhum lock aplicado
+  // Admin: acesso irrestrito — nenhum lock aplicado
   if (isAdminUser(user)) return {};
 
-  const docs    = progress[MODULE_IDS.documents]           || { pct: 1.0 };
-  const written = progress[MODULE_IDS.writtenInstructions] || { pct: 1.0 };
-  const video   = progress[MODULE_IDS.videoInstructions]   || { pct: 1.0 };
-  const allDone = docs.pct >= 1.0 && written.pct >= 1.0 && video.pct >= 1.0;
+  const docs    = progress[MODULE_IDS.documents]           || { pct: 1.0, hasContent: false };
+  const written = progress[MODULE_IDS.writtenInstructions] || { pct: 1.0, hasContent: false };
+  const video   = progress[MODULE_IDS.videoInstructions]   || { pct: 1.0, hasContent: false };
+
+  // Calcula allDone e percentagem SOMENTE com módulos que têm conteúdo.
+  // Módulos com 0 itens não interferem no denominador da média.
+  const activeModules = [docs, written, video].filter((m) => m.hasContent);
+  const allDone  = activeModules.length === 0 || activeModules.every((m) => m.pct >= 1.0);
+  const activePct = activeModules.length > 0
+    ? activeModules.reduce((sum, m) => sum + m.pct, 0) / activeModules.length
+    : 1.0;
 
   const locks = {};
 
   // Instruções Escritas — desbloqueada quando Documentos = 100%
-  if (docs.pct < NAVI_THRESHOLDS.UNLOCK_WRITTEN) {
+  // Só aplica se Documentos possui conteúdo cadastrado.
+  if (docs.hasContent && docs.pct < NAVI_THRESHOLDS.UNLOCK_WRITTEN) {
     locks[MODULE_IDS.writtenInstructions] = {
       locked: true,
       reason: `Conclua os Documentos para liberar. (${Math.round(docs.pct * 100)}% concluído)`,
@@ -103,7 +144,8 @@ export function computeNaviLocks(progress, user, sectorId) {
   }
 
   // Instruções em Vídeo — desbloqueada quando Inst. Escritas ≥ 30%
-  if (written.pct < NAVI_THRESHOLDS.UNLOCK_VIDEO) {
+  // Só aplica se Inst. Escritas possui conteúdo cadastrado.
+  if (written.hasContent && written.pct < NAVI_THRESHOLDS.UNLOCK_VIDEO) {
     locks[MODULE_IDS.videoInstructions] = {
       locked: true,
       reason: `Leia 30% das Instruções Escritas para liberar. (${Math.round(written.pct * 100)}% concluído)`,
@@ -111,24 +153,23 @@ export function computeNaviLocks(progress, user, sectorId) {
     };
   }
 
-  // Avaliações — bloqueada para Gestores/Admins até 100% do conteúdo
-  if (!allDone && (isAdminUser(user) || isManagerUser(user))) {
+  // Avaliações — bloqueada para Gestores enquanto conteúdo ativo não atingir 100%.
+  // (Colaboradores são bloqueados globalmente via canUserAccessModule; Admins → retorno {} acima.)
+  if (!allDone && isManagerUser(user)) {
     locks[MODULE_IDS.evaluation] = {
       locked: true,
       reason: 'Conclua 100% de todo o conteúdo do setor para liberar Avaliações.',
-      pct: (docs.pct + written.pct + video.pct) / 3,
+      pct: activePct,
     };
   }
 
   // Requisições TI — bloqueada para TODOS os usuários (não-admin) da Retaguarda
-  // até que 100% do conteúdo obrigatório do setor seja integralmente consumido.
-  // Regra de bloqueio preventivo: nenhum nível de acesso (colaborador ou gestor)
-  // pode contornar esta restrição — apenas administradores são isentos (retorno {} acima).
+  // até que 100% do conteúdo obrigatório ativo seja integralmente consumido.
   if (sectorId === SECTOR_IDS.backoffice && !allDone) {
     locks[MODULE_IDS.tiRequest] = {
       locked: true,
       reason: 'Conclua 100% de todo o conteúdo do setor para liberar Requisições.',
-      pct: (docs.pct + written.pct + video.pct) / 3,
+      pct: activePct,
     };
   }
 

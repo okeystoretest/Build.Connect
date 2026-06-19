@@ -2,8 +2,9 @@ import { refreshLucideIcons } from '../../services/icons.service.js';
 import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
 import { criarChamadoTI, criarChamadoMotorista } from '../../services/ti-requests.service.js';
 import { animateOut } from '../../utils/motion.js';
+import { loadActiveUsers } from '../../services/users.service.js';
 
-const TI_UNITS = ['1', '2', '3', '4', 'Iguatemi', 'Centro Fashion', 'Showroom'];
+const TI_UNITS = ['Unidade 1', 'Unidade 2', 'Unidade 3', 'Unidade 4', 'Iguatemi', 'Centro Fashion', 'Showroom'];
 
 const TI_CATEGORIES = [
   'Equipamentos',
@@ -103,11 +104,11 @@ function getDestinationStepMarkup() {
           <button type="button" class="ti-dest-card" data-ti-dest="retaguarda">
             <span class="ti-dest-icon"><i data-lucide="monitor-cog"></i></span>
             <strong class="ti-dest-label">Retaguarda</strong>
-            <span class="ti-dest-sub">Suporte técnico e TI</span>
+            <span class="ti-dest-sub">Suporte técnico e desenvolvimento</span>
           </button>
           <button type="button" class="ti-dest-card" data-ti-dest="motorista">
             <span class="ti-dest-icon"><i data-lucide="car"></i></span>
-            <strong class="ti-dest-label">Central de Coletas e Entregas</strong>
+            <strong class="ti-dest-label">Central de Motoristas</strong>
             <span class="ti-dest-sub">Entregas, coletas e outros serviços</span>
           </button>
         </div>
@@ -281,6 +282,20 @@ function _bindRetaguardaForm(overlay, dialog, user) {
 
 // ── Motorista ──────────────────────────────────────────────────────────────
 
+// ── Busca usuários do setor Motorista para o dropdown ─────────────────────
+
+async function _fetchMotoristUsers() {
+  try {
+    const response = await loadActiveUsers();
+    if (!response?.success) return [];
+    const users = Array.isArray(response.users) ? response.users : [];
+    return users.filter((u) => {
+      const sectors = String(u.setor || '').toLowerCase().split(/[,;|]+/).map((s) => s.trim());
+      return sectors.includes('motorista');
+    });
+  } catch { return []; }
+}
+
 function _getMotoristaFormMarkup(user) {
   const nomeDisplay  = user?.nome  ? sanitizeText(user.nome)  : 'Usuário';
   const setorDisplay = user?.setor ? sanitizeText(user.setor) : '—';
@@ -306,9 +321,15 @@ function _getMotoristaFormMarkup(user) {
     <div class="ti-modal-body">
       <div class="ti-modal-requester">
         <i data-lucide="user-circle-2"></i>
-        <span>Solicitante: <strong>${nomeDisplay}</strong> · ${setorDisplay}</span>
+        <span>Operador: <strong>${nomeDisplay}</strong> · ${setorDisplay}</span>
       </div>
       <form class="ti-modal-form" data-ti-form novalidate>
+        <label class="form-field ti-modal-field ti-modal-field--full">
+          <span class="form-label">Motorista</span>
+          <select class="user-admin-select" data-ti-field="motorista" data-ti-motorista-select>
+            <option value="">Carregando motoristas…</option>
+          </select>
+        </label>
         <div class="ti-modal-grid">
           <label class="form-field ti-modal-field">
             <span class="form-label">Unidade</span>
@@ -382,9 +403,26 @@ function _getMotoristaFormMarkup(user) {
 }
 
 function _bindMotoristaForm(overlay, dialog, user) {
-  const textarea  = dialog.querySelector('[data-ti-desc]');
-  const charCount = dialog.querySelector('[data-ti-chars]');
-  const form      = dialog.querySelector('[data-ti-form]');
+  const textarea      = dialog.querySelector('[data-ti-desc]');
+  const charCount     = dialog.querySelector('[data-ti-chars]');
+  const form          = dialog.querySelector('[data-ti-form]');
+  const motoristaSelect = dialog.querySelector('[data-ti-motorista-select]');
+
+  // Carrega usuários do setor Motorista de forma assíncrona
+  _fetchMotoristUsers().then((users) => {
+    if (!motoristaSelect || !dialog.isConnected) return;
+    if (users.length === 0) {
+      motoristaSelect.innerHTML = '<option value="">Nenhum motorista encontrado</option>';
+      return;
+    }
+    motoristaSelect.innerHTML = '<option value="">Selecione o motorista</option>'
+      + users.map((u) =>
+          `<option value="${sanitizeAttribute(u.id)}"
+            data-nome="${sanitizeAttribute(u.nome || '')}"
+            data-setor="${sanitizeAttribute(u.setor || 'motorista')}"
+          >${sanitizeText(u.nome || u.id)}</option>`
+        ).join('');
+  });
 
   textarea?.addEventListener('input', () => {
     const len = textarea.value.length;
@@ -398,28 +436,34 @@ function _bindMotoristaForm(overlay, dialog, user) {
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const getValue = (field) => dialog.querySelector(`[data-ti-field="${field}"]`)?.value?.trim() || '';
-    const unidade    = getValue('unidade');
-    const tipoServico = getValue('tipoServico');
-    const cidade     = getValue('cidade');
-    const bairro     = getValue('bairro');
-    const endereco   = getValue('endereco');
-    const descricao  = textarea?.value?.trim() || '';
-    const feedback   = dialog.querySelector('[data-ti-feedback]');
-    const submitBtn  = dialog.querySelector('[data-ti-submit]');
+    const motoristaId  = getValue('motorista');
+    const unidade      = getValue('unidade');
+    const tipoServico  = getValue('tipoServico');
+    const cidade       = getValue('cidade');
+    const bairro       = getValue('bairro');
+    const endereco     = getValue('endereco');
+    const descricao    = textarea?.value?.trim() || '';
+    const feedback     = dialog.querySelector('[data-ti-feedback]');
+    const submitBtn    = dialog.querySelector('[data-ti-submit]');
 
-    if (!unidade || !tipoServico || !cidade || !bairro || !endereco || !descricao) {
+    if (!motoristaId || !unidade || !tipoServico || !cidade || !bairro || !endereco || !descricao) {
       if (feedback) { feedback.textContent = 'Preencha todos os campos obrigatórios antes de enviar.'; feedback.className = 'ti-modal-feedback is-error'; }
       return;
     }
+
+    // Resolve nome e setor do motorista selecionado a partir do option DOM
+    const selectedOption = motoristaSelect?.querySelector(`option[value="${CSS.escape(motoristaId)}"]`);
+    const motoristaNome  = selectedOption?.dataset?.nome  || motoristaId;
+    const motoristaSetor = selectedOption?.dataset?.setor || 'motorista';
 
     if (submitBtn) { submitBtn.disabled = true; submitBtn.querySelector('span').textContent = 'Enviando…'; }
     if (feedback) feedback.textContent = '';
 
     try {
       const response = await criarChamadoMotorista({
-        solicitanteId:    String(user?.id   || ''),
-        solicitanteNome:  String(user?.nome  || ''),
-        solicitanteSetor: String(user?.setor || ''),
+        solicitanteId:    motoristaId,
+        solicitanteNome:  motoristaNome,
+        solicitanteSetor: motoristaSetor,
         unidade, tipoServico, cidade, bairro, endereco, descricao,
       });
       if (response?.success) {
