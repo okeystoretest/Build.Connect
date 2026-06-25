@@ -44,6 +44,7 @@ export function openNotificationsPanel() {
 
   document.body.appendChild(panel);
   refreshLucideIcons(panel);
+  _applyDynamicColors(panel);
   _activePanel = panel;
 
   // Fecha ao clicar fora do painel
@@ -120,14 +121,33 @@ function _rerenderList(panel) {
   const notifications = _getUnreadNotifications();
   list.innerHTML = _buildListMarkup(notifications);
   refreshLucideIcons(list);
+  _applyDynamicColors(list);
   _refreshUnreadIndicator(panel);
+}
+
+// ── Aplica cores dinâmicas por tipo via DOM (compatível com CSP style-src 'self') ──
+function _applyDynamicColors(scope) {
+  scope.querySelectorAll('[data-notif-id]').forEach(item => {
+    const color = item.dataset.notifColor;
+    if (!color) return;
+    const icon  = item.querySelector('[data-notif-icon]');
+    const badge = item.querySelector('[data-notif-badge]');
+    if (icon) {
+      icon.style.color      = color;
+      icon.style.background = `${color}18`;
+    }
+    if (badge) {
+      badge.style.color      = color;
+      badge.style.background = `${color}15`;
+    }
+  });
 }
 
 function _refreshUnreadIndicator(panel) {
   const unread   = _getUnreadNotifications().length;
   const subhead  = panel.querySelector('[data-notif-subhead]');
   const counter  = panel.querySelector('[data-notif-counter]');
-  if (subhead) subhead.style.display = unread > 0 ? '' : 'none';
+  if (subhead) subhead.hidden = unread === 0;
   if (counter) counter.textContent = `${unread} não lida${unread !== 1 ? 's' : ''}`;
 }
 
@@ -151,7 +171,7 @@ function _buildPanelMarkup(notifications) {
       </div>
 
       <!-- Linha 2: contador + marcar todas (só aparece quando há não lidas) -->
-      <div class="notif-panel-subhead" data-notif-subhead ${unread === 0 ? 'style="display:none"' : ''}>
+      <div class="notif-panel-subhead" data-notif-subhead ${unread === 0 ? 'hidden' : ''}>
         <span class="notif-counter" data-notif-counter>
           ${unread} não lida${unread !== 1 ? 's' : ''}
         </span>
@@ -191,13 +211,14 @@ function _buildListMarkup(notifications) {
         data-notif-lida="${n.lida}"
         title="Clique para ${n.tipo === 'chamado_status' && _isRetaguardaUser() ? 'abrir requisições' : 'dispensar'}"
         tabindex="0"
-        role="button">
-        <div class="notif-item-icon" style="color:${cfg.color};background:${cfg.color}18">
+        role="button"
+        data-notif-color="${sanitizeAttribute(cfg.color)}">
+        <div class="notif-item-icon" data-notif-icon>
           <i data-lucide="${cfg.icon}"></i>
         </div>
         <div class="notif-item-body">
           <div class="notif-item-head">
-            <span class="notif-item-badge" style="color:${cfg.color};background:${cfg.color}15">
+            <span class="notif-item-badge" data-notif-badge>
               ${cfg.label}
             </span>
             <time class="notif-item-time">${time}</time>
