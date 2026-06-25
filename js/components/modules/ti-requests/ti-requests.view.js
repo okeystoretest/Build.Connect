@@ -40,7 +40,7 @@ export function getTiRequestsModuleMarkup(card, moduleData, moduleUi) {
   const dashboardHref = isMotorista ? './dashboard-motorista.html' : './dashboard-ti.html';
   const expandBtn = `<a href="${dashboardHref}" target="_blank" rel="noopener noreferrer" class="module-action-button ti-full-dashboard-btn">
          <i data-lucide="maximize-2"></i>
-         <span>Tela cheia</span>
+         <span>Dashboard de Solicitações</span>
        </a>`;
 
   return `
