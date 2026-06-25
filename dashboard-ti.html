@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Build.Connect · Requisições</title>
+  <!-- D-003: SRI hash para integridade do bundle Lucide -->
+  <script src="https://unpkg.com/lucide@1.7.0/dist/umd/lucide.min.js"
+    integrity="sha384-CykfT8/c0napBs4OEPBYSNzMhNhJUvjNEulxWZVAK+p2D3vEfYGg9zyOd8bzqyNO"
+    crossorigin="anonymous"
+    defer></script>
+  <link rel="stylesheet" href="./css/dashboard-ti.css" />
+  <style>
+    /* S-006: Login overlay — painel autenticado (S-003) */
+    #dash-login-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(10,10,12,.92);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .dash-login-card {
+      background: #1a1a1f; border: 1px solid #2e2e38; border-radius: 12px;
+      padding: 2rem 2.5rem; width: 100%; max-width: 360px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .dash-login-brand {
+      font-size: 14px; font-weight: 600; letter-spacing: .08em;
+      color: #e2e2e6; margin-bottom: 4px;
+    }
+    .dash-login-brand span { color: #6366f1; }
+    .dash-login-sub { font-size: 12px; color: #888; margin-bottom: 4px; }
+    .dash-login-input {
+      width: 100%; padding: 10px 12px; border-radius: 7px;
+      border: 1px solid #2e2e38; background: #0f0f13;
+      color: #e2e2e6; font-size: 14px; outline: none;
+    }
+    .dash-login-input:focus { border-color: #6366f1; }
+    .dash-login-btn {
+      padding: 10px; border-radius: 7px; border: none; cursor: pointer;
+      background: #6366f1; color: #fff; font-size: 14px; font-weight: 500;
+      margin-top: 4px; transition: opacity .15s;
+    }
+    .dash-login-btn:hover { opacity: .9; }
+    .dash-login-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .dash-login-err { font-size: 12px; color: #ef4444; text-align: center; }
+  </style>
+</head>
+<body>
+
+<div id="root">
+  <div class="dash-loading">
+    <i data-lucide="loader-circle" class="spin"></i>
+    <span>Carregando dashboard…</span>
+  </div>
+</div>
+
+<div class="refresh-bar" id="refresh-bar"></div>
+
+<!-- S-006: type="module" elimina escopo global e habilita import/export -->
+<script type="module" src="./js/dashboard-ti.js"></script>
+</body>
+</html>

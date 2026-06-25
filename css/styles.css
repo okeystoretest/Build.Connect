@@ -1,0 +1,18 @@
+@import url('./modules/base.css');
+@import url('./modules/login.css');
+@import url('./modules/layout-sidebar.css');
+@import url('./modules/content-welcome.css');
+@import url('./modules/sector-loading.css');
+@import url('./modules/responsive-base.css');
+@import url('./modules/auth-view.css');
+@import url('./modules/modules.css');
+@import url('./modules/evaluations.css');
+@import url('./modules/eval-pagination.css');
+@import url('./modules/celebration.css');
+@import url('./modules/user-admin.css');
+@import url('./modules/notifications.css');
+@import url('./modules/vitrine.css');
+@import url('./modules/settings-panel.css');
+@import url('./modules/navi.css');
+
+@import url('./modules/spacing.css');

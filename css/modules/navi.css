@@ -1,0 +1,167 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   NAVI — Sistema de trilha de aprendizagem sequencial
+   Estilos para cards bloqueados, itens sequenciais travados e pill "Bloqueado"
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Pill "Bloqueado" no card ──────────────────────────────────────────── */
+
+.fc-status-pill--locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--surface-2, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+
+.fc-status-pill--locked i,
+.fc-status-pill--locked svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+/* ── Feature card bloqueado ────────────────────────────────────────────── */
+
+.feature-card.is-navi-locked {
+  opacity: 0.72;
+  border-color: var(--border) !important;
+  background: var(--surface) !important;
+  box-shadow: none !important;
+  cursor: pointer; /* clique ativo para exibir toast de explicação */
+  position: relative;
+}
+
+.feature-card.is-navi-locked::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 6px,
+    color-mix(in srgb, var(--border) 40%, transparent) 6px,
+    color-mix(in srgb, var(--border) 40%, transparent) 7px
+  );
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+}
+
+.feature-card.is-navi-locked > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Badge de cadeado posicionado no topo direito do card */
+.navi-card-lock-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface-2, var(--border));
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.navi-card-lock-badge i,
+.navi-card-lock-badge svg {
+  width: 13px;
+  height: 13px;
+  color: var(--muted);
+}
+
+/* Ícone do card bloqueado fica mais discreto */
+.feature-card.is-navi-locked .navi-icon-muted {
+  opacity: 0.45;
+}
+
+/* Descrição = motivo do bloqueio */
+.feature-card.is-navi-locked .navi-lock-reason {
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-style: normal;
+}
+
+/* ── Item de conteúdo bloqueado (sequencial) ───────────────────────────── */
+
+.module-item-card.is-navi-locked {
+  opacity: 0.55;
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.module-item-card.is-navi-locked .module-item-title {
+  color: var(--muted);
+}
+
+/* Nota de bloqueio sequencial dentro do item */
+.navi-item-lock-note {
+  font-size: 0.76rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+/* Botão de item bloqueado */
+.module-link-button.navi-item-locked-btn {
+  opacity: 0.55;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.module-link-button.navi-item-locked-btn:hover {
+  background: var(--surface-2, var(--border));
+}
+
+/* ── Thumbnail de vídeo bloqueado ──────────────────────────────────────── */
+
+.video-thumb-wrap.navi-thumb-locked {
+  position: relative;
+}
+
+.navi-video-lock-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.46);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md, 8px);
+  z-index: 2;
+}
+
+.navi-video-lock-overlay i,
+.navi-video-lock-overlay svg {
+  width: 28px;
+  height: 28px;
+  color: #fff;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
+}
+
+/* ── Dark theme adjustments ────────────────────────────────────────────── */
+
+[data-theme="dark"] .feature-card.is-navi-locked {
+  opacity: 0.60;
+}
+
+[data-theme="dark"] .navi-card-lock-badge {
+  background: var(--surface-3, var(--surface));
+}
+
+[data-theme="dark"] .module-item-card.is-navi-locked {
+  opacity: 0.45;
+}

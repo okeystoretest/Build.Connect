@@ -1,0 +1,220 @@
+/**
+ * celebration.css
+ * Animação de parabenização (confetti overlay) + barra de progresso do setor.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CELEBRATION OVERLAY
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.bc-celebration-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: auto;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.bc-celebration-overlay--visible {
+  opacity: 1;
+}
+
+.bc-celebration-overlay--out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Card central de mensagem */
+.bc-celebration-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 36px 52px;
+  border-radius: 28px;
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(212, 162, 87, 0.2);
+  text-align: center;
+  animation: bc-card-pop 450ms var(--ease-premium) both;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.bc-celebration-emoji {
+  font-size: 3.2rem;
+  line-height: 1;
+  animation: bc-emoji-bounce 600ms var(--ease-premium) 100ms both;
+  display: block;
+}
+
+.bc-celebration-text {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+/* Partículas de confete */
+.bc-confetti {
+  position: absolute;
+  top: -12px;
+  border-radius: 50%;
+  animation: bc-confetti-fall linear both;
+  will-change: transform, opacity;
+}
+
+@keyframes bc-card-pop {
+  0%   { opacity: 0; transform: translate(-50%, -58%) scale(0.72); }
+  70%  { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes bc-emoji-bounce {
+  0%   { transform: scale(0) rotate(-15deg); }
+  65%  { transform: scale(1.2) rotate(8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes bc-confetti-fall {
+  0%   { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+  80%  { opacity: 0.9; }
+  100% { transform: translateY(105vh) rotate(780deg) scale(0.4); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bc-celebration-overlay,
+  .bc-confetti,
+  .bc-celebration-card,
+  .bc-celebration-emoji { animation: none !important; transition: none !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTOR PROGRESS BAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sector-progress {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  animation: bc-panel-enter 340ms var(--ease-premium) both;
+}
+
+.sector-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sector-progress-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.sector-progress-label i,
+.sector-progress-label svg {
+  width: 14px;
+  height: 14px;
+  color: var(--primary);
+}
+
+.sector-progress-stat {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* Track */
+.sector-progress-track {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border) 80%, transparent);
+  overflow: hidden;
+}
+
+.sector-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 70%, #10b981) 100%);
+  transition: width 600ms var(--ease-premium);
+  min-width: 0;
+}
+
+.sector-progress-fill.is-complete {
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+/* Pills per content type */
+.sector-progress-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sector-progress-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px 3px 7px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  letter-spacing: 0.02em;
+}
+
+.sector-progress-pill i,
+.sector-progress-pill svg {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+}
+
+.sector-progress-pill--not-started {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--border) 50%, transparent);
+  border-color: var(--border);
+}
+
+.sector-progress-pill--in-progress {
+  color: #92400E;
+  background: rgba(245, 158, 11, 0.10);
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+.sector-progress-pill--in-progress i,
+.sector-progress-pill--in-progress svg {
+  animation: fc-pill-spin 1.4s linear infinite;
+}
+
+.sector-progress-pill--complete {
+  color: #064E3B;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.28);
+}
+
+[data-theme="dark"] .sector-progress-pill--in-progress { color: #FCD34D; }
+[data-theme="dark"] .sector-progress-pill--complete    { color: #6EE7B7; }
+
+@media (max-width: 600px) {
+  .sector-progress-header { flex-direction: column; align-items: flex-start; }
+}

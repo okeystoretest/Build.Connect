@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Build.Connect</title>
+    <meta
+      name="description"
+      content="Build.Connect - Hub de documentos e vídeos de integração por setor."
+    />
+
+    <!-- Security meta tags (CSP aplicada via HTTP headers no vercel.json) -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()" />
+
+    <link rel="icon" type="image/png" sizes="64x64" href="./assets/favicon.png" />
+    <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
+    <link rel="stylesheet" href="./css/styles.css" />
+  </head>
+  <body>
+    <div id="auth-root"></div>
+
+    <div class="app-shell" id="app-shell" hidden>
+      <aside class="sidebar" aria-label="Navegação lateral principal">
+        <div id="sidebar-root"></div>
+      </aside>
+
+      <!-- Sino de notificações: fixo no canto superior direito, persiste em toda a plataforma -->
+      <div id="notifications-topbar" aria-label="Notificações">
+        <button
+          type="button"
+          id="notifications-button"
+          class="notif-topbar-btn"
+          aria-label="Abrir notificações"
+          title="Notificações"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            aria-hidden="true">
+            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+          </svg>
+          <span class="notif-badge" id="notifications-badge" hidden>0</span>
+        </button>
+      </div>
+
+      <main class="content" id="content" tabindex="-1" aria-live="polite"></main>
+    </div>
+
+    <script src="https://unpkg.com/lucide@1.7.0/dist/umd/lucide.min.js"
+      integrity="sha384-CykfT8/c0napBs4OEPBYSNzMhNhJUvjNEulxWZVAK+p2D3vEfYGg9zyOd8bzqyNO"
+      crossorigin="anonymous"
+      defer></script>
+    <script type="module" src="./js/main.js"></script>
+  </body>
+</html>
