@@ -1,4 +1,4 @@
-import { ACCESS_KEYS, SECTOR_IDS, USER_ADMIN_SECTOR_OPTIONS, USER_LEVEL_OPTIONS, USER_LEVELS } from '../../../constants/sector.constants.js';
+import { ACCESS_KEYS, USER_ADMIN_SECTOR_OPTIONS, USER_LEVEL_OPTIONS, USER_LEVELS } from '../../../constants/sector.constants.js';
 import { MODULE_UI_DEFAULTS, USER_ADMIN_UI_DEFAULTS } from './user-admin.constants.js';
 
 export function getUserAdminUiState(moduleUi) {

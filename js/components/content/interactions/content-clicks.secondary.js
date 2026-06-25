@@ -5,6 +5,7 @@
  */
 
 import { openTicketDetailModal } from '../../shared/ticket-detail-modal.js';
+import { openPhotoViewerModal } from '../../shared/photo-viewer-modal.js';
 
 /**
  * @param {Event} event
@@ -49,6 +50,28 @@ export function handleSecondaryClicks(event, rootElement, sector, viewState, dep
     return true;
   }
 
+  // F2: KM inicial — "Iniciar" em chamados de motorista
+  const tiStartKm = event.target.closest('[data-ti-start-km]');
+  if (tiStartKm) {
+    event.preventDefault();
+    tiRequestsModuleHandlers?.startKmEntry(rootElement, sector, tiStartKm.dataset.tiStartKm || '');
+    return true;
+  }
+
+  const tiCancelKm = event.target.closest('[data-ti-cancel-km]');
+  if (tiCancelKm) {
+    event.preventDefault();
+    tiRequestsModuleHandlers?.cancelKmEntry(rootElement, sector);
+    return true;
+  }
+
+  const tiConfirmKm = event.target.closest('[data-ti-confirm-km]');
+  if (tiConfirmKm) {
+    event.preventDefault();
+    tiRequestsModuleHandlers?.confirmKmStart(rootElement, sector, tiConfirmKm.dataset.tiConfirmKm || '', viewState.authenticatedUser);
+    return true;
+  }
+
   const tiStartConclusion = event.target.closest('[data-ti-start-conclusion]');
   if (tiStartConclusion) {
     event.preventDefault();
@@ -63,26 +86,43 @@ export function handleSecondaryClicks(event, rootElement, sector, viewState, dep
     return true;
   }
 
+  // F2+F3: confirmConclusion agora lê obs, kmFinal e fotos diretamente do DOM
   const tiConfirmConclusion = event.target.closest('[data-ti-confirm-conclusion]');
   if (tiConfirmConclusion) {
     event.preventDefault();
     const ticketId = tiConfirmConclusion.dataset.tiConfirmConclusion || '';
-    const textarea = rootElement.querySelector(`[data-ti-obs-input="${CSS.escape(ticketId)}"]`);
-    const obsError = rootElement.querySelector('[data-ti-obs-error]');
-    const obs = textarea?.value?.trim() || '';
-    if (!obs) {
-      if (obsError) obsError.style.display = '';
-      textarea?.focus();
-      return true;
-    }
-    if (obsError) obsError.style.display = 'none';
-    tiRequestsModuleHandlers?.confirmConclusion(rootElement, sector, ticketId, obs, viewState.authenticatedUser);
+    tiRequestsModuleHandlers?.confirmConclusion(rootElement, sector, ticketId, viewState.authenticatedUser);
+    return true;
+  }
+
+  // F3: Abre seletor de arquivos para upload de fotos
+  const tiUploadFoto = event.target.closest('[data-ti-upload-foto]');
+  if (tiUploadFoto) {
+    event.preventDefault();
+    tiRequestsModuleHandlers?.triggerFotoUpload(rootElement, tiUploadFoto.dataset.tiUploadFoto || '');
     return true;
   }
 
   if (tiExpandBtn && !event.target.closest('[data-ti-no-view]')) {
     event.preventDefault();
     tiRequestsModuleHandlers?.expandTicket(rootElement, sector, tiExpandBtn.dataset.tiExpand || '');
+    return true;
+  }
+
+  // Visualizador de fotos (cards concluídos) — clique na miniatura abre o
+  // lightbox de alta resolução já na foto selecionada.
+  const tiViewFotos = event.target.closest('[data-ti-view-fotos]');
+  if (tiViewFotos) {
+    event.preventDefault();
+    const ticketId = tiViewFotos.dataset.tiViewFotos || '';
+    const startIndex = Number(tiViewFotos.dataset.tiFotoIdx) || 0;
+    const moduleState = getModuleState(sector.id);
+    const ui = moduleState?.ui || {};
+    const all = [...(ui.tickets || []), ...(ui.completedTickets || [])];
+    const ticket = all.find((t) => t.id === ticketId);
+    if (ticket && Array.isArray(ticket.fotoUrls) && ticket.fotoUrls.length) {
+      openPhotoViewerModal(ticket.fotoUrls, { ticketId: ticket.id }, startIndex);
+    }
     return true;
   }
 

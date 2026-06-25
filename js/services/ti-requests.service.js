@@ -24,13 +24,26 @@ export async function listarChamadosTI(period = 'mes', destino = 'retaguarda') {
   };
 }
 
-export function atualizarStatusChamadoTI(ticketId, novoStatus, usuarioId, usuarioNome, observacao) {
+export function atualizarStatusChamadoTI(ticketId, novoStatus, usuarioId, usuarioNome, observacao, extra = {}) {
   return requestApi('atualizar-chamado-ti', {
     ticketId:    String(ticketId    || ''),
     novoStatus:  String(novoStatus  || ''),
     usuarioId:   String(usuarioId   || ''),
     usuarioNome: String(usuarioNome || ''),
     observacao:  String(observacao  || ''),
+    // F2: KM tracking (opcionais — ignorados pela edge function em tickets TI-)
+    ...(extra.kmInicial !== undefined ? { kmInicial: String(extra.kmInicial) } : {}),
+    ...(extra.kmFinal   !== undefined ? { kmFinal:   String(extra.kmFinal)   } : {}),
+  });
+}
+
+// F3: Upload de foto para o Google Drive via Edge Function
+export function uploadFotoMotorista(ticketId, fileBase64, mimeType, fileName) {
+  return requestApi('upload-foto-motorista', {
+    ticketId:   String(ticketId  || ''),
+    fileBase64: String(fileBase64 || ''),
+    mimeType:   String(mimeType  || 'image/jpeg'),
+    fileName:   String(fileName  || `foto_${Date.now()}.jpg`),
   });
 }
 
@@ -38,16 +51,19 @@ export function atualizarStatusChamadoTI(ticketId, novoStatus, usuarioId, usuari
 
 export function criarChamadoMotorista(payload) {
   return requestApi('criar-chamado-motorista', {
-    solicitanteId:    String(payload.solicitanteId    || ''),
-    solicitanteNome:  String(payload.solicitanteNome  || ''),
-    solicitanteSetor: String(payload.solicitanteSetor || ''),
-    unidade:          String(payload.unidade          || ''),
-    tipoServico:      String(payload.tipoServico      || ''),
-    cidade:           String(payload.cidade           || ''),
-    bairro:           String(payload.bairro           || ''),
-    endereco:         String(payload.endereco         || ''),
-    descricao:        String(payload.descricao        || ''),
-    destino:          'motorista',
+    solicitanteId:     String(payload.solicitanteId    || ''),
+    solicitanteNome:   String(payload.solicitanteNome  || ''),
+    solicitanteSetor:  String(payload.solicitanteSetor || ''),
+    unidade:           String(payload.unidade          || ''),
+    tipoServico:       String(payload.tipoServico      || ''),
+    cidade:            String(payload.cidade           || ''),
+    bairro:            String(payload.bairro           || ''),
+    endereco:          String(payload.endereco         || ''),
+    descricao:         String(payload.descricao        || ''),
+    // F1: atribuição automática ao motorista selecionado
+    atribuidoParaId:   String(payload.atribuidoParaId   || ''),
+    atribuidoParaNome: String(payload.atribuidoParaNome || ''),
+    destino:           'motorista',
   });
 }
 
@@ -82,5 +98,10 @@ function normalizeTicket(t) {
     dataFim:           t.data_fim          ?? t.dataFim          ?? null,
     duracaoMinutos:    t.duracao_minutos   ?? t.duracaoMinutos   ?? null,
     observacao:        t.observacao        ?? '',
+    // F2: KM tracking
+    kmInicial:         t.km_inicial        ?? t.kmInicial        ?? null,
+    kmFinal:           t.km_final          ?? t.kmFinal          ?? null,
+    // F3: Fotos Google Drive
+    fotoUrls:          Array.isArray(t.foto_urls ?? t.fotoUrls) ? (t.foto_urls ?? t.fotoUrls) : [],
   };
 }

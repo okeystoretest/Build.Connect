@@ -461,10 +461,15 @@ function _bindMotoristaForm(overlay, dialog, user) {
 
     try {
       const response = await criarChamadoMotorista({
-        solicitanteId:    motoristaId,
-        solicitanteNome:  motoristaNome,
-        solicitanteSetor: motoristaSetor,
+        // Solicitante = usuário logado; a edge function usa session.usuario_id para o ID
+        // Corrigido: solicitanteNome/Setor devem ser do usuário que abriu o chamado, não do motorista atribuído
+        solicitanteId:     String(user?.id    || ''),
+        solicitanteNome:   String(user?.nome  || ''),
+        solicitanteSetor:  String(user?.setor || ''),
         unidade, tipoServico, cidade, bairro, endereco, descricao,
+        // F1: motorista selecionado vira o responsável direto — status inicia como 'Atribuído'
+        atribuidoParaId:   motoristaId,
+        atribuidoParaNome: motoristaNome,
       });
       if (response?.success) {
         const formEl    = dialog.querySelector('[data-ti-form]');

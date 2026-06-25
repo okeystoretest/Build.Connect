@@ -51,10 +51,6 @@ export function resetModuleSelectionForSector(sectorId) {
   });
 }
 
-export function getModuleStateEntries() {
-  return Array.from(MODULE_STATE_BY_SECTOR.entries());
-}
-
 // ── Card Alerts ────────────────────────────────────────────────────────────
 
 export function setCardAlert(sectorId, cardId, alert) {
@@ -85,14 +81,4 @@ export function setCardLock(sectorId, cardId, lockState) {
     delete cardLocks[cardId];
   }
   MODULE_STATE_BY_SECTOR.set(sectorId, { ...current, cardLocks });
-}
-
-/**
- * Retorna o estado de bloqueio Navi de um card, ou null se desbloqueado.
- * @param {string} sectorId
- * @param {string} cardId
- * @returns {{ locked: boolean, reason: string, pct: number } | null}
- */
-export function getCardLock(sectorId, cardId) {
-  return getModuleState(sectorId).cardLocks?.[cardId] || null;
 }

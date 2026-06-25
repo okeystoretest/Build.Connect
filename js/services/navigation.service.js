@@ -14,7 +14,7 @@ import {
   VITRINE_SECTOR_CARDS,
 } from '../config/sector-cards.config.js';
 import { APP_SOURCE_LABEL } from '../constants/module.constants.js';
-import { ACCESS_KEYS, SECTOR_IDS } from '../constants/sector.constants.js';
+import { SECTOR_IDS } from '../constants/sector.constants.js';
 import { getCardsForUserAccess } from './access.service.js';
 
 export { NAVIGATION_ITEMS, STORAGE_KEYS } from '../config/navigation.config.js';
@@ -124,13 +124,6 @@ export function getSectorBreadcrumb(item) {
   if (!item) return APP_SOURCE_LABEL;
   if (item.parentLabel) return `${item.parentLabel} > ${item.label}`;
   return item.label;
-}
-
-export function getSectorTypeLabel(item) {
-  if (item?.parentId === SECTOR_IDS.production) return 'Subsetor de Produção';
-  if (item?.parentId === SECTOR_IDS.commercial) return 'Subsetor Comercial';
-  if (item?.parentId === SECTOR_IDS.logistics)  return 'Subsetor de Logística';
-  return 'Setor final';
 }
 
 function sanitizeActiveItem(itemId) {

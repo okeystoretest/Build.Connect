@@ -52,10 +52,6 @@ export async function loadModuleContent({ sectorId, moduleId, forceRefresh = fal
   return normalizedResponse;
 }
 
-export function clearModuleContentCache() {
-  moduleCache.clear();
-}
-
 function requestModuleContentViaBridge({ sectorId, moduleId }) {
   return requestAppsScriptBridge({
     action: 'module-content',

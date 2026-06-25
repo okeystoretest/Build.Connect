@@ -1,6 +1,5 @@
 import { openDocumentModal } from '../../modules/document-module.js';
 import { openVideoModal } from '../../modules/video-module.js';
-import { MODULE_IDS } from '../../../constants/module.constants.js';
 import { handleSecondaryClicks } from './content-clicks.secondary.js';
 import { showToast } from '../../../utils/toast.js';
 

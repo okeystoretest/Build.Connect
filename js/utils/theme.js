@@ -24,13 +24,3 @@ export function applyTheme(theme) {
     // noop
   }
 }
-
-export function toggleTheme() {
-  const nextTheme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
-  applyTheme(nextTheme);
-  return nextTheme;
-}
-
-export function isDarkTheme() {
-  return document.body.dataset.theme === 'dark';
-}

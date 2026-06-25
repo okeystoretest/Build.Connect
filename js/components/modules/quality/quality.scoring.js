@@ -9,7 +9,6 @@ import {
   IE_PERSONAL_CRITERIA,
   IE_SOCIAL_CRITERIA,
 } from '../evaluations/evaluation.constants.js';
-import { formatEvaluationNumber, getEvaluationScoreKey } from '../evaluations/evaluation.calculations.js';
 
 // ── Helper: extrai score de um item de um registro ───────────────────────
 

@@ -6,7 +6,7 @@
 
 import { requestApi } from '../../../services/api.service.js';
 import { sendSectorNotification } from '../../../services/notifications.service.js';
-import { EVALUATION_TOOLS, EVALUATION_TOOL_IDS } from './evaluation.constants.js';
+import { EVALUATION_TOOLS } from './evaluation.constants.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 

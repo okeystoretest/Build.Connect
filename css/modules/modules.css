@@ -3619,6 +3619,344 @@ body.has-video-modal {
   background: rgba(16,185,129,0.04);
 }
 
+/* F2: KM inicial panel */
+.ti-inline-km {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 10px 8px;
+  border-top: 1px solid rgba(139,92,246,0.25);
+  background: rgba(139,92,246,0.04);
+}
+
+.ti-inline-km-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #8B5CF6;
+  margin: 0;
+}
+
+.ti-inline-km-label i,
+.ti-inline-km-label svg { width: 13px; height: 13px; }
+
+.ti-inline-km-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.ti-inline-km-btns .ti-kc-btn { flex: 1; }
+
+.ti-km-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.82rem;
+  box-sizing: border-box;
+}
+
+.ti-km-input:focus {
+  outline: none;
+  border-color: #8B5CF6;
+  box-shadow: 0 0 0 2px rgba(139,92,246,0.15);
+}
+
+.ti-km-error,
+.ti-km-final-error {
+  font-size: 0.75rem;
+  color: #EF4444;
+  margin: 0;
+}
+
+.ti-km-ref {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* F3: Photo upload section */
+.ti-foto-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ti-kc-btn.is-upload {
+  border-color: rgba(59,130,246,0.4);
+  color: #3B82F6;
+}
+
+.ti-kc-btn.is-upload:hover {
+  background: #3B82F6;
+  color: #fff;
+  border-color: #3B82F6;
+}
+
+.ti-foto-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ti-foto-thumb {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.ti-foto-upload-status {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* F2+F3: Fotos na card concluída */
+.ti-detail-fotos {
+  margin-top: 10px;
+}
+
+.ti-fotos-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.ti-foto-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  color: #3B82F6;
+  text-decoration: none;
+  background: var(--surface);
+  transition: background 150ms;
+}
+
+.ti-foto-link:hover {
+  background: rgba(59,130,246,0.08);
+  border-color: #3B82F6;
+}
+
+/* ── Filtro de motorista no dashboard ───────────────────────────────────── */
+.ti-dashboard-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.ti-motorista-select {
+  min-width: 180px;
+}
+
+/* ── Miniaturas clicáveis de fotos (card concluído → lightbox) ──────────── */
+.ti-fotos-grid .ti-foto-thumb {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--surface);
+  transition: border-color 150ms, transform 120ms;
+}
+
+.ti-fotos-grid .ti-foto-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ti-fotos-grid .ti-foto-thumb:hover {
+  border-color: #3B82F6;
+  transform: translateY(-1px);
+}
+
+.ti-foto-thumb-zoom {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgba(0,0,0,0.35);
+  opacity: 0;
+  transition: opacity 150ms;
+}
+
+.ti-fotos-grid .ti-foto-thumb:hover .ti-foto-thumb-zoom {
+  opacity: 1;
+}
+
+.ti-foto-thumb-zoom i {
+  width: 22px;
+  height: 22px;
+}
+
+/* ── Visualizador de fotos (lightbox) ───────────────────────────────────── */
+.photo-viewer-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(92vw, 880px);
+  max-height: 90vh;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+}
+
+.pv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pv-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.pv-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.pv-download {
+  color: #fff;
+  background: #10B981;
+  transition: background 150ms;
+}
+
+.pv-download:hover {
+  background: #059669;
+}
+
+.pv-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  padding: 18px;
+  background: rgba(0,0,0,0.04);
+}
+
+.pv-image {
+  max-width: 100%;
+  max-height: 64vh;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
+.pv-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  cursor: pointer;
+  transition: background 150ms;
+}
+
+.pv-nav:hover { background: rgba(0,0,0,0.75); }
+.pv-prev { left: 14px; }
+.pv-next { right: 14px; }
+
+.pv-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 18px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.pv-counter {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.pv-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.pv-thumb {
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  background: none;
+  opacity: 0.65;
+  transition: opacity 150ms, border-color 150ms;
+}
+
+.pv-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pv-thumb:hover { opacity: 1; }
+
+.pv-thumb.is-active {
+  opacity: 1;
+  border-color: #3B82F6;
+}
+
 .ti-inline-conclusion-label {
   display: flex;
   align-items: center;

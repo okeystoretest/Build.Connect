@@ -20,11 +20,6 @@ export function fetchNextUserId() {
   return requestAdminApi('generate-next-user-id', {});
 }
 
-// Mantido por compatibilidade — não é mais necessário com Supabase
-export function diagnoseManagedUsersStorage() {
-  return Promise.resolve({ success: true, code: 'SUPABASE_OK', message: 'Usando Supabase PostgreSQL.' });
-}
-
 function normalizeUserPayload(payload = {}) {
   return {
     originalId: String(payload.originalId || '').trim(),

@@ -5,6 +5,7 @@ import { TI_REQUESTS_UI_DEFAULTS, KANBAN_POLL_INTERVAL_MS } from './ti-requests.
 import { buildKanbanCardDetailHTML } from './ti-requests.view.js';
 import { refreshLucideIcons } from '../../../services/icons.service.js';
 import { showToast } from '../../../utils/toast.js';
+import { createMotoristaHandlers } from './ti-requests.handlers.motorista.js';
 
 // Conjunto de IDs de módulo que usam os handlers de TI
 const TI_MODULE_IDS = new Set([MODULE_IDS.tiRequest, MODULE_IDS.motorRequests]);
@@ -17,16 +18,31 @@ let _pollSectorId = null;
 
 export function createTiRequestsModuleHandlers(context) {
   moduleContext = context;
+
+  // F2+F3: cria handlers de motorista injetando as funções de contexto compartilhadas
+  const moto = createMotoristaHandlers({
+    getState, setState, render, ui, isTiModule: _isTiModule, loadTiTickets,
+  });
+
   return {
     loadTickets:            loadTiTickets,
     reloadTickets:          reloadTiTickets,
     expandTicket:           expandTiTicket,
     expandCompleted:        expandCompletedTicket,
     updateStatus:           updateTiTicketStatus,
-    startConclusion:        startConclusion,
-    cancelConclusion:       cancelConclusion,
-    confirmConclusion:      confirmConclusion,
+    // F2: KM tracking
+    startKmEntry:           moto.startKmEntry,
+    cancelKmEntry:          moto.cancelKmEntry,
+    confirmKmStart:         moto.confirmKmStart,
+    // F3: Photo upload
+    triggerFotoUpload:      moto.triggerFotoUpload,
+    handleFotoSelection:    moto.handleFotoSelection,
+    // Conclusion (shared, but motorista-specific logic inside)
+    startConclusion:        moto.startConclusion,
+    cancelConclusion:       moto.cancelConclusion,
+    confirmConclusion:      moto.confirmConclusion,
     changePeriod:           changeDashboardPeriod,
+    changeMotoristaFilter:  changeMotoristaFilter,
     changeDoneMonthFilter:  changeDoneMonthFilter,
     openFullDashboard:      openFullDashboard,
     closeFullDashboard:     closeFullDashboard,
@@ -154,6 +170,7 @@ async function loadTiTickets(rootElement, sector) {
           expandedTicketId:       null,
           expandedCompletedId:    null,
           confirmingConclusionId: null,
+          startingKmTicketId:     null, // F2: limpa estado de KM ao recarregar
           newTicketIds:           [],
           errorMessage:           '',
         },
@@ -207,7 +224,7 @@ function expandTiTicket(rootElement, sector, ticketId) {
 
   setState(sector.id, {
     ...state,
-    ui: { ...currentUi, expandedTicketId: newExpandedId, confirmingConclusionId: null },
+    ui: { ...currentUi, expandedTicketId: newExpandedId, confirmingConclusionId: null, startingKmTicketId: null },
   });
 
   if (currentUi.expandedTicketId && currentUi.expandedTicketId !== ticketId) {
@@ -227,11 +244,12 @@ function expandTiTicket(rootElement, sector, ticketId) {
     const newUi = ui(getState(sector.id));
     const allTickets = [...(newUi.tickets || []), ...(newUi.completedTickets || [])];
     const ticket = allTickets.find(t => t.id === ticketId);
+    const isMotorista = sector?.id === SECTOR_IDS.motorista;
 
     if (ticket) {
       const col  = { status: ticket.status, icon: KANBAN_COL_ICONS[ticket.status] || 'clock' };
       const temp = document.createElement('div');
-      temp.innerHTML = buildKanbanCardDetailHTML(ticket, col, newUi);
+      temp.innerHTML = buildKanbanCardDetailHTML(ticket, col, newUi, isMotorista);
       const detailEl = temp.firstElementChild;
       if (detailEl) card.appendChild(detailEl);
     }
@@ -248,55 +266,6 @@ function expandCompletedTicket(rootElement, sector, ticketId) {
     ui: { ...currentUi, expandedCompletedId: currentUi.expandedCompletedId === ticketId ? null : ticketId },
   });
   render(rootElement, sector);
-}
-
-// ── Conclusion flow ───────────────────────────────────────────────────────
-
-function startConclusion(rootElement, sector, ticketId) {
-  const state = getState(sector.id);
-  if (!_isTiModule(state)) return;
-  setState(sector.id, { ...state, ui: { ...ui(state), confirmingConclusionId: ticketId, expandedTicketId: ticketId } });
-  render(rootElement, sector);
-}
-
-function cancelConclusion(rootElement, sector) {
-  const state = getState(sector.id);
-  if (!_isTiModule(state)) return;
-  setState(sector.id, { ...state, ui: { ...ui(state), confirmingConclusionId: null } });
-  render(rootElement, sector);
-}
-
-async function confirmConclusion(rootElement, sector, ticketId, observacao, user) {
-  const obs = String(observacao || '').trim();
-  if (!obs) return;
-
-  const state = getState(sector.id);
-  if (!_isTiModule(state)) return;
-
-  setState(sector.id, { ...state, ui: { ...ui(state), isUpdating: true, updatingTicketId: ticketId } });
-  render(rootElement, sector);
-
-  try {
-    const response = await atualizarStatusChamadoTI(
-      ticketId, 'Concluído',
-      String(user?.id || ''), String(user?.nome || ''), obs,
-    );
-    const next = getState(sector.id);
-    if (!_isTiModule(next)) return;
-
-    if (response?.success) {
-      setState(sector.id, { ...next, ui: { ...ui(next), isUpdating: false, updatingTicketId: null, confirmingConclusionId: null } });
-      render(rootElement, sector);
-      await loadTiTickets(rootElement, sector);
-    } else {
-      setState(sector.id, { ...next, ui: { ...ui(next), isUpdating: false, updatingTicketId: null, errorMessage: response?.message || 'Erro ao concluir.' } });
-      render(rootElement, sector);
-    }
-  } catch (err) {
-    const next = getState(sector.id);
-    setState(sector.id, { ...next, ui: { ...ui(next), isUpdating: false, updatingTicketId: null, errorMessage: err?.message || 'Erro ao concluir.' } });
-    render(rootElement, sector);
-  }
 }
 
 // ── Update status ─────────────────────────────────────────────────────────
@@ -347,6 +316,15 @@ async function changeDashboardPeriod(rootElement, sector, period) {
   if (!_isTiModule(state)) return;
   setState(sector.id, { ...state, ui: { ...ui(state), dashboardPeriod: period } });
   await loadTiTickets(rootElement, sector);
+}
+
+// ── Dashboard: filtro por motorista (client-side, sem recarregar) ──────────
+
+function changeMotoristaFilter(rootElement, sector, motoristaId) {
+  const state = getState(sector.id);
+  if (!_isTiModule(state)) return;
+  setState(sector.id, { ...state, ui: { ...ui(state), dashboardMotorista: motoristaId || '' } });
+  render(rootElement, sector);
 }
 
 // ── Full Dashboard ────────────────────────────────────────────────────────

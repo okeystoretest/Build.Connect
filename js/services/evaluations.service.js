@@ -99,10 +99,6 @@ function normalizeRecord(r) {
   };
 }
 
-// Não é mais necessário — tabela já existe no Supabase
-export async function setupEvaluationStorage() {
-  return { success: true, code: 'EVALUATIONS_STORAGE_READY', message: 'Usando Supabase PostgreSQL.' };
-}
 // ── Avaliações Multidirecionais ───────────────────────────────────────────
 
 export async function checkMultidirEligibility({ toolId, evaluateeId }) {

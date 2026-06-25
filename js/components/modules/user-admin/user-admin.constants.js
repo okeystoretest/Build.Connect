@@ -1,5 +1,5 @@
 import { MODULE_SORT_ORDER, MODULE_STATUS, MODULE_VIEW_MODE } from '../../../constants/module.constants.js';
-import { SECTOR_IDS, USER_LEVELS } from '../../../constants/sector.constants.js';
+import { USER_LEVELS } from '../../../constants/sector.constants.js';
 
 export const MODULE_UI_DEFAULTS = Object.freeze({
   query: '',

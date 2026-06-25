@@ -4,7 +4,6 @@ import {
   isDhoSector,
 } from '../../services/navigation.service.js';
 import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
-import { refreshLucideIcons } from '../../services/icons.service.js';
 
 const CONTENT_CARD_IDS = ['documentos', 'instrucoes-escritas', 'instrucoes-video'];
 const CONTENT_CARD_LABELS = {

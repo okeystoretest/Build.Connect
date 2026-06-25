@@ -29,6 +29,13 @@ export function createChangeHandler(rootElement, sector, dependencies) {
       return;
     }
 
+    const tiMotoristaSelect = event.target.closest('[data-ti-motorista]');
+
+    if (tiMotoristaSelect) {
+      tiRequestsModuleHandlers?.changeMotoristaFilter(rootElement, sector, tiMotoristaSelect.value || '');
+      return;
+    }
+
     const tiDoneMonthSelect = event.target.closest('[data-ti-done-month]');
 
     if (tiDoneMonthSelect) {

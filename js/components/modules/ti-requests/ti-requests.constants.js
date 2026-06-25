@@ -18,6 +18,8 @@ export const TI_REQUESTS_UI_DEFAULTS = Object.freeze({
   expandedTicketId:       null,
   expandedCompletedId:    null,
   dashboardPeriod:        'mes',
+  // Filtro exclusivo por motorista no dashboard (id do responsável; '' = todos)
+  dashboardMotorista:     '',
   loadStatus:             'idle',
   errorMessage:           '',
   isUpdating:             false,
@@ -33,6 +35,8 @@ export const TI_REQUESTS_UI_DEFAULTS = Object.freeze({
   colsExpanded: { 'Pendente': false, 'Atribuído': false, 'Em andamento': false, 'Concluído': false },
   // IDs de chamados novos detectados pelo polling (animação de entrada)
   newTicketIds: [],
+  // F2: ID do chamado aguardando input de KM inicial (Atribuído → Em andamento)
+  startingKmTicketId: null,
 });
 
 /**

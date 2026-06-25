@@ -16,10 +16,6 @@ export function getNotifications() {
   return _notifications;
 }
 
-export function getUnreadCount() {
-  return _unreadCount;
-}
-
 // ── Fetch & polling ────────────────────────────────────────────────────────
 
 export async function fetchNotifications() {

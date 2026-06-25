@@ -6,7 +6,7 @@
 
 import { sanitizeAttribute, sanitizeText } from '../../../utils/sanitize.js';
 import { TI_DASHBOARD_PERIODS } from './ti-requests.constants.js';
-import { fmtDate, fmtDateTime, fmtDuration, setorLabel } from './ti-requests.view.kanban.js';
+import { fmtDate, fmtDuration } from './ti-requests.view.kanban.js';
 
 // ── Standard dashboard section ────────────────────────────────────────────
 
@@ -29,10 +29,39 @@ export function buildLocalDashboard(tickets = [], completedTickets = []) {
   };
 }
 
-export function renderDashboard(dashboard, period, isMotorista = false) {
+/**
+ * Extrai a lista distinta de motoristas (responsáveis) a partir dos tickets,
+ * para popular o dropdown de filtro. Ordena por nome.
+ * @returns {Array<{id:string,nome:string}>}
+ */
+export function extractMotoristas(tickets = [], completedTickets = []) {
+  const map = new Map();
+  [...tickets, ...completedTickets].forEach((t) => {
+    const id   = String(t.atribuidoParaId || '').trim();
+    const nome = String(t.atribuidoParaNome || '').trim();
+    if (id && nome && !map.has(id)) map.set(id, nome);
+  });
+  return Array.from(map, ([id, nome]) => ({ id, nome }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
+}
+
+/**
+ * Filtra uma lista de tickets pelo id do motorista responsável.
+ * motoristaId vazio retorna a lista inalterada (todos).
+ */
+export function filterByMotorista(list = [], motoristaId = '') {
+  const id = String(motoristaId || '').trim();
+  if (!id) return list;
+  return list.filter((t) => String(t.atribuidoParaId || '').trim() === id);
+}
+
+export function renderDashboard(dashboard, period, isMotorista = false, motoristas = [], selectedMotorista = '') {
   const periodOpts = TI_DASHBOARD_PERIODS.map((p) =>
     `<option value="${sanitizeAttribute(p.id)}" ${p.id === period ? 'selected' : ''}>${sanitizeText(p.label)}</option>`
   ).join('');
+
+  // Filtro exclusivo por motorista — só faz sentido no módulo de Motorista.
+  const motoristaFilter = isMotorista ? renderMotoristaFilter(motoristas, selectedMotorista) : '';
 
   if (!dashboard) {
     return `
@@ -48,12 +77,15 @@ export function renderDashboard(dashboard, period, isMotorista = false) {
     <section class="ti-requests-section ti-dashboard-section" aria-label="Dashboard">
       <div class="ti-section-head">
         <h3 class="ti-section-title"><i data-lucide="bar-chart-2"></i>Dashboard</h3>
-        <label class="ti-period-label">
-          <i data-lucide="calendar-range"></i>
-          <select class="ti-period-select" data-ti-period>
-            ${periodOpts}
-          </select>
-        </label>
+        <div class="ti-dashboard-filters">
+          ${motoristaFilter}
+          <label class="ti-period-label">
+            <i data-lucide="calendar-range"></i>
+            <select class="ti-period-select" data-ti-period>
+              ${periodOpts}
+            </select>
+          </label>
+        </div>
       </div>
       <div class="ti-stat-row">
         <div class="ti-stat-block"><span class="ti-stat-value">${dashboard.totalAtivos}</span><span class="ti-stat-label">Ativos</span></div>
@@ -65,6 +97,26 @@ export function renderDashboard(dashboard, period, isMotorista = false) {
         ${renderBarChart(isMotorista ? 'Por Tipo de Serviço' : 'Solicitações por categoria', dashboard.solicitacoesPorCategoria, 'tag')}
       </div>
     </section>`;
+}
+
+/**
+ * Dropdown de seleção exclusiva de motorista.
+ * @param {Array<{id:string,nome:string}>} motoristas Lista distinta de responsáveis.
+ * @param {string} selected Id do motorista atualmente filtrado ('' = todos).
+ */
+function renderMotoristaFilter(motoristas = [], selected = '') {
+  const opts = [`<option value="" ${selected === '' ? 'selected' : ''}>Todos os motoristas</option>`]
+    .concat((motoristas || []).map((m) =>
+      `<option value="${sanitizeAttribute(m.id)}" ${m.id === selected ? 'selected' : ''}>${sanitizeText(m.nome)}</option>`
+    ))
+    .join('');
+  return `
+    <label class="ti-period-label ti-motorista-label">
+      <i data-lucide="user-round"></i>
+      <select class="ti-period-select ti-motorista-select" data-ti-motorista aria-label="Filtrar por motorista">
+        ${opts}
+      </select>
+    </label>`;
 }
 
 function renderBarChart(title, data, icon) {

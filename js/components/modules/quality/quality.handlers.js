@@ -5,11 +5,11 @@
  */
 
 import { errorBoundary } from '../../../utils/error.js';
-import { searchEvaluationRecords, fetchMultidirConfig, saveMultidirConfig, markEvaluationRecordRead } from '../../../services/evaluations.service.js';
+import { searchEvaluationRecords, saveMultidirConfig, markEvaluationRecordRead } from '../../../services/evaluations.service.js';
 import { listarFeedbacksParaUsuario, marcarFeedbackLido } from '../../../services/feedbacks-reader.service.js';
 import { setCardAlert, clearCardAlert } from '../../../state/module-state.js';
 import { invalidateSectorAlertsCache } from '../../../services/sector-alerts.service.js';
-import { EVALUATION_TOOL_IDS, EVALUATION_TOOLS } from '../evaluations/evaluation.constants.js';
+import { EVALUATION_TOOLS } from '../evaluations/evaluation.constants.js';
 
 // Inline para evitar dependência circular com quality-module.js (fachada)
 const QUALITY_UI_DEFAULTS = {

@@ -1,6 +1,6 @@
 import { MODULE_STATUS } from '../../../constants/module.constants.js';
 import { loadModuleContent } from '../../../services/integrations.service.js';
-import { VITRINE_TABS, VITRINE_UI_DEFAULTS, getDefaultTab } from './vitrine.constants.js';
+import { VITRINE_TABS, getDefaultTab } from './vitrine.constants.js';
 import { getVitrineUiState } from './vitrine.view.js';
 
 let vitrineContext = null;

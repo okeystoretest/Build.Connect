@@ -1,7 +1,7 @@
 import { refreshLucideIcons } from '../../services/icons.service.js';
 import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
 import { animateOut } from '../../utils/motion.js';
-import { getNotifications, markNotificationRead, markAllRead, fetchNotifications } from '../../services/notifications.service.js';
+import { getNotifications, markNotificationRead, markAllRead } from '../../services/notifications.service.js';
 import { getAuthenticatedUser } from '../../services/auth.service.js';
 
 let _activePanel   = null;

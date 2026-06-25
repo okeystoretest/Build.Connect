@@ -5,7 +5,6 @@
  */
 
 import { sanitizeAttribute, sanitizeText } from '../../../utils/sanitize.js';
-import { TI_REQUEST_STATUS } from './ti-requests.constants.js';
 import { USER_LEVELS, SETOR_LABELS } from '../../../constants/sector.constants.js';
 
 export function setorLabel(id) { return SETOR_LABELS[id] || id || 'Setor'; }
@@ -173,15 +172,20 @@ export function renderKanban(tickets, completedTickets, ui, respondent, isMotori
   `;
 }
 
-export function buildKanbanCardDetailHTML(ticket, col, ui) {
+export function buildKanbanCardDetailHTML(ticket, col, ui, isMotorista = false) {
+  const isMot      = isMotorista || ticket.id?.startsWith('MOT-');
   const isUpdating = ui.isUpdating && ui.updatingTicketId === ticket.id;
   const nextActions = {
-    'Pendente':     { label: 'Atribuir para mim', next: 'Atribuído',    icon: 'user-plus' },
-    'Atribuído':    { label: 'Iniciar',            next: 'Em andamento', icon: 'play' },
+    'Pendente':     { label: 'Atribuir para mim', next: 'Atribuído',    icon: 'user-plus'   },
+    'Atribuído':    { label: 'Iniciar',            next: 'Em andamento', icon: 'play'         },
     'Em andamento': { label: 'Concluir',           next: 'Concluído',    icon: 'check-circle' },
     'Concluído':    null,
   };
   const action = nextActions[ticket.status];
+
+  // F2: "Iniciar" abre painel de KM inicial em vez de atualizar status diretamente
+  const isStartingKm      = isMot && ui.startingKmTicketId === ticket.id;
+  const isConfirming      = ui.confirmingConclusionId === ticket.id;
 
   return `
     <div class="ti-kc-detail" data-ti-no-view>
@@ -202,23 +206,46 @@ export function buildKanbanCardDetailHTML(ticket, col, ui) {
           <div class="ti-kc-detail-field">
             <span>${fmtDuration(ticket.duracaoMinutos)}</span>
           </div>` : ''}
+        ${isMot && ticket.kmInicial !== null && ticket.kmInicial !== undefined ? `
+          <div class="ti-kc-detail-field">
+            <i data-lucide="gauge"></i>
+            <span>KM Inicial: <strong>${sanitizeText(String(ticket.kmInicial))}</strong></span>
+          </div>` : ''}
+        ${isMot && ticket.kmFinal !== null && ticket.kmFinal !== undefined ? `
+          <div class="ti-kc-detail-field">
+            <i data-lucide="gauge"></i>
+            <span>KM Final: <strong>${sanitizeText(String(ticket.kmFinal))}</strong></span>
+          </div>` : ''}
+        ${isMot && ticket.kmInicial !== null && ticket.kmInicial !== undefined
+              && ticket.kmFinal !== null && ticket.kmFinal !== undefined ? `
+          <div class="ti-kc-detail-field">
+            <i data-lucide="map"></i>
+            <span>KM Percorrido: <strong>${sanitizeText(String(ticket.kmFinal - ticket.kmInicial))} km</strong></span>
+          </div>` : ''}
       </div>
       ${action ? `
         <div class="ti-kc-detail-action">
           ${isUpdating
             ? `<span class="ti-updating"><i data-lucide="loader-circle"></i> Atualizando…</span>`
-            : ui.confirmingConclusionId === ticket.id
-              ? renderInlineConclusionPanel(ticket.id)
-              : ticket.status === 'Em andamento'
-                ? `<button type="button" class="ti-kc-btn is-conclude"
-                    data-ti-start-conclusion="${sanitizeAttribute(ticket.id)}">
-                    <i data-lucide="check-circle"></i>${action.label}
-                  </button>`
-                : `<button type="button" class="ti-kc-btn"
-                    data-ti-status="${sanitizeAttribute(ticket.id)}"
-                    data-ti-next-status="${sanitizeAttribute(action.next)}">
-                    <i data-lucide="${sanitizeAttribute(action.icon)}"></i>${action.label}
-                  </button>`
+            : isStartingKm
+              ? renderInlineKmStartPanel(ticket.id)
+              : isConfirming
+                ? renderInlineConclusionPanel(ticket.id, isMot, ticket.kmInicial)
+                : ticket.status === 'Em andamento'
+                  ? `<button type="button" class="ti-kc-btn is-conclude"
+                      data-ti-start-conclusion="${sanitizeAttribute(ticket.id)}">
+                      <i data-lucide="check-circle"></i>${action.label}
+                    </button>`
+                  : isMot && ticket.status === 'Atribuído'
+                    ? `<button type="button" class="ti-kc-btn"
+                        data-ti-start-km="${sanitizeAttribute(ticket.id)}">
+                        <i data-lucide="play"></i>${action.label}
+                      </button>`
+                    : `<button type="button" class="ti-kc-btn"
+                        data-ti-status="${sanitizeAttribute(ticket.id)}"
+                        data-ti-next-status="${sanitizeAttribute(action.next)}">
+                        <i data-lucide="${sanitizeAttribute(action.icon)}"></i>${action.label}
+                      </button>`
           }
         </div>
       ` : ''}
@@ -282,6 +309,14 @@ function renderKanbanCard(ticket, col, ui, respondent, isMotorista = false) {
               <i data-lucide="clock-4"></i>
               ${sanitizeText(datetimeLabel)}
             </span>` : ''}
+
+          ${isMotorista && ticket.status === 'Concluído'
+            && ticket.kmInicial !== null && ticket.kmInicial !== undefined
+            && ticket.kmFinal   !== null && ticket.kmFinal   !== undefined ? `
+            <span class="ti-kc-timestamp">
+              <i data-lucide="gauge"></i>
+              ${sanitizeText(String(ticket.kmFinal - ticket.kmInicial))} km percorridos
+            </span>` : ''}
         </div>
 
         <div class="ti-kc-right">
@@ -289,25 +324,81 @@ function renderKanbanCard(ticket, col, ui, respondent, isMotorista = false) {
         </div>
       </div>
 
-      ${isExpanded ? buildKanbanCardDetailHTML(ticket, col, ui) : ''}
+      ${isExpanded ? buildKanbanCardDetailHTML(ticket, col, ui, isMotorista) : ''}
     </div>
   `;
 }
 
-function renderInlineConclusionPanel(ticketId) {
+// F2: Painel de KM inicial — exibido ao clicar "Iniciar" em chamados de motorista
+function renderInlineKmStartPanel(ticketId) {
+  return `
+    <div class="ti-inline-km" data-ti-no-view>
+      <p class="ti-inline-km-label">
+        <i data-lucide="gauge"></i>
+        Informe o KM inicial do veículo:
+      </p>
+      <input type="number" class="ti-km-input" min="0" placeholder="Ex: 42500"
+        data-ti-km-input="${sanitizeAttribute(ticketId)}" />
+      <p class="ti-km-error" data-ti-km-error style="display:none">
+        Informe um valor de KM inicial válido.
+      </p>
+      <div class="ti-inline-km-btns">
+        <button type="button" class="ti-kc-btn"
+          data-ti-confirm-km="${sanitizeAttribute(ticketId)}">
+          <i data-lucide="check"></i>Confirmar e Iniciar
+        </button>
+        <button type="button" class="ti-kc-btn is-cancel" data-ti-cancel-km>
+          <i data-lucide="x"></i>Cancelar
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// F2+F3: Painel de conclusão — inclui KM final e upload de fotos para motoristas
+function renderInlineConclusionPanel(ticketId, isMotorista = false, kmInicial = null) {
+  const kmInicialInfo = isMotorista && kmInicial !== null
+    ? `<p class="ti-km-ref"><i data-lucide="gauge"></i> KM inicial registrado: <strong>${kmInicial}</strong></p>`
+    : '';
+  const kmFinalField = isMotorista ? `
+      <p class="ti-inline-conclusion-label">
+        <i data-lucide="gauge"></i>
+        KM final do veículo:
+      </p>
+      ${kmInicialInfo}
+      <input type="number" class="ti-km-input" min="0" placeholder="Ex: 42800"
+        data-ti-km-final-input="${sanitizeAttribute(ticketId)}" />
+      <p class="ti-km-final-error" data-ti-km-final-error style="display:none">
+        KM final inválido ou menor que o KM inicial.
+      </p>` : '';
+  const photoUploadSection = isMotorista ? `
+      <div class="ti-foto-section">
+        <input type="file" accept="image/*" multiple
+          data-ti-foto-input="${sanitizeAttribute(ticketId)}"
+          style="display:none" />
+        <button type="button" class="ti-kc-btn is-upload"
+          data-ti-upload-foto="${sanitizeAttribute(ticketId)}">
+          <i data-lucide="camera"></i>Adicionar fotos
+        </button>
+        <div class="ti-foto-preview" data-ti-foto-preview="${sanitizeAttribute(ticketId)}"></div>
+        <p class="ti-foto-upload-status" data-ti-foto-status style="display:none"></p>
+      </div>` : '';
   return `
     <div class="ti-inline-conclusion" data-ti-no-view>
+      ${kmFinalField}
       <p class="ti-inline-conclusion-label">
         <i data-lucide="check-circle"></i>
         Descreva o que foi feito:
       </p>
-      <textarea
-        class="ti-conclusion-textarea"
+      <textarea class="ti-conclusion-textarea"
         placeholder="O que foi feito para resolver este chamado…"
         data-ti-obs-input="${sanitizeAttribute(ticketId)}"
         rows="3"
       ></textarea>
-      <p class="ti-obs-error" data-ti-obs-error style="display:none">Descreva a resolução antes de confirmar.</p>
+      <p class="ti-obs-error" data-ti-obs-error style="display:none">
+        Descreva a resolução antes de confirmar.
+      </p>
+      ${photoUploadSection}
       <div class="ti-inline-conclusion-btns">
         <button type="button" class="ti-kc-btn is-conclude"
           data-ti-confirm-conclusion="${sanitizeAttribute(ticketId)}">
@@ -363,6 +454,13 @@ export function renderCompletedCard(ticket, ui) {
             ${renderDetailRow('Realizado por', ticket.atribuidoParaNome || '—', 'user-check')}
             ${renderDetailRow('Concluído em', concluded, 'calendar-check')}
             ${duration ? renderDetailRow('Duração', duration, 'timer') : ''}
+            ${ticket.kmInicial !== null && ticket.kmInicial !== undefined
+              ? renderDetailRow('KM Inicial', ticket.kmInicial, 'gauge') : ''}
+            ${ticket.kmFinal !== null && ticket.kmFinal !== undefined
+              ? renderDetailRow('KM Final', ticket.kmFinal, 'gauge') : ''}
+            ${(ticket.kmInicial !== null && ticket.kmFinal !== null &&
+               ticket.kmInicial !== undefined && ticket.kmFinal !== undefined)
+              ? renderDetailRow('KM Percorrido', ticket.kmFinal - ticket.kmInicial, 'map') : ''}
           </div>
           <div class="ti-detail-desc">
             <span class="ti-detail-label">Descrição da solicitação</span>
@@ -372,6 +470,20 @@ export function renderCompletedCard(ticket, ui) {
             <div class="ti-detail-obs">
               <span class="ti-detail-label">Observações do responsável</span>
               <p class="ti-detail-text ti-obs-text">${sanitizeText(ticket.observacao)}</p>
+            </div>` : ''}
+          ${Array.isArray(ticket.fotoUrls) && ticket.fotoUrls.length > 0 ? `
+            <div class="ti-detail-fotos">
+              <span class="ti-detail-label"><i data-lucide="camera"></i> Fotos da ocorrência</span>
+              <div class="ti-fotos-grid">
+                ${ticket.fotoUrls.map((url, i) => `
+                  <button type="button" class="ti-foto-thumb"
+                    data-ti-view-fotos="${sanitizeAttribute(ticket.id)}"
+                    data-ti-foto-idx="${i}"
+                    title="Ampliar foto ${i + 1}">
+                    <img src="${sanitizeAttribute(url)}" alt="Foto ${i + 1} da ocorrência" loading="lazy" />
+                    <span class="ti-foto-thumb-zoom"><i data-lucide="zoom-in"></i></span>
+                  </button>`).join('')}
+              </div>
             </div>` : ''}
         </div>
       </div>
