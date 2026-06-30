@@ -8,6 +8,7 @@ import {
 } from '../../services/content-progress.service.js';
 import { _contentStatusPill } from './video-module.markup.js';
 import { queueCelebration } from '../../utils/celebration.js';
+import { loadYouTubeAPI, extractVideoId } from '../../utils/youtube-api.js';
 
 export { getVideoModuleMarkup } from './video-module.markup.js';
 
@@ -24,33 +25,7 @@ let completionRegistered = false;
 let activeVideoContext = null;
 
 // ── YouTube IFrame API ──────────────────────────────────────────────────────
-
-function loadYouTubeAPI() {
-  return new Promise((resolve, reject) => {
-    if (window.YT && window.YT.Player) { resolve(window.YT); return; }
-
-    const timeout = setTimeout(() => reject(new Error('YouTube IFrame API timeout.')), 10000);
-
-    if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
-      const script = document.createElement('script');
-      script.src = 'https://www.youtube.com/iframe_api';
-      script.onerror = () => { clearTimeout(timeout); reject(new Error('Falha ao carregar API YouTube.')); };
-      document.head.appendChild(script);
-    }
-
-    const prev = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => {
-      clearTimeout(timeout);
-      if (typeof prev === 'function') prev();
-      resolve(window.YT);
-    };
-  });
-}
-
-function extractVideoId(embedUrl) {
-  const match = String(embedUrl || '').match(/youtube\.com\/embed\/([^?&/]+)/);
-  return match ? match[1] : null;
-}
+// loadYouTubeAPI e extractVideoId agora vêm de utils/youtube-api.js (reuso).
 
 function waitForDuration(player, retries = 0) {
   const d = player.getDuration?.() ?? 0;

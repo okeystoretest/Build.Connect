@@ -17,6 +17,8 @@ import {
   prefetchSectorAlerts,
 } from '../services/sector-alerts.service.js';
 import { showAuthenticatedShell, showLoginShell } from './dom.js';
+import { hasWatchedWelcome } from '../services/onboarding.service.js';
+import { runWelcomeOnboarding } from '../components/shared/welcome-onboarding.js';
 
 export function createAuthController({
   state,
@@ -128,6 +130,11 @@ export function createAuthController({
     // Revalida locks em background para garantir que o sessionStorage não esteja desatualizado.
     if (state.activeItemId && state.activeItemId !== SECTOR_IDS.home && state.authenticatedUser) {
       prefetchSectorAlerts(state.activeItemId, state.authenticatedUser).catch(() => {/* silencioso */});
+    }
+
+    // Onboarding obrigatório no primeiro acesso (vídeo de boas-vindas bloqueante).
+    if (state.authenticatedUser && !hasWatchedWelcome(state.authenticatedUser)) {
+      runWelcomeOnboarding(state.authenticatedUser);
     }
   }
 
