@@ -48,8 +48,21 @@ export function normalizeUserSectorAccessKeys(user) {
   return [...new Set(accessKeys)];
 }
 
+/**
+ * Retorna true se o usuário foi cadastrado com acesso a "Todos" os setores.
+ * O acesso irrestrito passa a depender do SETOR selecionado no cadastro
+ * (chave 'all'/'todos'), e não mais do nível Administrador.
+ */
+function hasAllSectorsAccess(user) {
+  const rawAccess = Array.isArray(user?.setorList) && user.setorList.length ? user.setorList : user?.setor;
+  return normalizeSectorAccessKeys(rawAccess).includes(ACCESS_KEYS.all);
+}
+
 export function getAccessKeysForUser(user) {
-  if (isAdminUser(user)) return [ACCESS_KEYS.all];
+  // Acesso irrestrito é concedido apenas quando o setor selecionado é "Todos".
+  // O Administrador NÃO recebe mais acesso a todos os setores automaticamente;
+  // sua exceção (isenção das travas de progresso Navi) permanece em navi.service.js.
+  if (hasAllSectorsAccess(user)) return [ACCESS_KEYS.all];
   return normalizeUserSectorAccessKeys(user);
 }
 
