@@ -127,7 +127,7 @@ function _renderProgressBar(cardAlerts) {
         aria-valuenow="${percent}" aria-valuemin="0" aria-valuemax="100"
         aria-label="${percent}% do conteúdo concluído">
         <div class="sector-progress-fill ${isAllDone ? 'is-complete' : ''}"
-          style="width:${percent}%"></div>
+          data-progress="${percent}"></div>
       </div>
       <div class="sector-progress-pills">
         ${CONTENT_CARD_IDS.map((id) => {

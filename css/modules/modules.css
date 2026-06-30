@@ -2142,7 +2142,7 @@ body.has-video-modal {
   color: var(--muted);
 }
 
-/* ── Botão Finalizar Leitura ──────────────────────────────────────────────── */
+/* ── Botão Confirmar Leitura ──────────────────────────────────────────────── */
 
 .document-modal-finish {
   display: flex;

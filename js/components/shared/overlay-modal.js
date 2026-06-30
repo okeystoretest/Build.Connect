@@ -33,7 +33,7 @@ export function openOverlayModal({ title, frameUrl, closeLabel, modalClassName, 
     <div class="document-modal-finish">
       <button type="button" class="module-action-button document-finish-btn" data-finish-reading>
         <i data-lucide="check-circle"></i>
-        <span>Finalizar Leitura</span>
+        <span>Confirmar Leitura</span>
       </button>
     </div>
   ` : '';

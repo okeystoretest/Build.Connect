@@ -157,6 +157,7 @@ function mountView(rootElement, viewState) {
   refreshLucideIcons(rootElement);
   activateViewTransition(rootElement);
   activateRevealAnimations(rootElement);
+  applySectorProgress(rootElement);
   bindContentInteractions(rootElement, viewState, {
     moduleCardIds: MODULE_CARD_IDS,
     handleModuleSelection,
@@ -172,7 +173,17 @@ function mountView(rootElement, viewState) {
     historicoModuleHandlers,
     questionariosModuleHandlers,
     vitrineModuleHandlers,
-    getModuleState,
+  });
+}
+
+// Aplica a largura da barra de progresso via DOM (compatível com CSP style-src 'self').
+// O markup expõe o percentual em data-progress; o atributo style inline seria bloqueado.
+function applySectorProgress(rootElement) {
+  rootElement.querySelectorAll('[data-progress]').forEach((fill) => {
+    const value = Number(fill.dataset.progress);
+    if (Number.isFinite(value)) {
+      fill.style.width = `${Math.max(0, Math.min(100, value))}%`;
+    }
   });
 }
 
