@@ -355,16 +355,16 @@ function renderTable(rows) {
     </tr></thead>
     <tbody>
       ${rows.map(t => `<tr>
-        <td class="td-id">${esc(t.id||'—')}</td>
-        <td>${statusBadge(t.status||'—')}</td>
-        <td>${esc(t.solicitanteNome||'—')}</td>
-        <td>${esc(t.solicitanteSetor||'—')}</td>
-        <td>${esc(t.unidade||'—')}</td>
-        <td>${esc(t.tipoServico||'—')}</td>
-        <td>${esc(t.atribuidoParaNome||'—')}</td>
-        <td>${fmtDate(t.timestamp)}</td>
-        <td>${fmtDuration(t.duracaoMinutos)||'—'}</td>
-        <td>${renderFotoCell(t)}</td>
+        <td class="td-id" data-label="ID">${esc(t.id||'—')}</td>
+        <td data-label="Status">${statusBadge(t.status||'—')}</td>
+        <td data-label="Solicitante">${esc(t.solicitanteNome||'—')}</td>
+        <td data-label="Setor">${esc(t.solicitanteSetor||'—')}</td>
+        <td data-label="Unidade">${esc(t.unidade||'—')}</td>
+        <td data-label="Tipo de Serviço">${esc(t.tipoServico||'—')}</td>
+        <td data-label="Responsável">${esc(t.atribuidoParaNome||'—')}</td>
+        <td data-label="Aberto em">${fmtDate(t.timestamp)}</td>
+        <td data-label="Duração">${fmtDuration(t.duracaoMinutos)||'—'}</td>
+        <td data-label="Fotos">${renderFotoCell(t)}</td>
       </tr>`).join('')}
     </tbody>
   </table>`;

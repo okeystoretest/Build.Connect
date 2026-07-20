@@ -22,6 +22,27 @@
     <div id="auth-root"></div>
 
     <div class="app-shell" id="app-shell" hidden>
+      <!-- Drawer mobile: botão hambúrguer e scrim. Ocultos em telas largas via CSS;
+           a sidebar mantém o comportamento fixo/recolhível no desktop. -->
+      <button
+        type="button"
+        id="sidebar-drawer-toggle"
+        class="sidebar-drawer-toggle"
+        aria-label="Abrir menu de navegação"
+        aria-controls="sidebar-root"
+        aria-expanded="false"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+          aria-hidden="true">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+
+      <div id="sidebar-scrim" class="sidebar-scrim" hidden></div>
+
       <aside class="sidebar" aria-label="Navegação lateral principal">
         <div id="sidebar-root"></div>
       </aside>

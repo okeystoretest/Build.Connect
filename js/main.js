@@ -1,5 +1,11 @@
 import { createAuthController } from './app/auth.controller.js';
-import { appDom, syncAppShellState as syncShellState } from './app/dom.js';
+import {
+  appDom,
+  syncAppShellState as syncShellState,
+  setDrawerOpen,
+  closeDrawer,
+  isDrawerViewport,
+} from './app/dom.js';
 import { openTiModal } from './components/shared/ti-modal.js';
 import { openNotificationsPanel } from './components/shared/notifications-panel.js';
 import { openSendNotificationModal } from './components/shared/send-notification-modal.js';
@@ -25,7 +31,7 @@ import { applyPendingBadgesSetting } from './services/settings.service.js';
 // Restaura configuração de badges ao iniciar
 applyPendingBadgesSetting();
 
-const { authRoot, sidebarRoot, appShell, contentRoot } = appDom;
+const { authRoot, sidebarRoot, appShell, contentRoot, drawerToggle, drawerScrim } = appDom;
 
 const state = createAppState();
 const loginState = createLoginState();
@@ -60,9 +66,13 @@ authController = createAuthController({
 
 handlers = {
   onSidebarToggle: navigationController.handleSidebarToggle,
-  onNavigate:      navigationController.handleNavigation,
+  onNavigate:      (itemId) => {
+    // Mobile: selecionar um setor fecha a gaveta para revelar o conteudo.
+    if (isDrawerViewport()) closeDrawer(appShell);
+    navigationController.handleNavigation(itemId);
+  },
   onGroupToggle:   navigationController.handleGroupToggle,
-  onLogout:        authController.handleLogout,
+  onLogout:        () => { closeDrawer(appShell); authController.handleLogout(); },
   onTiModal:       () => openTiModal({ user: state.authenticatedUser }),
   onBroadcast:     () => openSendNotificationModal(state.activeItemId),
   onSettings:      () => openSettingsModal({ onThemeChange: handleThemeChange }),
@@ -73,6 +83,28 @@ authController.bootstrap();
 // Sino de notificações: vinculado uma vez — persiste em toda a navegação
 document.getElementById('notifications-button')
   ?.addEventListener('click', () => openNotificationsPanel());
+
+// ── Drawer mobile (sidebar em gaveta) ─────────────────────────────────────
+// Estado vive apenas no DOM; inicia sempre fechado a cada carregamento.
+
+drawerToggle?.addEventListener('click', () => {
+  const isOpen = appShell.classList.contains('is-drawer-open');
+  setDrawerOpen(appShell, !isOpen);
+});
+
+drawerScrim?.addEventListener('click', () => closeDrawer(appShell));
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && appShell.classList.contains('is-drawer-open')) {
+    closeDrawer(appShell);
+  }
+});
+
+// Ao voltar para viewport de desktop, garante que o drawer não fique preso
+// aberto e que o scroll do body seja liberado.
+window.matchMedia('(max-width: 1024px)').addEventListener('change', (e) => {
+  if (!e.matches) closeDrawer(appShell);
+});
 
 // Navegação disparada por notificações (ex: clicar em chamado TI → Retaguarda)
 document.addEventListener('bc:navigate', (e) => {

@@ -1,16 +1,21 @@
 import { MODULE_IDS } from '../../../constants/module.constants.js';
-import { SECTOR_IDS } from '../../../constants/sector.constants.js';
+import { SECTOR_IDS, USER_LEVELS } from '../../../constants/sector.constants.js';
 import { listarChamadosTI, listarChamadosMotorista, atualizarStatusChamadoTI } from '../../../services/ti-requests.service.js';
 import { TI_REQUESTS_UI_DEFAULTS, KANBAN_POLL_INTERVAL_MS } from './ti-requests.constants.js';
 import { buildKanbanCardDetailHTML } from './ti-requests.view.js';
 import { refreshLucideIcons } from '../../../services/icons.service.js';
 import { showToast } from '../../../utils/toast.js';
 import { createMotoristaHandlers } from './ti-requests.handlers.motorista.js';
+import { createAdminHandlers } from './ti-requests.handlers.admin.js';
 
 // Conjunto de IDs de módulo que usam os handlers de TI
 const TI_MODULE_IDS = new Set([MODULE_IDS.tiRequest, MODULE_IDS.motorRequests]);
 
 let moduleContext = null;
+
+// Referencia aos handlers gerenciais, usada por loadTiTickets para carregar
+// a lista de motoristas elegiveis apos o load dos chamados.
+let _adminHandlers = null;
 
 // ── Polling state (Kanban em tempo real — Motoristas) ──────────────────────
 let _pollTimer    = null;
@@ -23,6 +28,12 @@ export function createTiRequestsModuleHandlers(context) {
   const moto = createMotoristaHandlers({
     getState, setState, render, ui, isTiModule: _isTiModule, loadTiTickets,
   });
+
+  // Kanban gerencial: filtro por motorista, atribuição direta e desatribuição
+  const admin = createAdminHandlers({
+    getState, setState, render, ui, isTiModule: _isTiModule, loadTiTickets,
+  });
+  _adminHandlers = admin;
 
   return {
     loadTickets:            loadTiTickets,
@@ -51,6 +62,13 @@ export function createTiRequestsModuleHandlers(context) {
     toggleDoneExpanded:     toggleDoneExpanded,
     toggleColExpanded:      toggleColExpanded,
     stopPolling:            _stopKanbanPolling,
+    // Kanban gerencial (Gestor/Admin)
+    changeKanbanMotorista:  admin.changeKanbanMotoristaFilter,
+    clearKanbanMotorista:   admin.clearKanbanMotoristaFilter,
+    openAssignPanel:        admin.openAssignPanel,
+    cancelAssignPanel:      admin.cancelAssignPanel,
+    confirmAssign:          admin.confirmAssign,
+    unassignTicket:         admin.unassignTicket,
   };
 }
 
@@ -179,6 +197,9 @@ async function loadTiTickets(rootElement, sector) {
       // Ativa polling em tempo real apenas no Kanban de Motoristas
       if (destino === 'motorista') {
         _startKanbanPolling(rootElement, sector);
+        // Lista de motoristas elegíveis para o filtro e a atribuição direta.
+        // Não-bloqueante: o backend restringe o endpoint e a falha é silenciosa.
+        _adminHandlers?.loadMotoristasDisponiveis(rootElement, sector);
       }
     } else {
       setState(sector.id, { ...next, ui: { ...nextUi, loadStatus: 'error', errorMessage: response?.message || 'Não foi possível carregar as requisições.' } });
@@ -249,7 +270,11 @@ function expandTiTicket(rootElement, sector, ticketId) {
     if (ticket) {
       const col  = { status: ticket.status, icon: KANBAN_COL_ICONS[ticket.status] || 'clock' };
       const temp = document.createElement('div');
-      temp.innerHTML = buildKanbanCardDetailHTML(ticket, col, newUi, isMotorista);
+      // Reconstrução parcial do detalhe: precisa do mesmo nível de privilégio
+      // usado no render completo, senão as ações gerenciais somem ao expandir.
+      const nivel = getState(sector.id)?.authenticatedUser?.nivel || '';
+      const isPrivileged = nivel === USER_LEVELS.admin || nivel === USER_LEVELS.gestor;
+      temp.innerHTML = buildKanbanCardDetailHTML(ticket, col, newUi, isMotorista, isPrivileged);
       const detailEl = temp.firstElementChild;
       if (detailEl) card.appendChild(detailEl);
     }

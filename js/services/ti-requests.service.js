@@ -71,6 +71,26 @@ export async function listarChamadosMotorista(period = 'mes') {
   return listarChamadosTI(period, 'motorista');
 }
 
+// Lista usuários EXCLUSIVAMENTE do setor motorista (validação feita no backend).
+export function listarMotoristas() {
+  return requestApi('list-motoristas');
+}
+
+// Atribuição direta pelo Gestor/Admin — coluna Pendente do Kanban.
+export function atribuirChamadoMotorista(ticketId, motoristaId) {
+  return requestApi('atribuir-chamado-motorista', {
+    ticketId:    String(ticketId    || ''),
+    motoristaId: String(motoristaId || ''),
+  });
+}
+
+// Remove o vínculo do motorista; o chamado retorna para 'Pendente'.
+export function desatribuirChamadoMotorista(ticketId) {
+  return requestApi('desatribuir-chamado-motorista', {
+    ticketId: String(ticketId || ''),
+  });
+}
+
 // ── Normalização ───────────────────────────────────────────────────────────
 
 function normalizeTicket(t) {

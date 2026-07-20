@@ -145,6 +145,43 @@ export function handleSecondaryClicks(event, rootElement, sector, viewState, dep
     return true;
   }
 
+  // ── Kanban gerencial (Gestor/Admin) ──────────────────────────────────
+
+  const tiUnassign = event.target.closest('[data-ti-unassign]');
+  if (tiUnassign) {
+    event.preventDefault();
+    tiRequestsModuleHandlers?.unassignTicket(rootElement, sector, tiUnassign.dataset.tiUnassign || '');
+    return true;
+  }
+
+  const tiOpenAssign = event.target.closest('[data-ti-open-assign]');
+  if (tiOpenAssign) {
+    event.preventDefault();
+    tiRequestsModuleHandlers?.openAssignPanel(rootElement, sector, tiOpenAssign.dataset.tiOpenAssign || '');
+    return true;
+  }
+
+  const tiCancelAssign = event.target.closest('[data-ti-cancel-assign]');
+  if (tiCancelAssign) {
+    event.preventDefault();
+    tiRequestsModuleHandlers?.cancelAssignPanel(rootElement, sector);
+    return true;
+  }
+
+  const tiConfirmAssign = event.target.closest('[data-ti-confirm-assign]');
+  if (tiConfirmAssign) {
+    event.preventDefault();
+    tiRequestsModuleHandlers?.confirmAssign(rootElement, sector, tiConfirmAssign.dataset.tiConfirmAssign || '');
+    return true;
+  }
+
+  const tiClearFilter = event.target.closest('[data-ti-kanban-clear-filter]');
+  if (tiClearFilter) {
+    event.preventDefault();
+    tiRequestsModuleHandlers?.clearKanbanMotorista(rootElement, sector);
+    return true;
+  }
+
   const tiToggleCol = event.target.closest('[data-ti-toggle-col]');
   if (tiToggleCol) {
     event.preventDefault();

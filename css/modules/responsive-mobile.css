@@ -1,0 +1,294 @@
+/**
+ * responsive-mobile.css
+ * Adaptação da plataforma a navegadores móveis (Safari/iOS e Chrome/Android):
+ *   • Sidebar em padrão drawer (gaveta) à esquerda, com scrim e hambúrguer
+ *   • Reorganização das tabelas e do Kanban de Motoristas
+ *   • Alvos de toque com área mínima adequada
+ *
+ * Carregado após responsive-base.css e modules.css para poder sobrepor as
+ * regras de empilhamento existentes no breakpoint de 1024px.
+ */
+
+/* ── Controles do drawer: ocultos no desktop ─────────────────────────── */
+
+.sidebar-drawer-toggle,
+.sidebar-scrim {
+  display: none;
+}
+
+/* iOS: evita zoom automático ao focar inputs com fonte menor que 16px */
+@media (max-width: 1024px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* ── Drawer: sidebar em gaveta ───────────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .app-shell,
+  .app-shell.is-sidebar-collapsed {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px;
+    padding-top: 72px; /* espaço para o botão hambúrguer fixo */
+    gap: 16px;
+  }
+
+  /* Botão hambúrguer — fixo no topo esquerdo */
+  .sidebar-drawer-toggle {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 30;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--card-shadow-rest);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--transition-base), transform var(--transition-base);
+  }
+
+  .sidebar-drawer-toggle:active {
+    transform: scale(0.96);
+  }
+
+  /* Scrim — cobre o conteúdo enquanto a gaveta está aberta */
+  .sidebar-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 28;
+    display: block;
+    background: rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    animation: bc-scrim-in var(--duration-fast) var(--ease-soft) forwards;
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+  }
+
+  .sidebar-scrim[hidden] {
+    display: none;
+  }
+
+  @keyframes bc-scrim-in {
+    to { opacity: 1; }
+  }
+
+  /* A sidebar deixa de ocupar coluna no grid e vira painel deslizante,
+     ancorado à ESQUERDA da interface. */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 29;
+    align-self: stretch;
+    width: min(84vw, 300px);
+    max-width: 300px;
+    transform: translateX(-100%);
+    transition: transform var(--duration-medium) var(--ease-premium);
+    will-change: transform;
+    overflow: hidden;
+  }
+
+  .app-shell.is-drawer-open .sidebar {
+    transform: translateX(0);
+  }
+
+  .sidebar-panel,
+  .app-shell.is-sidebar-collapsed .sidebar-panel {
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    border-radius: 0;
+    border-top: 0;
+    border-bottom: 0;
+    border-left: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Respeita o notch/barra inferior no iOS */
+    padding-top: max(14px, env(safe-area-inset-top));
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+  }
+
+  /* No drawer a sidebar está sempre expandida: o botão de recolher perde a
+     função e os rótulos devem permanecer visíveis. */
+  .sidebar-toggle {
+    display: none;
+  }
+
+  .sidebar-nav {
+    overflow-y: visible;
+  }
+
+  /* Trava o scroll de fundo com o drawer aberto */
+  body.has-drawer-open {
+    overflow: hidden;
+  }
+
+  /* Alvos de toque: mínimo confortável em todos os itens de navegação */
+  .nav-item,
+  .nav-trigger,
+  .submenu-item,
+  .footer-icon-button {
+    min-height: 46px;
+  }
+
+  /* Tooltips laterais não fazem sentido em toque */
+  .item-tooltip {
+    display: none !important;
+  }
+
+  /* Sino de notificações não pode colidir com o hambúrguer */
+  #notifications-topbar {
+    top: 14px;
+    right: 14px;
+  }
+}
+
+/* ── Conteúdo e módulos em telas pequenas ────────────────────────────── */
+
+@media (max-width: 900px) {
+  /* Kanban: colunas empilhadas, sem rolagem horizontal */
+  .ti-kanban {
+    grid-template-columns: minmax(0, 1fr) !important;
+    display: grid;
+    gap: 14px;
+    overflow-x: visible;
+  }
+
+  .ti-kanban-col {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-shell,
+  .app-shell.is-sidebar-collapsed {
+    padding: 12px;
+    padding-top: 68px;
+  }
+
+  .content-panel {
+    padding: 14px;
+    border-radius: var(--radius-md);
+  }
+
+  /* ── Tabelas: sem rolagem horizontal ──────────────────────────────────
+     Converte cada linha em um cartão empilhado, usando data-label como
+     rótulo da célula. Aplica-se às tabelas dos dashboards de Motorista/TI. */
+
+  .table-wrap {
+    overflow-x: visible;
+  }
+
+  .table-wrap table,
+  .table-wrap thead,
+  .table-wrap tbody,
+  .table-wrap tr,
+  .table-wrap td {
+    display: block;
+    width: 100%;
+  }
+
+  .table-wrap thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .table-wrap tr {
+    margin-bottom: 12px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+  }
+
+  .table-wrap td {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    border: 0;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  .table-wrap td::before {
+    content: attr(data-label);
+    flex: 0 0 40%;
+    text-align: left;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .table-wrap td:not(:last-child) {
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Filtros do dashboard empilhados */
+  .dash-header,
+  .dash-status,
+  .table-head,
+  .table-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .filter-select,
+  .dash-month-filter select {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* KPIs e métricas em coluna única/dupla conforme o espaço */
+  .kpi-grid,
+  .metrics-row,
+  .charts-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Modal de requisição ocupa a tela em mobile */
+  .ti-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: var(--radius-md);
+  }
+
+  .ti-modal-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ti-modal-actions {
+    flex-direction: column;
+  }
+
+  .ti-modal-actions > * {
+    width: 100%;
+  }
+
+  .ti-dest-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,0 +1,254 @@
+/**
+ * kanban-admin.css
+ * Controles gerenciais do Kanban de Motoristas (Gestor/Admin):
+ * barra de filtro, painel de atribuição direta e botão de desatribuição.
+ *
+ * Módulo próprio para não ampliar modules.css, já extenso.
+ * Reutiliza integralmente os tokens de base.css.
+ */
+
+/* ── Barra de filtro ─────────────────────────────────────────────────── */
+
+.ti-kanban-toolbar {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.ti-kanban-toolbar-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 240px;
+}
+
+.ti-kanban-toolbar-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ti-kanban-toolbar-label i,
+.ti-kanban-toolbar-label svg {
+  width: 14px;
+  height: 14px;
+}
+
+.ti-kanban-toolbar-select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.88rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.ti-kanban-toolbar-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.ti-kanban-toolbar-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 12px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.ti-kanban-toolbar-meta i,
+.ti-kanban-toolbar-meta svg {
+  width: 14px;
+  height: 14px;
+}
+
+.ti-kanban-toolbar-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-base), color var(--transition-base);
+}
+
+.ti-kanban-toolbar-clear:hover {
+  background: var(--hover-bg);
+  color: var(--text);
+}
+
+.ti-kanban-toolbar-clear i,
+.ti-kanban-toolbar-clear svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Bloco de ações gerenciais no card ───────────────────────────────── */
+
+.ti-kc-detail-admin {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+.ti-kc-detail-admin > * {
+  flex: 1 1 100%;
+}
+
+/* Variantes de botão — herdam a base .ti-kc-btn de modules.css */
+
+.ti-kc-btn.is-assign {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-strong);
+}
+
+.ti-kc-btn.is-assign:hover {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.ti-kc-btn.is-unassign {
+  background: transparent;
+  border-color: #EF4444;
+  color: #EF4444;
+}
+
+.ti-kc-btn.is-unassign:hover {
+  background: #EF4444;
+  color: #ffffff;
+}
+
+/* ── Painel de atribuição direta ─────────────────────────────────────── */
+
+.ti-inline-assign {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.ti-inline-assign-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ti-inline-assign-label i,
+.ti-inline-assign-label svg {
+  width: 13px;
+  height: 13px;
+}
+
+.ti-inline-assign-empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.ti-inline-assign-empty i,
+.ti-inline-assign-empty svg {
+  width: 14px;
+  height: 14px;
+}
+
+.ti-assign-select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.86rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.ti-assign-select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.ti-assign-error {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #EF4444;
+}
+
+.ti-inline-assign-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.ti-inline-assign-btns .ti-kc-btn {
+  flex: 1;
+}
+
+/* ── Hint do campo Motorista no formulário de requisição ─────────────── */
+
+.ti-modal-field-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* ── Mobile ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .ti-kanban-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .ti-kanban-toolbar-meta {
+    padding-bottom: 0;
+  }
+
+  .ti-inline-assign-btns {
+    flex-direction: column;
+  }
+}

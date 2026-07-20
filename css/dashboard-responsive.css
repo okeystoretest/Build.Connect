@@ -1,0 +1,108 @@
+/**
+ * dashboard-responsive.css
+ * Responsividade mobile dos dashboards (Retaguarda e Motorista).
+ * Extraido de dashboard-ti.css para respeitar o limite de 500 linhas por arquivo.
+ * Carregado apos dashboard-ti.css nas paginas dashboard-ti.html e
+ * dashboard-motorista.html.
+ */
+
+/* ────────────────────────────────────────────────────────────────────────
+   Responsividade mobile (Safari/iOS e Chrome/Android)
+   Converte a tabela em cartões empilhados usando data-label, eliminando a
+   rolagem horizontal. Aplica-se aos dashboards de Retaguarda e Motorista.
+   ──────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .kpi-grid,
+  .metrics-row,
+  .charts-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    padding: 12px;
+  }
+
+  /* iOS: evita zoom automático ao focar campos */
+  select,
+  input,
+  textarea {
+    font-size: 16px;
+  }
+
+  .dash-header,
+  .dash-status,
+  .table-head,
+  .table-filters,
+  .filter-group,
+  .dash-month-filter {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .filter-select {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .table-wrap {
+    overflow-x: visible;
+  }
+
+  .table-wrap table,
+  .table-wrap thead,
+  .table-wrap tbody,
+  .table-wrap tr,
+  .table-wrap td {
+    display: block;
+    width: 100%;
+  }
+
+  /* Cabeçalho oculto visualmente, preservado para leitores de tela */
+  .table-wrap thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .table-wrap tr {
+    margin-bottom: 12px;
+    padding: 12px;
+    border: 1px solid #2e2e38;
+    border-radius: 10px;
+    background: #131318;
+  }
+
+  .table-wrap td {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    border: 0;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  .table-wrap td::before {
+    content: attr(data-label);
+    flex: 0 0 40%;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+  }
+
+  .table-wrap td:not(:last-child) {
+    border-bottom: 1px solid #23232b;
+  }
+}

@@ -37,6 +37,13 @@ export const TI_REQUESTS_UI_DEFAULTS = Object.freeze({
   newTicketIds: [],
   // F2: ID do chamado aguardando input de KM inicial (Atribuído → Em andamento)
   startingKmTicketId: null,
+  // Filtro por motorista aplicado ao KANBAN (Gestor/Admin). '' = todos.
+  // Independente de dashboardMotorista, que filtra apenas os gráficos.
+  kanbanMotorista: '',
+  // ID do chamado Pendente com o painel de atribuição direta aberto
+  assigningTicketId: null,
+  // Lista de motoristas elegíveis (setor exclusivo) para atribuição direta
+  motoristasDisponiveis: [],
 });
 
 /**

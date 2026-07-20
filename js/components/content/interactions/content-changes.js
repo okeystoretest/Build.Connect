@@ -36,6 +36,15 @@ export function createChangeHandler(rootElement, sector, dependencies) {
       return;
     }
 
+    // Filtro por motorista do KANBAN (Gestor/Admin) — distinto de
+    // [data-ti-motorista], que filtra apenas os gráficos do dashboard.
+    const tiKanbanMotorista = event.target.closest('[data-ti-kanban-motorista]');
+
+    if (tiKanbanMotorista) {
+      tiRequestsModuleHandlers?.changeKanbanMotorista(rootElement, sector, tiKanbanMotorista.value || '');
+      return;
+    }
+
     const tiDoneMonthSelect = event.target.closest('[data-ti-done-month]');
 
     if (tiDoneMonthSelect) {

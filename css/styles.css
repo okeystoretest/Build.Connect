@@ -15,5 +15,7 @@
 @import url('./modules/vitrine.css');
 @import url('./modules/settings-panel.css');
 @import url('./modules/navi.css');
+@import url('./modules/kanban-admin.css');
+@import url('./modules/responsive-mobile.css');
 
 @import url('./modules/spacing.css');
