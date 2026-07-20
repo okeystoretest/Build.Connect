@@ -74,8 +74,7 @@ export function getMotoristaFormMarkup(user) {
             <option value="">Carregando motoristas…</option>
           </select>
           <span class="ti-modal-field-hint">
-            Selecione <strong>Em aberto</strong> para deixar a requisição disponível
-            na coluna Pendente, permitindo que qualquer motorista assuma.
+            Selecione <strong>Em aberto</strong> para deixar a requisição disponível para que qualquer motorista assuma.
           </span>
         </label>
         <div class="ti-modal-grid">
