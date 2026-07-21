@@ -2,6 +2,7 @@ import { refreshLucideIcons } from '../services/icons.service.js';
 import { sanitizeAttribute, sanitizeText } from '../utils/sanitize.js';
 import { USER_LEVELS } from '../constants/sector.constants.js';
 import { applyPendingBadgesSetting } from '../services/settings.service.js';
+import { normalizeUserLevel } from '../services/access.service.js';
 
 export { applyPendingBadgesSetting } from '../services/settings.service.js';
 
@@ -47,7 +48,7 @@ export function renderSidebar(rootElement, state, handlers, navigationItems, the
           <span class="item-tooltip">Chamado (TI)</span>
         </button>
 
-        ${(state.authenticatedUser?.nivel === USER_LEVELS.admin || state.authenticatedUser?.nivel === USER_LEVELS.gestor) ? `
+        ${(() => { const n = normalizeUserLevel(state.authenticatedUser?.nivel); return n === USER_LEVELS.admin || n === USER_LEVELS.gestor; })() ? `
         <button
           class="footer-icon-button"
           type="button"

@@ -6,6 +6,7 @@
 
 import { sanitizeAttribute, sanitizeText } from '../../../utils/sanitize.js';
 import { USER_LEVELS, SETOR_LABELS } from '../../../constants/sector.constants.js';
+import { normalizeUserLevel } from '../../../services/access.service.js';
 import {
   buildMotoristaFilterOptions,
   filterKanbanByMotorista,
@@ -96,7 +97,9 @@ const KANBAN_COLS = [
 export function renderKanban(tickets, completedTickets, ui, respondent, isMotorista = false) {
   const allActive    = tickets;
   const userId       = respondent?.id || '';
-  const nivel        = respondent?.nivel || '';
+  // O backend devolve o nível capitalizado ('Admin'/'Gestor'), enquanto
+  // USER_LEVELS usa minúsculas. normalizeUserLevel reconcilia os dois formatos.
+  const nivel        = normalizeUserLevel(respondent?.nivel);
   const isPrivileged = nivel === USER_LEVELS.admin || nivel === USER_LEVELS.gestor;
   const PAGE_SIZE    = DONE_PAGE_SIZE;
   const colsExpanded = ui.colsExpanded || {};
@@ -269,7 +272,7 @@ export function buildKanbanCardDetailHTML(ticket, col, ui, isMotorista = false, 
       </div>
       ${(showAssign || showUnassign) ? `
         <div class="ti-kc-detail-admin">
-          ${showAssign   ? renderAssignPanel(ticket.id, motoristasList, isAssignOpen, isUpdating) : ''}
+          ${showAssign   ? renderAssignPanel(ticket.id, motoristasList, isAssignOpen, isUpdating, ui.currentUser) : ''}
           ${showUnassign ? renderUnassignButton(ticket.id, isUpdating) : ''}
         </div>
       ` : ''}

@@ -109,7 +109,7 @@ export function renderUnassignButton(ticketId, isUpdating) {
  * Fechado: botão "Atribuir a um motorista".
  * Aberto: select de motoristas elegíveis + confirmar/cancelar.
  */
-export function renderAssignPanel(ticketId, motoristas, isOpen, isUpdating) {
+export function renderAssignPanel(ticketId, motoristas, isOpen, isUpdating, currentUser = null) {
   if (isUpdating) {
     return `<span class="ti-updating"><i data-lucide="loader-circle"></i> Atribuindo…</span>`;
   }
@@ -118,12 +118,20 @@ export function renderAssignPanel(ticketId, motoristas, isOpen, isUpdating) {
     return `
       <button type="button" class="ti-kc-btn is-assign"
         data-ti-open-assign="${sanitizeAttribute(ticketId)}">
-        <i data-lucide="user-plus"></i>Atribuir a um motorista
+        <i data-lucide="user-plus"></i>Atribuir para
       </button>
     `;
   }
 
-  if (!motoristas.length) {
+  // Autoatribuição: o Gestor/Admin pode assumir a atividade mesmo não sendo
+  // do setor motorista, portanto entra como opção própria, fora da lista.
+  const selfId = String(currentUser?.id || '').trim();
+  const inList = selfId && motoristas.some((m) => String(m.id) === selfId);
+  const selfOption = (selfId && !inList)
+    ? `<option value="${sanitizeAttribute(selfId)}">Atribuir a mim (${sanitizeText(currentUser?.nome || 'meu usuário')})</option>`
+    : '';
+
+  if (!motoristas.length && !selfOption) {
     return `
       <div class="ti-inline-assign" data-ti-no-view>
         <p class="ti-inline-assign-empty">
@@ -149,6 +157,7 @@ export function renderAssignPanel(ticketId, motoristas, isOpen, isUpdating) {
       </p>
       <select class="ti-assign-select" data-ti-assign-select="${sanitizeAttribute(ticketId)}">
         <option value="">Selecione o motorista</option>
+        ${selfOption}
         ${options}
       </select>
       <p class="ti-assign-error" data-ti-assign-error style="display:none">

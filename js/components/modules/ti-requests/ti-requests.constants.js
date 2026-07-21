@@ -44,6 +44,8 @@ export const TI_REQUESTS_UI_DEFAULTS = Object.freeze({
   assigningTicketId: null,
   // Lista de motoristas elegíveis (setor exclusivo) para atribuição direta
   motoristasDisponiveis: [],
+  // Usuário autenticado, usado pela opção de autoatribuição no painel
+  currentUser: null,
 });
 
 /**

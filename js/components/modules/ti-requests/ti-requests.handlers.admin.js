@@ -33,12 +33,18 @@ export function createAdminHandlers({ getState, setState, render, ui, isTiModule
       const response = await listarMotoristas();
       const next = getState(sector.id);
       if (!isTiModule(next)) return;
-      if (!response?.success) return;
 
-      const users = Array.isArray(response.users) ? response.users : [];
+      // currentUser é populado mesmo em falha, para preservar a autoatribuição.
+      const users = (response?.success && Array.isArray(response.users)) ? response.users : [];
       setState(sector.id, {
         ...next,
-        ui: { ...ui(next), motoristasDisponiveis: users },
+        ui: {
+          ...ui(next),
+          motoristasDisponiveis: users,
+          // Guardado no estado da UI para que o painel de atribuição possa
+          // oferecer a autoatribuição sem alterar assinaturas em cascata.
+          currentUser: next.authenticatedUser || null,
+        },
       });
       render(rootElement, sector);
     } catch { /* silencioso — não bloqueia o Kanban */ }

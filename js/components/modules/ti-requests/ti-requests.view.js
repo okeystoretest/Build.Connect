@@ -9,6 +9,7 @@
 import { sanitizeText } from '../../../utils/sanitize.js';
 import { TI_REQUESTS_UI_DEFAULTS } from './ti-requests.constants.js';
 import { USER_LEVELS } from '../../../constants/sector.constants.js';
+import { normalizeUserLevel } from '../../../services/access.service.js';
 import { MODULE_IDS } from '../../../constants/module.constants.js';
 import { renderKanban, buildKanbanCardDetailHTML } from './ti-requests.view.kanban.js';
 import { renderDashboard, renderFullDashboard, buildLocalDashboard, extractMotoristas, filterByMotorista } from './ti-requests.view.charts.js';
@@ -84,7 +85,7 @@ function renderBody(ui, respondent, isMotorista = false) {
 
   const tickets          = Array.isArray(ui.tickets)          ? ui.tickets          : [];
   const completedTickets = Array.isArray(ui.completedTickets) ? ui.completedTickets : [];
-  const nivel            = respondent?.nivel || '';
+  const nivel            = normalizeUserLevel(respondent?.nivel);
   const isPrivileged     = nivel === USER_LEVELS.admin || nivel === USER_LEVELS.gestor;
 
   // Filtro exclusivo por motorista (apenas dashboard; o kanban operacional

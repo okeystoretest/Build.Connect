@@ -5,6 +5,7 @@ import { TI_REQUESTS_UI_DEFAULTS, KANBAN_POLL_INTERVAL_MS } from './ti-requests.
 import { buildKanbanCardDetailHTML } from './ti-requests.view.js';
 import { refreshLucideIcons } from '../../../services/icons.service.js';
 import { showToast } from '../../../utils/toast.js';
+import { normalizeUserLevel } from '../../../services/access.service.js';
 import { createMotoristaHandlers } from './ti-requests.handlers.motorista.js';
 import { createAdminHandlers } from './ti-requests.handlers.admin.js';
 
@@ -272,7 +273,7 @@ function expandTiTicket(rootElement, sector, ticketId) {
       const temp = document.createElement('div');
       // Reconstrução parcial do detalhe: precisa do mesmo nível de privilégio
       // usado no render completo, senão as ações gerenciais somem ao expandir.
-      const nivel = getState(sector.id)?.authenticatedUser?.nivel || '';
+      const nivel = normalizeUserLevel(getState(sector.id)?.authenticatedUser?.nivel);
       const isPrivileged = nivel === USER_LEVELS.admin || nivel === USER_LEVELS.gestor;
       temp.innerHTML = buildKanbanCardDetailHTML(ticket, col, newUi, isMotorista, isPrivileged);
       const detailEl = temp.firstElementChild;
