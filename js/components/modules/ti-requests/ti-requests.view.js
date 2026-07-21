@@ -8,11 +8,9 @@
 
 import { sanitizeText } from '../../../utils/sanitize.js';
 import { TI_REQUESTS_UI_DEFAULTS } from './ti-requests.constants.js';
-import { USER_LEVELS } from '../../../constants/sector.constants.js';
-import { normalizeUserLevel } from '../../../services/access.service.js';
 import { MODULE_IDS } from '../../../constants/module.constants.js';
 import { renderKanban, buildKanbanCardDetailHTML } from './ti-requests.view.kanban.js';
-import { renderDashboard, renderFullDashboard, buildLocalDashboard, extractMotoristas, filterByMotorista } from './ti-requests.view.charts.js';
+import { renderFullDashboard } from './ti-requests.view.charts.js';
 
 export { buildKanbanCardDetailHTML } from './ti-requests.view.kanban.js';
 
@@ -85,26 +83,11 @@ function renderBody(ui, respondent, isMotorista = false) {
 
   const tickets          = Array.isArray(ui.tickets)          ? ui.tickets          : [];
   const completedTickets = Array.isArray(ui.completedTickets) ? ui.completedTickets : [];
-  const nivel            = normalizeUserLevel(respondent?.nivel);
-  const isPrivileged     = nivel === USER_LEVELS.admin || nivel === USER_LEVELS.gestor;
 
-  // Filtro exclusivo por motorista (apenas dashboard; o kanban operacional
-  // permanece completo). Lista de motoristas extraída de todos os tickets.
-  const motoristas       = isMotorista ? extractMotoristas(tickets, completedTickets) : [];
-  const selectedMot      = isMotorista ? (ui.dashboardMotorista || '') : '';
-  const dashTickets      = filterByMotorista(tickets, selectedMot);
-  const dashCompleted    = filterByMotorista(completedTickets, selectedMot);
-
-  // Para o Motorista: o servidor pode não retornar `ui.dashboard`.
-  // Recalcula localmente sempre que houver filtro ativo, para refletir a seleção.
-  const effectiveDashboard = isMotorista
-    ? (selectedMot || !ui.dashboard
-        ? buildLocalDashboard(dashTickets, dashCompleted)
-        : ui.dashboard)
-    : ui.dashboard;
-
+  // O dashboard inline foi removido do corpo do módulo. Os indicadores
+  // permanecem disponíveis no "Dashboard de Solicitações" (renderFullDashboard),
+  // acessível pelo botão no cabeçalho.
   return `
     ${renderKanban(tickets, completedTickets, ui, respondent, isMotorista)}
-    ${isPrivileged ? renderDashboard(effectiveDashboard, ui.dashboardPeriod || 'mes', isMotorista, motoristas, selectedMot) : ''}
   `;
 }

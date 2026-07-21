@@ -29,15 +29,7 @@ export function createChangeHandler(rootElement, sector, dependencies) {
       return;
     }
 
-    const tiMotoristaSelect = event.target.closest('[data-ti-motorista]');
-
-    if (tiMotoristaSelect) {
-      tiRequestsModuleHandlers?.changeMotoristaFilter(rootElement, sector, tiMotoristaSelect.value || '');
-      return;
-    }
-
-    // Filtro por motorista do KANBAN (Gestor/Admin) — distinto de
-    // [data-ti-motorista], que filtra apenas os gráficos do dashboard.
+    // Filtro por motorista do KANBAN (Gestor/Admin)
     const tiKanbanMotorista = event.target.closest('[data-ti-kanban-motorista]');
 
     if (tiKanbanMotorista) {

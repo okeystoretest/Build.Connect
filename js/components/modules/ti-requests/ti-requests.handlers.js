@@ -54,7 +54,6 @@ export function createTiRequestsModuleHandlers(context) {
     cancelConclusion:       moto.cancelConclusion,
     confirmConclusion:      moto.confirmConclusion,
     changePeriod:           changeDashboardPeriod,
-    changeMotoristaFilter:  changeMotoristaFilter,
     changeDoneMonthFilter:  changeDoneMonthFilter,
     openFullDashboard:      openFullDashboard,
     closeFullDashboard:     closeFullDashboard,
@@ -342,15 +341,6 @@ async function changeDashboardPeriod(rootElement, sector, period) {
   if (!_isTiModule(state)) return;
   setState(sector.id, { ...state, ui: { ...ui(state), dashboardPeriod: period } });
   await loadTiTickets(rootElement, sector);
-}
-
-// ── Dashboard: filtro por motorista (client-side, sem recarregar) ──────────
-
-function changeMotoristaFilter(rootElement, sector, motoristaId) {
-  const state = getState(sector.id);
-  if (!_isTiModule(state)) return;
-  setState(sector.id, { ...state, ui: { ...ui(state), dashboardMotorista: motoristaId || '' } });
-  render(rootElement, sector);
 }
 
 // ── Full Dashboard ────────────────────────────────────────────────────────
