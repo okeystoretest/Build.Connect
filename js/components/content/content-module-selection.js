@@ -33,6 +33,7 @@ import { FEEDBACK_UI_DEFAULTS } from '../modules/feedback-module.js';
 import { QUALITY_UI_DEFAULTS } from '../modules/quality-module.js';
 import { TI_REQUESTS_UI_DEFAULTS } from '../modules/ti-requests-module.js';
 import { QUIZ_UI_DEFAULTS } from '../modules/questionarios-module.js';
+import { DENUNCIAS_UI_DEFAULTS } from '../modules/denuncias-module.js';
 import {
   VITRINE_CATEGORY_MODULE_IDS,
   VITRINE_UI_DEFAULTS,
@@ -63,7 +64,7 @@ function requiresActiveUsers(moduleId) {
 export async function executeModuleSelection(
   rootElement, sector, moduleId, authenticatedUser,
   options,
-  { renderModuleStage, tiRequestsModuleHandlers, vitrineModuleHandlers },
+  { renderModuleStage, tiRequestsModuleHandlers, vitrineModuleHandlers, denunciasModuleHandlers },
 ) {
   const { forceRefresh = false } = options;
   const currentState = getModuleState(sector.id);
@@ -156,6 +157,19 @@ export async function executeModuleSelection(
         ui: { ...MODULE_UI_DEFAULTS, questionarios: { ...QUIZ_UI_DEFAULTS } },
       });
       renderModuleStage(rootElement, sector);
+      return;
+    }
+
+    if (moduleId === MODULE_IDS.centralDenuncias) {
+      _set({
+        selectedModuleId: moduleId,
+        status: MODULE_STATUS.success,
+        moduleData: { respondent: authenticatedUser },
+        errorMessage: '',
+        ui: { ...MODULE_UI_DEFAULTS, denuncias: { ...DENUNCIAS_UI_DEFAULTS } },
+      });
+      renderModuleStage(rootElement, sector);
+      denunciasModuleHandlers.loadDenuncias(rootElement, sector);
       return;
     }
 

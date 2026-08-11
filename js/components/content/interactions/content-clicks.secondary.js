@@ -21,6 +21,7 @@ export function handleSecondaryClicks(event, rootElement, sector, viewState, dep
     historicoModuleHandlers,
     questionariosModuleHandlers,
     vitrineModuleHandlers,
+    denunciasModuleHandlers,
     evaluationModuleHandlers,
     feedbackModuleHandlers,
     qualityModuleHandlers,
@@ -312,6 +313,22 @@ export function handleSecondaryClicks(event, rootElement, sector, viewState, dep
   if (vitrineRetry) {
     event.preventDefault();
     vitrineModuleHandlers?.retry(rootElement, sector);
+    return true;
+  }
+
+  // ── Central de Denúncias (DHO) ───────────────────────────────────────────
+
+  const denunciaFilter = event.target.closest('[data-denuncia-filter]');
+  if (denunciaFilter) {
+    event.preventDefault();
+    denunciasModuleHandlers?.setStatusFilter(rootElement, sector, denunciaFilter.dataset.denunciaFilter || '');
+    return true;
+  }
+
+  const denunciaOpen = event.target.closest('[data-denuncia-open]');
+  if (denunciaOpen) {
+    event.preventDefault();
+    denunciasModuleHandlers?.openDetail(rootElement, sector, denunciaOpen.dataset.denunciaOpen || '');
     return true;
   }
 

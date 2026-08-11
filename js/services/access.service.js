@@ -140,11 +140,18 @@ export function getNavigationItemsForAccess(sectorAccess) {
 }
 
 export function getCardsForUserAccess(cards, user) {
-  if (!isCollaboratorUser(user)) return cards;
-  return cards.filter((card) => card.id !== MODULE_IDS.evaluation);
+  const isPrivileged = isAdminUser(user) || isManagerUser(user);
+  let filtered = cards;
+  // Cards marcados como requiredPrivileged (ex.: Central de Denúncias) só
+  // aparecem para Gestor/Admin.
+  if (!isPrivileged) filtered = filtered.filter((card) => !card.requiredPrivileged);
+  if (!isCollaboratorUser(user)) return filtered;
+  return filtered.filter((card) => card.id !== MODULE_IDS.evaluation);
 }
 
 export function canUserAccessModule(user, moduleId) {
+  const isPrivileged = isAdminUser(user) || isManagerUser(user);
+  if (moduleId === MODULE_IDS.centralDenuncias && !isPrivileged) return false;
   if (isCollaboratorUser(user) && moduleId === MODULE_IDS.evaluation) return false;
   return true;
 }

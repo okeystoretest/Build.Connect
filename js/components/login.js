@@ -1,6 +1,7 @@
 import { refreshLucideIcons } from '../services/icons.service.js';
 import { sanitizeText } from '../utils/sanitize.js';
 import { openAnonFeedbackModal } from './shared/anon-feedback-modal.js';
+import { openDenunciaModal } from './shared/denuncia-modal.js';
 
 export function renderLoginView(rootElement, loginState, handlers) {
   const existingPanel = rootElement.querySelector('.login-panel');
@@ -106,6 +107,10 @@ export function renderLoginView(rootElement, loginState, handlers) {
             <i data-lucide="message-circle-question"></i>
             <span>Deixar feedback anônimo</span>
           </button>
+          <button type="button" class="login-anon-btn login-denuncia-btn" id="denuncia-btn">
+            <i data-lucide="shield-alert"></i>
+            <span>Denúncia anônima</span>
+          </button>
         </div>
       </div>
     </section>
@@ -122,6 +127,8 @@ function bindLoginEvents(rootElement, handlers) {
   const anonBtn = rootElement.querySelector('#anon-feedback-btn');
 
   anonBtn?.addEventListener('click', () => openAnonFeedbackModal());
+  const denunciaBtn = rootElement.querySelector('#denuncia-btn');
+  denunciaBtn?.addEventListener('click', () => openDenunciaModal());
   const toggleButton = rootElement.querySelector('#login-password-toggle');
 
 

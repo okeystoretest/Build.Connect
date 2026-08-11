@@ -24,6 +24,7 @@ import { getQualityModuleMarkup } from './quality-module.js';
 import { getTiRequestsModuleMarkup } from './ti-requests-module.js';
 import { getHistoricoModuleMarkup } from './historico-module.js';
 import { getQuestionariosModuleMarkup } from './questionarios-module.js';
+import { getDenunciasModuleMarkup } from './denuncias-module.js';
 import { VITRINE_CATEGORY_MODULE_IDS } from './vitrine/vitrine.constants.js';
 import { getVitrineModuleMarkup } from './vitrine/vitrine.view.js';
 
@@ -103,6 +104,10 @@ export function getModuleStageMarkup(sector, stageState) {
 
   if (stageState.selectedModuleId === MODULE_IDS.questionarios) {
     return getQuestionariosModuleMarkup(selectedCard, stageState.moduleData, stageState.ui?.questionarios || {});
+  }
+
+  if (stageState.selectedModuleId === MODULE_IDS.centralDenuncias) {
+    return getDenunciasModuleMarkup(selectedCard, stageState.moduleData, stageState.ui || {});
   }
 
   if (VITRINE_CATEGORY_MODULE_IDS.has(stageState.selectedModuleId)) {

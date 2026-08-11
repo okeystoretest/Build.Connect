@@ -1,7 +1,6 @@
 import { refreshLucideIcons } from '../../services/icons.service.js';
 import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
-import { loadActiveUsers } from '../../services/users.service.js';
-import { saveEvaluationRecord } from '../../services/evaluations.service.js';
+import { loadPublicUsers, sendAnonymousFeedback } from '../../services/anon-feedback.service.js';
 import { animateOut } from '../../utils/motion.js';
 
 let activeModal = null;
@@ -25,17 +24,30 @@ export async function openAnonFeedbackModal() {
     if (!overlay.querySelector('[role="dialog"]')?.contains(e.target)) closeAnonFeedbackModal();
   });
 
-  // Load users
+  // Carrega colaboradores pela rota PÚBLICA (sem sessão, sem reload em 401).
   let users = [];
+  let loadError = '';
   try {
-    const res = await loadActiveUsers({ forceRefresh: true });
+    const res = await loadPublicUsers();
     users = Array.isArray(res?.users) ? res.users : [];
-  } catch (_) { users = []; }
+    if (!res?.success && !users.length) loadError = res?.message || '';
+  } catch (err) {
+    loadError = err?.message || '';
+  }
 
-  if (!activeModal) return; // closed while loading
+  if (!activeModal) return; // fechado durante o carregamento
 
   overlay.innerHTML = getFormMarkup(users);
   refreshLucideIcons(overlay);
+
+  // Se a lista falhou, a busca fica desabilitada; informa o usuário sem travar o modal.
+  if (loadError) {
+    const info = overlay.querySelector('.anon-fb-info');
+    if (info) {
+      info.innerHTML = `<i data-lucide="triangle-alert"></i> Não foi possível carregar os colaboradores agora. Tente novamente em instantes.`;
+      refreshLucideIcons(info);
+    }
+  }
 
   bindFormEvents(overlay, users);
 }
@@ -129,34 +141,48 @@ function bindFormEvents(overlay, users) {
     else { if (msgErr)  msgErr.style.display  = 'none'; }
     if (!valid) return;
 
-    if (submitBtn) { submitBtn.disabled = true; submitBtn.querySelector('span').textContent = 'Enviando…'; }
+    // Helpers de estado do botão — tolerantes à ausência do <span>.
+    const setSubmitLabel = (label) => {
+      if (!submitBtn) return;
+      const span = submitBtn.querySelector('span');
+      if (span) span.textContent = label;
+      else submitBtn.textContent = label;
+    };
+    const setSubmitLoading = (loading) => {
+      if (!submitBtn) return;
+      submitBtn.disabled = loading;
+      submitBtn.classList.toggle('is-loading', loading);
+      setSubmitLabel(loading ? 'Enviando…' : 'Enviar feedback');
+    };
+
+    setSubmitLoading(true);
 
     try {
-      const response = await saveEvaluationRecord({
-        toolId:    'feedback',
-        toolTitle: 'Feedback',
-        sectorId:  targetSetor,
-        sectorName:targetSetor,
-        respondent: { id: 'ANONIMO', nome: 'Feedback Anônimo', nivel: 'anonimo' },
-        evaluatee:  { id: targetId, nome: targetNome, setor: targetSetor },
-        evaluationDate: new Date().toISOString(),
-        notes: mensagem,
-        fields: {}, scores: {}, totals: {}, summary: {},
-        source: 'Anônimo',
+      const response = await sendAnonymousFeedback({
+        targetUserId:    targetId,
+        targetUserNome:  targetNome,
+        targetUserSetor: targetSetor,
+        mensagem,
       });
 
-      if (response?.success || response?.record) {
+      if (response?.success) {
         const f = overlay.querySelector('[data-anon-form]');
         const s = overlay.querySelector('[data-anon-success]');
         if (f) f.style.display = 'none';
         if (s) { s.style.display = 'flex'; refreshLucideIcons(s); }
       } else {
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.querySelector('span').textContent = 'Enviar feedback'; }
-        const msgErr2 = overlay.querySelector('[data-anon-msg-error]');
-        if (msgErr2) { msgErr2.textContent = response?.message || 'Erro ao enviar feedback.'; msgErr2.style.display = ''; }
+        setSubmitLoading(false);
+        if (msgErr) {
+          msgErr.textContent = response?.message || 'Erro ao enviar feedback.';
+          msgErr.style.display = '';
+        }
       }
     } catch (err) {
-      if (submitBtn) { submitBtn.disabled = false; submitBtn.querySelector('span').textContent = 'Enviar feedback'; }
+      setSubmitLoading(false);
+      if (msgErr) {
+        msgErr.textContent = err?.message || 'Falha ao enviar o feedback. Tente novamente.';
+        msgErr.style.display = '';
+      }
     }
   });
 }

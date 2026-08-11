@@ -29,6 +29,7 @@ import { createTiRequestsModuleHandlers } from './modules/ti-requests-module.js'
 import { createHistoricoModuleHandlers } from './modules/historico/historico.handlers.js';
 import { createQuestionariosModuleHandlers } from './modules/questionarios-module.js';
 import { createVitrineModuleHandlers } from './modules/vitrine-module.js';
+import { createDenunciasModuleHandlers } from './modules/denuncias-module.js';
 import { VITRINE_SECTOR_CARDS } from '../config/sector-cards.config.js';
 import { bindContentInteractions } from './content/content-interactions.js';
 import { executeModuleSelection } from './content/content-module-selection.js';
@@ -141,6 +142,12 @@ const vitrineModuleHandlers = createVitrineModuleHandlers({
   renderModuleStage,
 });
 
+const denunciasModuleHandlers = createDenunciasModuleHandlers({
+  getModuleState,
+  setModuleState,
+  renderModuleStage,
+});
+
 export function renderContentView(rootElement, viewState, options = {}) {
   const { animate = true } = options;
   const nextToken = ++currentRenderToken;
@@ -187,6 +194,7 @@ function mountView(rootElement, viewState) {
     historicoModuleHandlers,
     questionariosModuleHandlers,
     vitrineModuleHandlers,
+    denunciasModuleHandlers,
     getModuleState,
   });
 }
@@ -218,7 +226,7 @@ function getViewMarkup(viewState) {
 async function handleModuleSelection(rootElement, sector, moduleId, authenticatedUser, options = {}) {
   return executeModuleSelection(
     rootElement, sector, moduleId, authenticatedUser, options,
-    { renderModuleStage, tiRequestsModuleHandlers, vitrineModuleHandlers },
+    { renderModuleStage, tiRequestsModuleHandlers, vitrineModuleHandlers, denunciasModuleHandlers },
   );
 }
 

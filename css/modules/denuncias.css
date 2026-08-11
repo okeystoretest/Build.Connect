@@ -1,0 +1,302 @@
+/* ============================================================================
+   Central de Denúncias (DHO) + modal público de denúncia anônima
+   Usa os tokens globais (base.css). Compatível com tema claro/escuro.
+   ========================================================================== */
+
+/* ── Botão da tela de login ─────────────────────────────────────────────── */
+.login-denuncia-btn {
+  border-color: rgba(200, 60, 60, 0.28);
+}
+.login-denuncia-btn:hover {
+  border-color: rgba(200, 60, 60, 0.5);
+  color: #c83c3c;
+}
+.login-denuncia-btn i { color: #c83c3c; }
+
+/* ── Barra de filtros ───────────────────────────────────────────────────── */
+.denuncias-filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 18px;
+}
+.denuncias-filter-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+.denuncias-filter-btn:hover { background: var(--hover-bg); }
+.denuncias-filter-btn.is-active {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-strong);
+}
+
+/* ── Lista de cards ─────────────────────────────────────────────────────── */
+.denuncias-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+.denuncia-card {
+  text-align: left;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--card-shadow-rest);
+  transition: all var(--transition-base);
+}
+.denuncia-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-2px);
+}
+.denuncia-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.denuncia-date { font-size: 0.8rem; color: var(--muted); }
+.denuncia-card-envolvido {
+  font-size: 0.86rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+.denuncia-card-envolvido i { width: 15px; height: 15px; color: var(--muted); }
+.denuncia-card-preview {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+}
+.denuncia-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+}
+.denuncia-anexos-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.denuncia-anexos-badge i { width: 14px; height: 14px; }
+.denuncia-open-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--primary-strong);
+}
+.denuncia-open-hint i { width: 15px; height: 15px; }
+
+/* ── Pílula de status ───────────────────────────────────────────────────── */
+.denuncia-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.denuncia-status i { width: 13px; height: 13px; }
+.denuncia-status.is-aberta   { background: rgba(200, 60, 60, 0.12);  color: #c83c3c; }
+.denuncia-status.is-analise  { background: rgba(212, 162, 87, 0.16); color: var(--primary-strong); }
+.denuncia-status.is-encerrada{ background: rgba(60, 160, 90, 0.14);  color: #2f9e5c; }
+
+/* ── Detalhe (overlay) ──────────────────────────────────────────────────── */
+.denuncia-detail-dialog { max-width: 560px; }
+.denuncia-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.denuncia-detail-envolvido {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+.denuncia-detail-envolvido i { width: 15px; height: 15px; color: var(--muted); }
+.denuncia-detail-section { margin-bottom: 18px; }
+.denuncia-detail-text {
+  margin: 6px 0 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.denuncia-detail-empty { color: var(--muted); font-size: 0.88rem; margin: 6px 0 0; }
+
+.denuncia-detail-anexos {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.denuncia-anexo-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.denuncia-anexo-item i { width: 18px; height: 18px; color: var(--muted); flex-shrink: 0; }
+.denuncia-anexo-name {
+  flex: 1;
+  font-size: 0.88rem;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.denuncia-anexo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--primary-strong);
+  text-decoration: none;
+}
+.denuncia-anexo-link i { width: 15px; height: 15px; color: var(--primary-strong); }
+.denuncia-anexo-fail { font-size: 0.8rem; color: var(--muted); font-style: italic; }
+
+/* ── Ações de status ────────────────────────────────────────────────────── */
+.denuncia-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.denuncia-status-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+.denuncia-status-btn i { width: 15px; height: 15px; }
+.denuncia-status-btn:not(:disabled):hover { background: var(--hover-bg); }
+.denuncia-status-btn.is-current {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary-strong);
+  cursor: default;
+}
+.denuncia-status-feedback {
+  display: block;
+  margin-top: 10px;
+  font-size: 0.85rem;
+  min-height: 1.1em;
+}
+.denuncia-status-feedback.is-loading { color: var(--muted); }
+.denuncia-status-feedback.is-error   { color: #c83c3c; }
+
+/* ── Anexos no modal público (file drop) ────────────────────────────────── */
+.den-optional { font-style: normal; color: var(--muted); font-weight: 400; font-size: 0.82em; }
+.den-file-drop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all var(--transition-base);
+}
+.den-file-drop:hover { border-color: var(--primary); color: var(--primary-strong); }
+.den-file-drop i { width: 18px; height: 18px; }
+
+.den-file-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.den-file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.den-file-item i { width: 16px; height: 16px; color: var(--muted); flex-shrink: 0; }
+.den-file-name {
+  flex: 1;
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.den-file-remove {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 2px;
+  display: inline-flex;
+}
+.den-file-remove:hover { color: #c83c3c; }
+.den-file-remove i { width: 15px; height: 15px; }
+
+.den-dialog { max-width: 520px; }
+
+/* ── Estado vazio / carregando reaproveitados ───────────────────────────── */
+.denuncias-shell .module-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 20px;
+  color: var(--muted);
+  text-align: center;
+}
+.denuncias-shell .module-empty-state i { width: 34px; height: 34px; }
+
+/* ── Responsivo ─────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .denuncias-list { grid-template-columns: 1fr; }
+  .denuncia-detail-dialog, .den-dialog { max-width: 100%; }
+}

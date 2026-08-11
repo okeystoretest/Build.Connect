@@ -26,6 +26,7 @@ import {
 } from '../evaluations/evaluation.calculations.js';
 import { getMatrixDecisionGraphMarkup } from '../evaluations/evaluation.view.js';
 import { getQualityEfficacyRecordMarkup, getQualityIERecordMarkup } from './quality.scoring.js';
+import { getEvaluationMirrorMarkup } from './quality.mirror.js';
 
 // Inline para evitar dependência circular com quality-module.js
 const QUALITY_UI_DEFAULTS = { selectedQualityToolId:'', selectedQualityEvaluateeId:'', qualityEvaluateeQuery:'', isQualityEvaluateeListOpen:false, qualityRecordsStatus:'idle', qualityRecordsMessage:'', qualityRecords:[], qualityView:'evaluations', feedbacksStatus:'idle', feedbacksPendentes:[], feedbacksLidos:[], feedbacksErrorMessage:'', markingReadId:null, multidirConfig:{}, multidirConfigSaveStatus:'' };
@@ -438,6 +439,8 @@ function getQualityFormRecordMarkup(record) {
       </div>
 
       ${_getQualityFormMetricsMarkup(record)}
+
+      ${getEvaluationMirrorMarkup(record)}
 
       ${record.notes ? `
         <div class="qr-form-card-notes">

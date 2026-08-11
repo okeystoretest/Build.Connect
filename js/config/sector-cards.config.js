@@ -180,6 +180,16 @@ export const DHO_SECTOR_CARDS = [
     getDescription: () =>
       'Acompanhe os resultados dos colaboradores para decidir os próximos passos.',
   },
+  {
+    id: 'central-denuncias',
+    title: 'Central de Denúncias',
+    icon: 'shield-alert',
+    hint: 'Confidencial · NR-1',
+    // Card restrito a Gestor/Admin do DHO (filtrado em getCardsForUserAccess).
+    requiredPrivileged: true,
+    getDescription: () =>
+      'Gerencie as denúncias anônimas recebidas: leia os relatos, veja anexos e acompanhe o status.',
+  },
 ];
 
 // ── Motorista ──────────────────────────────────────────────────────────────

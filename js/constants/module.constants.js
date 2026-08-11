@@ -15,6 +15,7 @@ export const MODULE_IDS = Object.freeze({
   mapasIntegracao:     'mapas-integracao',
   documentosDho:       'documentos-dho',
   questionarios:       'questionarios',
+  centralDenuncias:    'central-denuncias',
 
   // ── Vitrine OKEY — categorias ────────────────────────────────────────────
   vitrineColecoes:  'vitrine-colecoes',
@@ -156,6 +157,7 @@ export const SELF_LOADING_MODULE_IDS = new Set([
   MODULE_IDS.tiRequest,
   MODULE_IDS.motorRequests,
   MODULE_IDS.questionarios,
+  MODULE_IDS.centralDenuncias,
 ]);
 
 export const TOOL_FILTER_OPTIONS = Object.freeze([

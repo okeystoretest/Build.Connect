@@ -20,6 +20,7 @@ export function createClickHandler(rootElement, viewState, dependencies) {
     historicoModuleHandlers,
     questionariosModuleHandlers,
     vitrineModuleHandlers,
+    denunciasModuleHandlers,
     getModuleState,
   } = dependencies;
 
@@ -332,6 +333,7 @@ export function createClickHandler(rootElement, viewState, dependencies) {
       historicoModuleHandlers,
       questionariosModuleHandlers,
       vitrineModuleHandlers,
+      denunciasModuleHandlers,
       evaluationModuleHandlers,
       feedbackModuleHandlers,
       qualityModuleHandlers,
