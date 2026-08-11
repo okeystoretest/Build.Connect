@@ -30,12 +30,15 @@ import { getEvaluationScoreKey } from '../evaluations/evaluation.calculations.js
  */
 export function getEvaluationMirrorMarkup(record) {
   const toolId = record.toolId;
-  // scores normalmente é objeto (jsonb). Defensivo: aceita string JSON também.
-  let scores = record.scores || {};
-  if (typeof scores === 'string') {
-    try { scores = JSON.parse(scores); } catch { scores = {}; }
-  }
-  if (typeof scores !== 'object' || scores === null) scores = {};
+
+  // scores/fields normalmente são objetos (jsonb). Defensivo: aceita string JSON.
+  const parseObj = (v) => {
+    let o = v || {};
+    if (typeof o === 'string') { try { o = JSON.parse(o); } catch { o = {}; } }
+    return (typeof o === 'object' && o !== null) ? o : {};
+  };
+  const scores = parseObj(record.scores);
+  const fields = parseObj(record.fields);
 
   let body = '';
   if (toolId === EVALUATION_TOOL_IDS.PRE_EFFECTIVE) {
@@ -44,14 +47,18 @@ export function getEvaluationMirrorMarkup(record) {
     body = _getBehavioralMirror(toolId, scores);
   } else if (toolId === EVALUATION_TOOL_IDS.MATRIX) {
     body = _getMatrixMirror(toolId, scores);
-  } else {
-    return '';
   }
 
+  // Fallback universal: qualquer avaliação sem espelho dedicado (ou cujo
+  // formato de chave não casou) exibe todas as respostas cruas, para que
+  // NENHUMA informação preenchida fique oculta.
+  if (!body) {
+    body = _getGenericMirror(scores, fields);
+  }
   if (!body) return '';
 
   return `
-    <details class="qr-mirror" open>
+    <details class="qr-mirror" open data-mirror="v3">
       <summary class="qr-mirror-summary">
         <span class="qr-mirror-summary-label">
           <i data-lucide="list-checks"></i>
@@ -64,6 +71,38 @@ export function getEvaluationMirrorMarkup(record) {
       </div>
     </details>
   `;
+}
+
+// Fallback: lista genérica de todas as respostas (chave → valor) preenchidas.
+function _getGenericMirror(scores, fields) {
+  const entries = [];
+  const collect = (obj) => {
+    Object.keys(obj || {}).forEach((k) => {
+      const v = obj[k];
+      if (v === undefined || v === null || String(v) === '' || String(v) === '0') return;
+      entries.push({ k, v });
+    });
+  };
+  collect(scores);
+  collect(fields);
+  if (!entries.length) return '';
+
+  const rows = entries.map(({ k, v }) => {
+    // Deixa a chave mais legível: pega o segmento do critério quando houver.
+    const parts = String(k).split(':');
+    const label = parts.length >= 2 ? parts.slice(1).join(' · ') : k;
+    return `
+      <tr>
+        <th scope="row" class="qr-mirror-criterion"><span class="qr-mirror-criterion-title">${sanitizeText(label)}</span></th>
+        <td class="qr-mirror-cell">${sanitizeText(String(typeof v === 'object' ? JSON.stringify(v) : v))}</td>
+      </tr>`;
+  }).join('');
+
+  return `
+    <table class="qr-mirror-table qr-mirror-table-behavioral">
+      <thead><tr><th scope="col" class="qr-mirror-th-criterion">Item</th><th scope="col" class="qr-mirror-th-answer">Resposta</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
 
 // ── Pré-efetivo: cada critério × período (7/14/21 dias) ─────────────────────

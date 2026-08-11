@@ -25,6 +25,7 @@ import {
   getMatrixDecision,
 } from './evaluations/evaluation.calculations.js';
 import { getMatrixDecisionGraphMarkup } from './evaluations/evaluation.view.js';
+import { getEvaluationMirrorMarkup } from './quality/quality.mirror.js';
 
 export const QUALITY_UI_DEFAULTS = Object.freeze({
   selectedQualityToolId: '',
@@ -436,6 +437,8 @@ function getQualityMatrixRecordMarkup(record) {
         </div>
 
       </div>
+
+      ${getEvaluationMirrorMarkup(record)}
     </article>
   `;
 }
@@ -473,6 +476,8 @@ function getQualityFormRecordMarkup(record) {
       </div>
 
       ${_getQualityFormMetricsMarkup(record)}
+
+      ${getEvaluationMirrorMarkup(record)}
 
       ${record.notes ? `
         <div class="qr-form-card-notes">
