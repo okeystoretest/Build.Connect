@@ -51,11 +51,11 @@ export function getEvaluationMirrorMarkup(record) {
   if (!body) return '';
 
   return `
-    <details class="qr-mirror">
+    <details class="qr-mirror" open>
       <summary class="qr-mirror-summary">
         <span class="qr-mirror-summary-label">
           <i data-lucide="list-checks"></i>
-          Ver respostas detalhadas
+          Respostas detalhadas
         </span>
         <i data-lucide="chevron-down" class="qr-mirror-chevron"></i>
       </summary>
