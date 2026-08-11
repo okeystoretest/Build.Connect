@@ -30,7 +30,12 @@ import { getEvaluationScoreKey } from '../evaluations/evaluation.calculations.js
  */
 export function getEvaluationMirrorMarkup(record) {
   const toolId = record.toolId;
-  const scores = record.scores || {};
+  // scores normalmente é objeto (jsonb). Defensivo: aceita string JSON também.
+  let scores = record.scores || {};
+  if (typeof scores === 'string') {
+    try { scores = JSON.parse(scores); } catch { scores = {}; }
+  }
+  if (typeof scores !== 'object' || scores === null) scores = {};
 
   let body = '';
   if (toolId === EVALUATION_TOOL_IDS.PRE_EFFECTIVE) {

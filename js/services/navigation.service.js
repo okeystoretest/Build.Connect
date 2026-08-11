@@ -53,25 +53,24 @@ export function sanitizeActiveItemForNavigation(itemId, navigationItems) {
   return itemId;
 }
 
+/**
+ * Retorna o conjunto BRUTO de cards de um setor, sem aplicar o filtro de
+ * acesso por usuário. Útil quando só precisamos localizar a definição de um
+ * card (ex.: renderização do stage), sendo a autorização já garantida antes.
+ */
+export function getSectorCardDefinitions(itemId) {
+  if (isDhoSector(itemId)) return DHO_SECTOR_CARDS;
+  if (itemId === SECTOR_IDS.backoffice) return RETAGUARDA_SECTOR_CARDS;
+  if (itemId === SECTOR_IDS.vitrine) return VITRINE_SECTOR_CARDS;
+  if (itemId === SECTOR_IDS.lovclub) return LOV_CLUB_SECTOR_CARDS;
+  if (itemId === SECTOR_IDS.motorista) return MOTORISTA_SECTOR_CARDS;
+  if (COMMERCIAL_SECTOR_IDS.has(itemId)) return COMMERCIAL_SECTOR_CARDS;
+  // 'estoque' e demais setores usam DEFAULT_SECTOR_CARDS
+  return DEFAULT_SECTOR_CARDS;
+}
+
 export function getCardsForSector(itemId, authenticatedUser = null) {
-  let cards = DEFAULT_SECTOR_CARDS;
-
-  if (isDhoSector(itemId)) {
-    cards = DHO_SECTOR_CARDS;
-  } else if (itemId === SECTOR_IDS.backoffice) {
-    cards = RETAGUARDA_SECTOR_CARDS;
-  } else if (itemId === SECTOR_IDS.vitrine) {
-    cards = VITRINE_SECTOR_CARDS;
-  } else if (itemId === SECTOR_IDS.lovclub) {
-    cards = LOV_CLUB_SECTOR_CARDS;
-  } else if (itemId === SECTOR_IDS.motorista) {
-    cards = MOTORISTA_SECTOR_CARDS;
-  } else if (COMMERCIAL_SECTOR_IDS.has(itemId)) {
-    cards = COMMERCIAL_SECTOR_CARDS;
-  }
-  // 'estoque' and all other sectors fall through to DEFAULT_SECTOR_CARDS
-
-  return getCardsForUserAccess(cards, authenticatedUser);
+  return getCardsForUserAccess(getSectorCardDefinitions(itemId), authenticatedUser);
 }
 
 export function getInitialNavigationState() {

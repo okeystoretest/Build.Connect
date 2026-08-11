@@ -4,7 +4,7 @@ import {
   MODULE_STATUS,
   VIDEO_MODULE_IDS,
 } from '../../constants/module.constants.js';
-import { getCardsForSector } from '../../services/navigation.service.js';
+import { getSectorCardDefinitions } from '../../services/navigation.service.js';
 import { sanitizeText } from '../../utils/sanitize.js';
 import { getDocumentModuleMarkup } from './document-module.js';
 import {
@@ -45,7 +45,10 @@ export function getModuleStageMarkup(sector, stageState) {
     `;
   }
 
-  const selectedCard = getCardsForSector(sector.id).find((card) => card.id === stageState.selectedModuleId);
+  // Usa as definições brutas (sem filtro de acesso): a autorização já foi
+  // garantida no clique/executeModuleSelection. Sem isso, cards privilegiados
+  // como 'central-denuncias' não seriam encontrados aqui e o stage ficaria vazio.
+  const selectedCard = getSectorCardDefinitions(sector.id).find((card) => card.id === stageState.selectedModuleId);
 
   if (!selectedCard) {
     return '';
