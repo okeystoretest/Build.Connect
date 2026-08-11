@@ -2333,3 +2333,21 @@
   .qr-mirror-table { font-size: 0.8rem; }
   .qr-mirror-table th, .qr-mirror-table td { padding: 6px 7px; }
 }
+
+/* ── Espelho: seções da matriz de decisão ──────────────────────────────── */
+.qr-mirror-matrix-section { margin-bottom: 16px; }
+.qr-mirror-matrix-section:last-child { margin-bottom: 0; }
+.qr-mirror-matrix-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 4px 0 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--primary-strong);
+}
+.qr-mirror-matrix-heading i { width: 15px; height: 15px; }
+.qr-mirror-note { font-weight: 700; color: var(--text); }
+.qr-mirror-note small { font-weight: 400; color: var(--muted); margin-left: 1px; }

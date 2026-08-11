@@ -19,6 +19,8 @@ import {
   EVALUATION_CRITERIA,
   EVALUATION_PERIODS,
   EVALUATION_TOOL_IDS,
+  MATRIX_TECHNICAL_CRITERIA,
+  MATRIX_EMOTIONAL_CRITERIA,
 } from '../evaluations/evaluation.constants.js';
 import { getEvaluationScoreKey } from '../evaluations/evaluation.calculations.js';
 
@@ -35,6 +37,8 @@ export function getEvaluationMirrorMarkup(record) {
     body = _getPreEffectiveMirror(toolId, scores);
   } else if (toolId === EVALUATION_TOOL_IDS.BEHAVIORAL) {
     body = _getBehavioralMirror(toolId, scores);
+  } else if (toolId === EVALUATION_TOOL_IDS.MATRIX) {
+    body = _getMatrixMirror(toolId, scores);
   } else {
     return '';
   }
@@ -124,4 +128,44 @@ function _getBehavioralMirror(toolId, scores) {
       </thead>
       <tbody>${rows}</tbody>
     </table>`;
+}
+
+// ── Matriz de decisão: critérios técnicos e emocionais (nota 0–10) ──────────
+function _getMatrixMirror(toolId, scores) {
+  const section = (title, icon, criteria, dimension) => {
+    const rows = criteria.map((criterion, index) => {
+      const key = getEvaluationScoreKey(toolId, criterion.id, dimension);
+      const raw = scores[key];
+      const filled = raw !== undefined && raw !== null && String(raw) !== '';
+      return `
+        <tr>
+          <th scope="row" class="qr-mirror-criterion">
+            <span class="qr-mirror-criterion-index">${String(index + 1).padStart(2, '0')}.</span>
+            <span class="qr-mirror-criterion-title">${sanitizeText(criterion.title)}</span>
+          </th>
+          <td class="qr-mirror-cell qr-mirror-cell-answer ${filled ? '' : 'is-empty'}">
+            ${filled ? `<span class="qr-mirror-note">${sanitizeText(String(raw))}<small>/10</small></span>` : '—'}
+          </td>
+        </tr>`;
+    }).join('');
+
+    return `
+      <div class="qr-mirror-matrix-section">
+        <h5 class="qr-mirror-matrix-heading"><i data-lucide="${icon}"></i> ${sanitizeText(title)}</h5>
+        <table class="qr-mirror-table qr-mirror-table-behavioral">
+          <thead>
+            <tr>
+              <th scope="col" class="qr-mirror-th-criterion">Critério</th>
+              <th scope="col" class="qr-mirror-th-answer">Nota</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  };
+
+  return `
+    ${section('Critérios Técnicos', 'wrench', MATRIX_TECHNICAL_CRITERIA, 'technical')}
+    ${section('Critérios Emocionais', 'heart', MATRIX_EMOTIONAL_CRITERIA, 'emotional')}
+  `;
 }

@@ -92,6 +92,10 @@ const MODULE_CARD_IDS = new Set([
 ].map((card) => card.id));
 MODULE_CARD_IDS.add(MODULE_IDS.tiRequest);
 MODULE_CARD_IDS.add(MODULE_IDS.motorRequests);
+// Central de Denúncias (DHO): o card é requiredPrivileged, então getCardsForSector('dho')
+// — chamado aqui sem usuário — o remove do conjunto. Adicionamos o id explicitamente
+// (como tiRequest/motorRequests) para que o clique não seja bloqueado pelo guard de moduleCardIds.
+MODULE_CARD_IDS.add(MODULE_IDS.centralDenuncias);
 let currentRenderToken = 0;
 
 const feedbackModuleHandlers = createFeedbackModuleHandlers({

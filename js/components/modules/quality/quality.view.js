@@ -402,6 +402,8 @@ function getQualityMatrixRecordMarkup(record) {
         </div>
 
       </div>
+
+      ${getEvaluationMirrorMarkup(record)}
     </article>
   `;
 }
