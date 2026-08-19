@@ -14,7 +14,9 @@ import { buildNaviProgress, computeNaviLocks, isNaviSector } from './navi.servic
 
 const CACHE_MS = 60_000;
 const _lastFetch = new Map();
-const STORAGE_KEY = 'bc_sector_alerts';
+// v2 — invalida caches gravados sob o conjunto de regras anterior
+// (lock de Avaliações para Gestor e locks de setor/módulo para Admin).
+const STORAGE_KEY = 'bc_sector_alerts_v2';
 
 // ── Lockable card IDs for Navi cleanup ──────────────────────────────────────
 const NAVI_LOCKABLE_IDS = [

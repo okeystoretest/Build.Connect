@@ -6,7 +6,7 @@
 
 import { MODULE_IDS } from '../constants/module.constants.js';
 import { SECTOR_IDS } from '../constants/sector.constants.js';
-import { isAdminUser, isManagerUser } from './access.service.js';
+import { isAdminUser } from './access.service.js';
 
 // ── Thresholds de desbloqueio ────────────────────────────────────────────────
 
@@ -153,15 +153,10 @@ export function computeNaviLocks(progress, user, sectorId) {
     };
   }
 
-  // Avaliações — bloqueada para Gestores enquanto conteúdo ativo não atingir 100%.
-  // (Colaboradores são bloqueados globalmente via canUserAccessModule; Admins → retorno {} acima.)
-  if (!allDone && isManagerUser(user)) {
-    locks[MODULE_IDS.evaluation] = {
-      locked: true,
-      reason: 'Conclua 100% de todo o conteúdo do setor para liberar Avaliações.',
-      pct: activePct,
-    };
-  }
+  // Avaliações — SEM trava de progresso.
+  // Gestor: acesso liberado independentemente do percentual de conteúdo consumido.
+  // Colaborador: bloqueio global permanece em canUserAccessModule (access.service.js).
+  // Admin: retorno {} acima — nenhum lock aplicado.
 
   // Requisições TI — bloqueada para TODOS os usuários (não-admin) da Retaguarda
   // até que 100% do conteúdo obrigatório ativo seja integralmente consumido.
