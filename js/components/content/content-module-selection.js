@@ -98,13 +98,22 @@ export async function executeModuleSelection(
     return;
   }
 
-  // Helper: preserva cardAlerts, cardLocks e authenticatedUser em toda transição de estado.
+  // naviSequentialActive: false para Admin → sem lock sequencial de itens.
+  // Declarado antes de _set para ser reafirmado em TODA transição de estado.
+  const naviSequentialActive = !isAdminUser(authenticatedUser);
+
+  // Helper: preserva cardAlerts, cardLocks, authenticatedUser e naviSequentialActive
+  // em toda transição de estado.
   // cardAlerts → pílulas de status visíveis ao retornar para o grid de cards.
   // cardLocks  → bloqueios Navi; sem esta preservação, entrar num módulo apagava os locks,
   //              permitindo que o usuário visse cards desbloqueados ao clicar Voltar (bypass).
-  // authenticatedUser → garante filtro correto de cards por nível de acesso.
+  // authenticatedUser    → garante filtro correto de cards por nível de acesso.
+  // naviSequentialActive → sem esta reafirmação, os ramos que recriam `ui` a partir de
+  //              MODULE_UI_DEFAULTS (sucesso/erro do carregamento) descartavam a flag e
+  //              reativavam a trava sequencial de itens para o Administrador.
   const _set = (state) => setModuleState(sector.id, {
     ...state,
+    ui: { ...(state.ui || MODULE_UI_DEFAULTS), naviSequentialActive },
     cardAlerts:        getModuleState(sector.id).cardAlerts        || currentState.cardAlerts        || {},
     cardLocks:         getModuleState(sector.id).cardLocks         || currentState.cardLocks         || {},
     authenticatedUser: authenticatedUser || currentState.authenticatedUser || null,
@@ -134,15 +143,12 @@ export async function executeModuleSelection(
       .catch(() => { /* silencioso */ });
   };
 
-  // naviSequentialActive: false para Admin → sem lock sequencial de itens
-  const naviSequentialActive = !isAdminUser(authenticatedUser);
-
   _set({
     selectedModuleId: moduleId,
     status: MODULE_STATUS.loading,
     moduleData: null,
     errorMessage: '',
-    ui: { ...MODULE_UI_DEFAULTS, naviSequentialActive },
+    ui: { ...MODULE_UI_DEFAULTS },
   });
   renderModuleStage(rootElement, sector);
 

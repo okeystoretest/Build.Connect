@@ -24,6 +24,7 @@ import { animateOut } from '../../utils/motion.js';
 import {
   SEQUENTIAL_MODULE_IDS,
   isItemSequentiallyLocked,
+  isNaviSequentialActive,
 } from '../../services/navi.service.js';
 
 export function getDocumentModuleMarkup(card, moduleData, moduleUi, renderDependencies) {
@@ -44,8 +45,8 @@ export function getDocumentModuleMarkup(card, moduleData, moduleUi, renderDepend
 
   const activeFilter  = moduleUi?.selectedToolFilter || '';
   const preparedItems = prepareModuleItems(items, moduleUi, MODULE_ITEM_TYPES.document);
-  // Sequential lock: active for all users except Admin (naviSequentialActive=false)
-  const isSequential  = SEQUENTIAL_MODULE_IDS.has(card.id) && (moduleUi?.naviSequentialActive !== false);
+  // Sequential lock: ativo para todos os níveis, exceto Administrador.
+  const isSequential  = SEQUENTIAL_MODULE_IDS.has(card.id) && isNaviSequentialActive(moduleUi);
   // Vitrine: sem filtros de ferramenta
   const isVitrineCtx  = isVitrineModuleId(card.id);
 

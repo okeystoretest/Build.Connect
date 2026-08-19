@@ -8,7 +8,11 @@ import { MODULE_ITEM_TYPES, MODULE_VIEW_MODE, TOOL_FILTER_OPTIONS } from '../../
 import { sanitizeAttribute, sanitizeText } from '../../utils/sanitize.js';
 import { prepareModuleItems } from './module-items.js';
 import { getInProgressRefIds } from '../../services/content-progress.service.js';
-import { SEQUENTIAL_MODULE_IDS, isItemSequentiallyLocked } from '../../services/navi.service.js';
+import {
+  SEQUENTIAL_MODULE_IDS,
+  isItemSequentiallyLocked,
+  isNaviSequentialActive,
+} from '../../services/navi.service.js';
 
 export function getVideoModuleMarkup(card, moduleData, moduleUi, renderDependencies) {
   const items = Array.isArray(moduleData?.items) ? moduleData.items : [];
@@ -28,8 +32,8 @@ export function getVideoModuleMarkup(card, moduleData, moduleUi, renderDependenc
 
   const activeFilter  = moduleUi?.selectedToolFilter || '';
   const preparedItems = prepareModuleItems(items, moduleUi, MODULE_ITEM_TYPES.video);
-  // Sequential lock: active for all users except Admin (naviSequentialActive=false)
-  const isSequential  = SEQUENTIAL_MODULE_IDS.has(card.id) && (moduleUi?.naviSequentialActive !== false);
+  // Sequential lock: ativo para todos os níveis, exceto Administrador.
+  const isSequential  = SEQUENTIAL_MODULE_IDS.has(card.id) && isNaviSequentialActive(moduleUi);
 
   return `
     <div class="module-shell" data-module-shell>

@@ -7,6 +7,7 @@
 import { MODULE_IDS } from '../constants/module.constants.js';
 import { SECTOR_IDS } from '../constants/sector.constants.js';
 import { isAdminUser } from './access.service.js';
+import { getAuthenticatedUser } from './auth.service.js';
 
 // ── Thresholds de desbloqueio ────────────────────────────────────────────────
 
@@ -185,4 +186,22 @@ export function computeNaviLocks(progress, user, sectorId) {
 export function isItemSequentiallyLocked(index, prevRefId, consumedRefIds) {
   if (index === 0 || !prevRefId) return false;
   return !consumedRefIds.has(prevRefId);
+}
+
+/**
+ * Fonte da verdade para o sequenciamento de itens na renderização.
+ *
+ * A flag `moduleUi.naviSequentialActive` é definida em content-module-selection.js,
+ * porém nem toda transição de estado a propagava (o objeto `ui` era recriado a
+ * partir de MODULE_UI_DEFAULTS na resposta de sucesso), reativando a trava para
+ * Administradores. Esta função consulta o usuário autenticado diretamente,
+ * garantindo isenção do Admin independentemente da propagação da flag.
+ *
+ * @param {object|null} moduleUi Estado de UI do módulo
+ * @returns {boolean} true → sequenciamento de itens ativo
+ */
+export function isNaviSequentialActive(moduleUi) {
+  // Admin: nenhuma trava de item, em qualquer módulo.
+  if (isAdminUser(getAuthenticatedUser())) return false;
+  return moduleUi?.naviSequentialActive !== false;
 }
